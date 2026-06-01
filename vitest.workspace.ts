@@ -6,6 +6,7 @@ export default defineWorkspace([
   'packages/providers/vitest.config.ts',
   'packages/prompts/vitest.config.ts',
   'packages/observability/vitest.config.ts',
+  'packages/test-support/vitest.config.ts',
   'services/agent/vitest.config.ts',
   'services/worker/vitest.config.ts',
   'services/api/vitest.config.ts',
