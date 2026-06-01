@@ -10,3 +10,4 @@ export {
   type SeededModule,
   type SeededEnrollment,
 } from './seed.ts';
+export { withTestRedis, type TestRedis } from './redis.ts';
