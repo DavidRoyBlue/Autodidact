@@ -1,6 +1,7 @@
 import { Redis } from 'ioredis';
 import { createLogger, initTracer } from '@autodidact/observability';
 import { createQueueProvider } from '@autodidact/providers';
+import { loadWorkerEnv } from '@autodidact/env';
 import { AgentClient } from './services/agent.client.js';
 import { createCourseGenerationWorker } from './processors/course-generation.processor.js';
 import { createEmbeddingWorker } from './processors/embedding.processor.js';
@@ -8,13 +9,11 @@ import { createEmbeddingWorker } from './processors/embedding.processor.js';
 const logger = createLogger('worker');
 
 async function start() {
+  const env = loadWorkerEnv();
   initTracer('autodidact-worker');
 
-  const redisUrl = process.env['REDIS_URL'] ?? 'redis://localhost:6379';
-  const agentUrl = process.env['AGENT_SERVICE_URL'] ?? 'http://localhost:3001';
-
-  const redis = new Redis(redisUrl, { maxRetriesPerRequest: null });
-  const agentClient = new AgentClient(agentUrl);
+  const redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
+  const agentClient = new AgentClient(env.AGENT_SERVICE_URL);
   const queueProvider = createQueueProvider();
 
   const courseWorker = createCourseGenerationWorker(redis, agentClient, queueProvider, logger);

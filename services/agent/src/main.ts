@@ -6,14 +6,15 @@ import {
   createCheckpointer,
 } from '@autodidact/providers';
 import { createLogger } from '@autodidact/observability';
+import { loadAgentEnv } from '@autodidact/env';
 import { registerGenerateCourseRoute } from './routes/generate-course.js';
 import { registerModuleChatRoute } from './routes/module-chat.js';
 import { registerEmbeddingsRoute } from './routes/embeddings.js';
 
 const logger = createLogger('agent');
-const port = parseInt(process.env['AGENT_PORT'] ?? '3001', 10);
 
 async function start() {
+  const env = loadAgentEnv();
   const app = Fastify({ logger: false });
   await app.register(cors, { origin: true });
 
@@ -30,8 +31,8 @@ async function start() {
   // Health check
   app.get('/health', async () => ({ status: 'ok', service: 'agent' }));
 
-  await app.listen({ port, host: '0.0.0.0' });
-  logger.info({ port }, 'Agent service started');
+  await app.listen({ port: env.AGENT_PORT, host: '0.0.0.0' });
+  logger.info({ port: env.AGENT_PORT }, 'Agent service started');
 }
 
 start().catch((err) => {

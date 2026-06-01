@@ -20,6 +20,7 @@ out/
 .env.prod
 .env.local
 .env.*.local
+.envrc.local
 
 # Logs
 *.log
@@ -57,7 +58,10 @@ infra/**/terraform.tfvars
 
 # Python virtual environment
 .venv/
+
+# direnv — personal config is ignored; the committed template (.envrc.example) is tracked
 .envrc
+!.envrc.example
 
 # EAS / Expo
 .expo-shared/
