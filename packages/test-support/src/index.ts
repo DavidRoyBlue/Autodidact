@@ -1,4 +1,4 @@
-export { withTestDatabase, type TestDatabase } from './database.ts';
+export { withTestDatabase, type TestDatabase } from './database.js';
 export {
   seedUser,
   seedCourse,
@@ -9,5 +9,6 @@ export {
   type SeededCourse,
   type SeededModule,
   type SeededEnrollment,
-} from './seed.ts';
-export { withTestRedis, type TestRedis } from './redis.ts';
+  type SeededModuleProgress,
+} from './seed.js';
+export { withTestRedis, type TestRedis } from './redis.js';

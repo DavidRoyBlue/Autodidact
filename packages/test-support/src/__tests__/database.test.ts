@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { sql } from 'drizzle-orm';
-import { withTestDatabase, type TestDatabase } from '../database.ts';
+import { withTestDatabase, type TestDatabase } from '../database.js';
 
 let h: TestDatabase;
 

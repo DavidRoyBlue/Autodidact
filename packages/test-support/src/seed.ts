@@ -1,5 +1,5 @@
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { users, courses, modules, enrollments, moduleProgress } from '@autodidact/db';
+import type { DB } from '@autodidact/db';
 
 export interface SeededUser {
   id: string;
@@ -14,8 +14,13 @@ export interface SeededModule {
 export interface SeededEnrollment {
   id: string;
 }
+export interface SeededModuleProgress {
+  id: string;
+  moduleId: string;
+  status: string;
+}
 
-export async function seedUser(db: NodePgDatabase): Promise<SeededUser> {
+export async function seedUser(db: DB): Promise<SeededUser> {
   const [user] = await db
     .insert(users)
     .values({ supabaseId: crypto.randomUUID(), email: `user-${crypto.randomUUID()}@test.com` })
@@ -24,7 +29,7 @@ export async function seedUser(db: NodePgDatabase): Promise<SeededUser> {
   return user;
 }
 
-export async function seedCourse(db: NodePgDatabase, generatedBy: string): Promise<SeededCourse> {
+export async function seedCourse(db: DB, generatedBy: string): Promise<SeededCourse> {
   const [course] = await db
     .insert(courses)
     .values({
@@ -42,7 +47,7 @@ export async function seedCourse(db: NodePgDatabase, generatedBy: string): Promi
 }
 
 export async function seedModules(
-  db: NodePgDatabase,
+  db: DB,
   courseId: string,
   count: number,
 ): Promise<SeededModule[]> {
@@ -59,7 +64,7 @@ export async function seedModules(
 }
 
 export async function seedEnrollment(
-  db: NodePgDatabase,
+  db: DB,
   userId: string,
   courseId: string,
 ): Promise<SeededEnrollment> {
@@ -72,16 +77,19 @@ export async function seedEnrollment(
 }
 
 export async function seedModuleProgress(
-  db: NodePgDatabase,
+  db: DB,
   userId: string,
   courseId: string,
   mods: SeededModule[],
-) {
+): Promise<SeededModuleProgress[]> {
   const rows = mods.map((m) => ({
     userId,
     moduleId: m.id,
     courseId,
     status: (m.position === 0 ? 'available' : 'locked') as 'available' | 'locked',
   }));
-  return db.insert(moduleProgress).values(rows).returning();
+  return db
+    .insert(moduleProgress)
+    .values(rows)
+    .returning({ id: moduleProgress.id, moduleId: moduleProgress.moduleId, status: moduleProgress.status });
 }

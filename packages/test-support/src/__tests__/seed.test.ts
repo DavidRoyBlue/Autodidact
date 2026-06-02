@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { withTestDatabase, type TestDatabase } from '../database.ts';
-import { seedUser, seedCourse, seedModules, seedEnrollment, seedModuleProgress } from '../seed.ts';
+import { withTestDatabase, type TestDatabase } from '../database.js';
+import { seedUser, seedCourse, seedModules, seedEnrollment, seedModuleProgress } from '../seed.js';
 
 let h: TestDatabase;
 
@@ -13,7 +13,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await h.truncate();
+  await h?.truncate();
 });
 
 describe('seed factories', () => {
@@ -41,10 +41,9 @@ describe('seed factories', () => {
     const mods = await seedModules(h.db, course.id, 2);
     await seedEnrollment(h.db, user.id, course.id);
     const progress = await seedModuleProgress(h.db, user.id, course.id, mods);
-    const byPos = Object.fromEntries(
-      progress.map((p, i) => [mods[i]!.position, p.status]),
-    );
-    expect(byPos[0]).toBe('available');
-    expect(byPos[1]).toBe('locked');
+    // Map by moduleId rather than array index — INSERT...RETURNING row order is not guaranteed.
+    const statusByModuleId = new Map(progress.map((p) => [p.moduleId, p.status]));
+    expect(statusByModuleId.get(mods[0]!.id)).toBe('available');
+    expect(statusByModuleId.get(mods[1]!.id)).toBe('locked');
   });
 });

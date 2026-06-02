@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Queue } from 'bullmq';
-import { withTestRedis, type TestRedis } from '../redis.ts';
+import { withTestRedis, type TestRedis } from '../redis.js';
 
 let r: TestRedis;
 
