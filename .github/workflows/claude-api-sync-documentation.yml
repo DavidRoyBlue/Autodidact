@@ -3,12 +3,12 @@ on:
   pull_request:
     types: [opened, synchronize]
     paths:
-      - "src/api/**/*.ts"
-      - "src/routes/**/*.ts"
+      - "services/api/**/*.ts"
 
 jobs:
   doc-sync:
     runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
     permissions:
       contents: write
       pull-requests: write
@@ -28,8 +28,8 @@ jobs:
 
             This PR modifies API endpoints. Please:
 
-            1. Review the API changes in src/api and src/routes
-            2. Update API.md to document any new or changed endpoints
+            1. Review the API changes in services/api (the NestJS public HTTP API)
+            2. Update services/api/README.md (and API.md if present) to document any new or changed endpoints
             3. Ensure OpenAPI spec is updated if needed
             4. Update example requests/responses
 
