@@ -17,6 +17,12 @@ React Native client for Autodidact — an AI-powered learning platform where use
 | Auth / realtime | Supabase | 2 |
 | SSE streaming | @microsoft/fetch-event-source | 2 |
 
+## Known dependency risk
+
+`tamagui` and `@tamagui/*` are pinned to `2.0.0-rc.41` (a release candidate).
+Renovate's `mobile` group is disabled for these — bump them manually, and move
+off the RC to the GA `2.0.0` release once it ships.
+
 ## Running
 
 ```bash
