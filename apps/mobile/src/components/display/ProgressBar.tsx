@@ -12,7 +12,14 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
   return (
     <YStack gap="$1">
       <XStack height={6} backgroundColor="$surfaceHover" borderRadius="$full" overflow="hidden">
-        <XStack height={6} width={pct} backgroundColor="$primary" borderRadius="$full" animation="medium" />
+        <XStack
+          height={6}
+          width={pct}
+          backgroundColor="$primary"
+          borderRadius="$full"
+          // @ts-expect-error Tamagui 2.0-rc: configured animation keys ('medium') aren't surfaced on intrinsic View prop types
+          animation="medium"
+        />
       </XStack>
       {label && <AppText variant="caption">{label}</AppText>}
     </YStack>

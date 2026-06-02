@@ -1,6 +1,6 @@
-import { styled, Stack } from 'tamagui';
+import { styled, YStack } from 'tamagui';
 
-const SkeletonBase = styled(Stack, {
+const SkeletonBase = styled(YStack, {
   name: 'Skeleton',
   backgroundColor: '$surfaceHover',
   borderRadius: '$sm',

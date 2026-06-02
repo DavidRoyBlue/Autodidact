@@ -22,7 +22,7 @@ function InlineContent({ segments }: { segments: Segment[] }) {
         }
         if (seg.type === 'code') {
           return (
-            <AppText key={i} fontFamily="monospace" backgroundColor="$surfaceHover" borderRadius="$sm" paddingHorizontal="$1">
+            <AppText key={i} style={{ fontFamily: 'monospace' }} backgroundColor="$surfaceHover" borderRadius="$sm" paddingHorizontal="$1">
               {` ${seg.content} `}
             </AppText>
           );
@@ -58,7 +58,7 @@ function MarkdownContent({ content }: { content: string }) {
       flush();
       nodes.push(
         <YStack key={k++} backgroundColor="$surfaceHover" borderRadius="$sm" padding="$3" marginTop="$2">
-          <AppText fontFamily="monospace" variant="body" size="sm">{seg.content.trim()}</AppText>
+          <AppText style={{ fontFamily: 'monospace' }} variant="body" size="sm">{seg.content.trim()}</AppText>
         </YStack>,
       );
     } else {

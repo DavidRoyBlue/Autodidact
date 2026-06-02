@@ -31,6 +31,7 @@ export function Toast({ id, message, variant }: ToastProps) {
 
   return (
     <XStack
+      // @ts-expect-error Tamagui 2.0-rc: configured animation keys ('fast') aren't surfaced on intrinsic View prop types
       animation="fast"
       enterStyle={{ opacity: 0, y: -12 }}
       exitStyle={{ opacity: 0, y: -12 }}
