@@ -109,6 +109,45 @@ importers:
         specifier: ^5.3.3
         version: 5.9.3
 
+  e2e:
+    devDependencies:
+      '@autodidact/agent':
+        specifier: workspace:*
+        version: link:../services/agent
+      '@autodidact/api':
+        specifier: workspace:*
+        version: link:../services/api
+      '@autodidact/config':
+        specifier: workspace:*
+        version: link:../packages/config
+      '@autodidact/db':
+        specifier: workspace:*
+        version: link:../packages/db
+      '@autodidact/schemas':
+        specifier: workspace:*
+        version: link:../packages/schemas
+      '@autodidact/test-support':
+        specifier: workspace:*
+        version: link:../packages/test-support
+      '@autodidact/types':
+        specifier: workspace:*
+        version: link:../packages/types
+      '@autodidact/worker':
+        specifier: workspace:*
+        version: link:../services/worker
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
+      drizzle-orm:
+        specifier: ^0.38.0
+        version: 0.38.4(@opentelemetry/api@1.9.1)(@types/pg@8.20.0)(@types/react@19.1.17)(pg@8.20.0)(react@19.1.0)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.2)
+
   packages/config:
     devDependencies:
       '@typescript-eslint/eslint-plugin':
@@ -1922,7 +1961,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {node: '>=0.10.0'}
+    engines: {'0': node >=0.10.0}
 
   '@expo/cli@0.22.28':
     resolution: {integrity: sha512-lvt72KNitGuixYD2l3SZmRKVu2G4zJpmg5V7WfUBNpmUU5oODBw/6qmiJ6kSLAlfDozscUk+BBGknBBzxUrwrA==}
