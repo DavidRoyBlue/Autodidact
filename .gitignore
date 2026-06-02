@@ -11,6 +11,16 @@ out/
 .expo/
 *.tsbuildinfo
 
+# Compiled TS output accidentally emitted into src/ (build output belongs in dist/)
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+services/*/src/**/*.js
+services/*/src/**/*.js.map
+services/*/src/**/*.d.ts
+services/*/src/**/*.d.ts.map
+
 # Turbo
 .turbo/
 
