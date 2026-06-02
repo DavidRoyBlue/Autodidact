@@ -41,11 +41,13 @@ All factory functions accept an optional `ProviderConfig` object. If a field is 
 
 | Env var | Factory | Options | Default |
 |---------|---------|---------|---------|
-| `LLM_PROVIDER` | `createLLMProvider` | `openai`, `anthropic` | `openai` |
-| `EMBEDDING_PROVIDER` | `createEmbeddingProvider` | `openai` | `openai` |
+| `LLM_PROVIDER` | `createLLMProvider` | `openai`, `anthropic`, `mock` | `openai` |
+| `EMBEDDING_PROVIDER` | `createEmbeddingProvider` | `openai`, `mock` | `openai` |
 | `QUEUE_PROVIDER` | `createQueueProvider` | `bullmq` | `bullmq` |
-| `AUTH_PROVIDER` | `createAuthProvider` | `supabase` | `supabase` |
+| `AUTH_PROVIDER` | `createAuthProvider` | `supabase`, `mock` | `supabase` |
 | `CHECKPOINTER` | `createCheckpointer` | `memory`, `postgres` | `memory` |
+
+> `mock` (LLM/embedding/auth) selects deterministic, network-free providers used **only** by the cross-service e2e (`@autodidact/e2e`) — never in dev or production.
 
 ## Internal Structure
 

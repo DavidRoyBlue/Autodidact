@@ -250,6 +250,9 @@ importers:
       '@autodidact/config':
         specifier: workspace:*
         version: link:../config
+      '@autodidact/schemas':
+        specifier: workspace:^
+        version: link:../schemas
       '@autodidact/types':
         specifier: workspace:*
         version: link:../types

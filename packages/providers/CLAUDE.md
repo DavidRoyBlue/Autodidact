@@ -12,7 +12,8 @@ Provider interfaces, factory functions, and concrete implementations for all ext
 
 - Never import concrete provider classes directly in service code. Services must call the factory function (`createLLMProvider()`, etc.) and receive an interface type. Concrete classes are an internal detail of this package.
 - The five provider interfaces are: `ILLMProvider`, `IEmbeddingProvider`, `IQueueProvider`, `IAuthProvider`, `ICheckpointerProvider`. All live in `src/interfaces/`.
-- The active provider is selected by the factory function reading an env var (`LLM_PROVIDER`, `EMBEDDING_PROVIDER`, `CHECKPOINTER`). Do not add provider-selection logic anywhere outside `src/factory.ts`.
+- The active provider is selected by the factory function reading an env var (`LLM_PROVIDER`, `EMBEDDING_PROVIDER`, `AUTH_PROVIDER`, `CHECKPOINTER`). Do not add provider-selection logic anywhere outside `src/factory.ts`.
+- A `mock` option exists for `LLM_PROVIDER`, `EMBEDDING_PROVIDER`, and `AUTH_PROVIDER` — deterministic, network-free implementations used **only** by the cross-service e2e (`@autodidact/e2e`). Never select `mock` in dev or production.
 - To add a new provider implementation: create `src/implementations/<category>/<name>.provider.ts`, implement the interface, add the selection branch in `factory.ts`, and update the README env var table. No service code should change.
 - `ILLMProvider.getModel()` returns a LangChain `BaseChatModel` — the interface is intentionally LangChain-aware because all LLM usage goes through LangGraph.
 - `ICheckpointerProvider.getCheckpointer()` returns a LangGraph `BaseCheckpointSaver`. Use `memory` in development/tests; `postgres` in production (requires `DATABASE_URL`).
@@ -44,7 +45,7 @@ Provider interfaces, factory functions, and concrete implementations for all ext
 
 - Do not `new OpenAILLMProvider(...)` in service code — always go through `createLLMProvider()`.
 - Do not add vendor-specific API features (e.g., OpenAI function calling parameters) to an interface — generalize or add an escape hatch method, then document the decision.
-- Do not use `EMBEDDING_PROVIDER` env var for provider selection in `createEmbeddingProvider()` — the factory currently always returns OpenAI regardless of that var (only `openai` is implemented). Fix the factory if you add a second embedding provider.
+- `createEmbeddingProvider()` selects on `EMBEDDING_PROVIDER` (`openai` default, or `mock` for e2e). Cohere remains a stub — do not enable it without validating dimensions.
 
 ---
 
