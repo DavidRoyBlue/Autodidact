@@ -47,6 +47,25 @@ Requires the backend to be running (`pnpm dev`) for API calls to work.
 
 ---
 
+### `emulator.sh`  (`pnpm emulator`)
+**Boot the Android emulator on the Windows host and make it visible to WSL2 adb.**
+
+WSL2-specific. Ensures the Windows adb server owns `:5037`, launches the AVD
+(default `Medium_Phone`, override with `AVD=…`) detached on Windows, and waits
+until it registers and finishes booting. Idempotent — re-running while the AVD is
+already booted exits immediately. Self-heals the common "stray Linux adb server"
+failure. See `apps/mobile/README.md` → "Running on the Android emulator (WSL2)".
+
+---
+
+### `run-mobile.sh`  (`pnpm mobile:run`)
+**Run the app end-to-end on the emulator.** Boots the emulator (via `emulator.sh`),
+then starts Expo/Metro and opens the app in Expo Go, leaving Metro running in the
+background (log: `.expo-dev.log`). Does **not** start the backend — run `pnpm dev`
+separately for working auth/API.
+
+---
+
 ### `stop.sh`
 **Stop local Docker infrastructure** (Postgres + Redis).
 
