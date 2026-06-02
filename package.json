@@ -9,6 +9,7 @@
     "stop": "./scripts/stop.sh",
     "build": "turbo run build",
     "test": "./scripts/test.sh",
+    "test:e2e": "turbo run test:e2e",
     "typecheck": "./scripts/typecheck.sh",
     "lint": "./scripts/lint.sh",
     "clean": "turbo run clean",
