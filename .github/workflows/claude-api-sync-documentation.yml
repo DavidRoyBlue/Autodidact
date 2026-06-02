@@ -12,6 +12,7 @@ concurrency:
 jobs:
   doc-sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.actor != 'github-actions[bot]'
     permissions:
       contents: write
