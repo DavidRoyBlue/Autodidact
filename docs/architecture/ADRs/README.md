@@ -32,6 +32,8 @@ Sort within each section by ADR number.
 - [ADR-018 — Testing strategy](./cross-cutting/ADR-018-testing-strategy.md)
 - [ADR-019 — Code quality tooling](./cross-cutting/ADR-019-code-quality-tooling.md)
 - [ADR-020 — Authentication strategy](./cross-cutting/ADR-020-authentication-strategy.md)
+- [ADR-023 — Mobile testing strategy and second test runner](./cross-cutting/ADR-023-mobile-testing-second-runner.md)
+- [ADR-024 — End-to-end testing strategy](./cross-cutting/ADR-024-e2e-testing-strategy.md)
 
 ### Apps — Mobile
 - [ADR-003 — Mobile application platform](./apps/mobile/ADR-003-mobile-application-platform.md)

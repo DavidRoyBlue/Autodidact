@@ -50,6 +50,8 @@ Each row links to the ADR documenting the choice (drivers, alternatives, rationa
 
 ## Testing
 - **Vitest + Testcontainers** — fast unit tests; real-Postgres integration tests. → [ADR-018](architecture/ADRs/cross-cutting/ADR-018-testing-strategy.md)
+- **jest-expo + React Native Testing Library** — mobile unit/component tests (Jest scoped to `apps/mobile`); **Maestro** for mobile e2e. → [ADR-023](architecture/ADRs/cross-cutting/ADR-023-mobile-testing-second-runner.md)
+- **Layered e2e** — API-level (supertest), cross-service (compose), mobile (Maestro); LLM mocked via `LLM_PROVIDER=mock`, opt-in live smoke nightly. → [ADR-024](architecture/ADRs/cross-cutting/ADR-024-e2e-testing-strategy.md)
 
 ## Code Quality
 - **ESLint + Prettier** — type-aware linting + format. → [ADR-019](architecture/ADRs/cross-cutting/ADR-019-code-quality-tooling.md)
