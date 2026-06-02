@@ -192,8 +192,26 @@ Chat streaming flow:
 pnpm --filter @autodidact/mobile start      # Expo dev server
 pnpm --filter @autodidact/mobile ios        # iOS simulator
 pnpm --filter @autodidact/mobile android    # Android emulator
-pnpm --filter @autodidact/mobile typecheck  # Type-check only (no test runner)
+pnpm --filter @autodidact/mobile typecheck  # Type-check
+pnpm --filter @autodidact/mobile test       # Jest unit/component tests (jest-expo)
 ```
+
+---
+
+## Testing rules
+
+- **Jest, not Vitest** (ADR-023): the rest of the monorepo uses Vitest, but React
+  Native/Expo require **jest-expo** + `@testing-library/react-native`. Jest is
+  scoped to this package only. Config: `jest.config.js` (pnpm-aware
+  `transformIgnorePatterns`), setup: `jest-setup.ts`.
+- Unit-test pure logic directly: Zustand stores (`src/stores/`), `apiFetch`
+  (`src/api/client.ts`), hooks via `renderHook`. Mock `expo-secure-store`,
+  `expo-router`, `../lib/supabase`, and `fetch` at the seam.
+- Component tests render through the app's Tamagui config — use
+  `renderWithProviders` from `src/test-utils/render.tsx` (wraps `TamaguiProvider`).
+- `jest.mock()` factory variables must be prefixed `mock` (hoisting rule).
+- UI e2e is **Maestro** (`.maestro/`), manual/nightly against a device + a
+  mock-provider backend — never the PR gate. See `.maestro/README.md`.
 
 ---
 

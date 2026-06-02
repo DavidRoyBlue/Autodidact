@@ -1,0 +1,16 @@
+# Sign-in flow: launch the app and authenticate.
+# Requires a seeded test account in the target backend.
+# Override credentials with: maestro test -e EMAIL=... -e PASSWORD=... sign-in.yaml
+appId: com.autodidact.app
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Autodidact"
+- assertVisible: "Sign In"
+- tapOn: "you@example.com"
+- inputText: ${EMAIL ?: "e2e@test.com"}
+- tapOn: "Password"
+- inputText: ${PASSWORD ?: "password123"}
+- tapOn: "Sign In"
+# After a successful sign-in the auth store has a session and the app shell loads.
+- assertNotVisible: "Sign In"
