@@ -290,6 +290,9 @@ importers:
 
   services/agent:
     dependencies:
+      '@autodidact/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@autodidact/observability':
         specifier: workspace:*
         version: link:../../packages/observability

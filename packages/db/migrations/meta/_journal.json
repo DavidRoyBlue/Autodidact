@@ -29,6 +29,13 @@
       "when": 1777424400000,
       "tag": "0004_rls_fixes",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777428000000,
+      "tag": "0005_module_content_chunks",
+      "breakpoints": true
     }
   ]
 }

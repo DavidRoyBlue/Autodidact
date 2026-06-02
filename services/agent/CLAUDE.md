@@ -55,6 +55,7 @@ Internal AI runtime. Runs all LangGraph graphs. Handles all LLM and embedding in
 - **Request validation:** use Zod `parse()` or `safeParse()` in routes and return a structured 400 before the graph is invoked on invalid input.
 - **Completion detection:** after streaming ends, call `graph.getState(config)` to read `completionSignaled` and emit a `module_complete` SSE event if true.
 - **Node observability:** graph nodes are wrapped with `instrumentNode(name, fn, logger)` (`src/graphs/instrumentation.ts`) in the graph builders — it opens a `graph.node.<name>` span and logs latency + state signals. Pass the service `logger` into `buildModuleChatGraph`/`buildCourseGenerationGraph`. The wrapper preserves the registered node name, so the `langgraph_node` SSE filter is unaffected.
+- **RAG grounding (ADR-024):** the teacher node accepts an optional `ContentRetriever` (`src/rag/retriever.ts`). When present (gated by `RAG_ENABLED`), it retrieves top-k `module_content_chunks` for the latest learner message and passes them to `buildModuleSystemPrompt` as a grounding block. Retrieval is best-effort — a failure falls back to the un-grounded prompt and never fails the turn. Retrieval needs `state.moduleBlueprint.id` (the API includes it in the payload). The agent reads `@autodidact/db` for this — the only place it touches application data.
 
 ---
 

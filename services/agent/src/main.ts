@@ -11,10 +11,12 @@ import {
   shutdownTracer,
   isLangSmithTracingEnabled,
 } from '@autodidact/observability';
+import { getPool } from '@autodidact/db';
 import { registerGenerateCourseRoute } from './routes/generate-course.js';
 import { registerModuleChatRoute } from './routes/module-chat.js';
 import { registerEmbeddingsRoute } from './routes/embeddings.js';
 import { registerHealthRoutes } from './routes/health.js';
+import { PgVectorContentRetriever, type ContentRetriever } from './rag/retriever.js';
 
 const logger = createLogger('agent');
 const port = parseInt(process.env['AGENT_PORT'] ?? '3001', 10);
@@ -43,9 +45,18 @@ async function start() {
     'agent tracing posture',
   );
 
+  // RAG-grounded tutoring (Phase 1 / ADR-024): opt-in via RAG_ENABLED. When off,
+  // the teacher behaves exactly as before. Requires DATABASE_URL (pgvector chunks)
+  // and an embedding key.
+  const ragEnabled = process.env['RAG_ENABLED'] === 'true';
+  const retriever: ContentRetriever | undefined = ragEnabled
+    ? new PgVectorContentRetriever(embeddingProvider, () => getPool() as never)
+    : undefined;
+  logger.info({ rag: ragEnabled ? 'enabled' : 'disabled' }, 'agent RAG posture');
+
   // Register routes (logger threaded so graph nodes emit structured spans + logs)
   await registerGenerateCourseRoute(app, llmProvider, logger);
-  await registerModuleChatRoute(app, llmProvider, checkpointerProvider, logger);
+  await registerModuleChatRoute(app, llmProvider, checkpointerProvider, logger, retriever);
   await registerEmbeddingsRoute(app, embeddingProvider);
 
   // Liveness (/health) + readiness (/ready, probes the checkpoint store).
