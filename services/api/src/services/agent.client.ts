@@ -16,7 +16,8 @@ export class ApiAgentClient {
       body: JSON.stringify({ text }),
     });
     if (!res.ok) throw new Error(`Embedding request failed: ${res.status}`);
-    const data = (await res.json()) as { vector: number[] };
-    return data.vector;
+    // Agent /embeddings/text returns { embedding } (see agent embeddings route).
+    const data = (await res.json()) as { embedding: number[] };
+    return data.embedding;
   }
 }

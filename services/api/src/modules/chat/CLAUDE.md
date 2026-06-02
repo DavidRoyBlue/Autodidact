@@ -16,7 +16,7 @@ The chat module owns the Socratic teaching interaction. It:
 
 - **Message persistence order**: the user message is written to `chat_sessions` BEFORE the Agent fetch is made; the assistant message is written AFTER the SSE stream is fully consumed. Never reverse or merge these writes.
 - **Module completion threshold**: a module is completed when the Agent emits a `complete` event with `score >= 60`. This value is hardcoded in `chat.service.ts` and is not configurable at runtime. Do not expose it as an env var without a migration plan.
-- **SSE bridge**: `streamMessage()` creates an RxJS `Subject<MessageEvent>`. The Subject is the bridge between the Node.js fetch/ReadableStream reader and the NestJS `@Sse` observable returned to the client. Do not replace this pattern with a PassThrough stream or a different observable strategy without verifying backpressure behaviour.
+- **SSE bridge**: `streamMessage()` creates an RxJS `Subject<MessageEvent>` bridging the Node.js fetch/ReadableStream reader to the controller. The stream endpoint is a **`@Post('sessions/:id/stream')`** that writes SSE frames to the raw `@Res()` response (the client sends the message in the body via `@microsoft/fetch-event-source`, so it cannot be `@Sse`, which is GET-only). Do not replace this pattern with a PassThrough stream or revert to `@Sse` without restoring a body-bearing transport.
 - **`chatSessionId` on `module_progress`**: this column exists in the schema but is intentionally not populated here (Phase 2 feature). Do not start writing to it without a corresponding Phase 2 task.
 - **Cross-module dependency**: `ChatModule` is the only module that imports `ProgressModule`. Do not add further cross-module imports to the API feature modules without updating this note and the service-level `CLAUDE.md`.
 
@@ -24,9 +24,9 @@ The chat module owns the Socratic teaching interaction. It:
 
 ## Key patterns to follow
 
-- `ChatService.streamMessage()` runs its async logic in a void-wrapped IIFE so the `@Sse` handler can return the observable synchronously while the stream is consumed asynchronously.
+- `ChatService.streamMessage()` runs its async logic in a void-wrapped IIFE and returns the observable synchronously; the controller subscribes and writes each event to the raw SSE response.
 - Each Agent SSE line is forwarded to the client as-is via `subject.next({ data: jsonStr })`. Transformation of event shapes is the Agent's responsibility, not this service's.
-- Module blueprint data (`contentOutline`, `objectives`, etc.) is passed to the Agent in the stream request body so the Agent does not need a separate DB lookup.
+- The Agent's `/module-chat/stream` requires both `moduleBlueprint` (`contentOutline`, `objectives`, etc.) **and** `courseProgress` (`courseTitle`, `completedModuleCount`, `totalModuleCount`) in the request body — `streamMessage()` computes these so the Agent needs no DB lookup. The Agent carries the completion score on the `module_complete` event; `complete` is the terminator.
 
 ---
 
