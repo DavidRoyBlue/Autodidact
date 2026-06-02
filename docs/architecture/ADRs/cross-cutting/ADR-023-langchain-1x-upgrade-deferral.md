@@ -40,6 +40,14 @@ radius includes the CommonJS consumers `services/api` (NestJS) and `services/wor
 repo-wide module-resolution change. Neither is appropriate to land blind, without live
 validation.
 
+The same CJS/ESM split has a second, pre-existing symptom independent of the version bump: under `tsx`
+(used by `pnpm dev` and originally by `pnpm eval`), importing named exports from the CommonJS workspace
+barrels (`@autodidact/observability`, `@autodidact/prompts`, …) from an ESM service can fail at link time
+(`does not provide an export named ...`), even though plain Node and the compiled build resolve them
+correctly. The eval runner was switched to run compiled output to sidestep this; the durable fix is the
+same ESM migration. (`@autodidact/prompts`, which this program never touched, reproduces the failure in
+isolation — confirming it predates the hardening work.)
+
 A related finding: the Postgres checkpointer dynamically imports
 `@langchain/langgraph-checkpoint-postgres`, but that package is **not declared as a dependency**
 of `packages/providers`. `CHECKPOINTER=postgres` therefore fails to resolve it at runtime. The

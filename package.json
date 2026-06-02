@@ -11,6 +11,7 @@
     "test": "./scripts/test.sh",
     "typecheck": "./scripts/typecheck.sh",
     "lint": "./scripts/lint.sh",
+    "eval": "pnpm build && dotenv -e .env.dev -- pnpm --filter @autodidact/agent eval",
     "clean": "turbo run clean",
     "migrate:dev": "dotenv -e .env.dev -- ./scripts/migrate.sh",
     "migrate:prod": "dotenv -e .env.prod -- ./scripts/migrate.sh",
