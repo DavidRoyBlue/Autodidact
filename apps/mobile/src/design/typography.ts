@@ -33,6 +33,39 @@ export const systemFont = createFont({
   },
 });
 
+// Monospace font — same numeric scale as systemFont so size/variant props resolve
+// identically; only the family differs. Used for inline code and code blocks.
+export const monoFont = createFont({
+  family:
+    'ui-monospace, Menlo, Monaco, Consolas, "Roboto Mono", "Courier New", monospace',
+  size: {
+    1: 12, // xs
+    2: 13, // sm
+    3: 15, // md
+    4: 16, // lg
+    5: 18, // xl
+    6: 26, // h2
+    7: 32, // h1
+  },
+  lineHeight: {
+    1: 16,
+    2: 18,
+    3: 22,
+    4: 24,
+    5: 27,
+    6: 32,
+    7: 38,
+  },
+  weight: {
+    1: '400',
+    2: '600',
+    3: '700',
+  },
+  letterSpacing: {
+    1: 0,
+  },
+});
+
 // Named scale — used in AppText and Heading variants to avoid exposing $1/$7 to screens.
 export const typescale = {
   size: {

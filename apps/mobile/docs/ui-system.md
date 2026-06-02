@@ -16,7 +16,7 @@ typography      ↗
 |------|---------------|
 | `tokens.ts` | Primitive scales: raw hex values, spacing steps, border radius, size, z-index |
 | `themes.ts` | Semantic dark theme: maps token values to intent names (`bg`, `surface`, `primary`, `danger`, …) |
-| `typography.ts` | System font definition + named type scale (`xs` → `h1`) |
+| `typography.ts` | System + monospace (`$mono`) font definitions + named type scale (`xs` → `h1`) |
 | `config.ts` | Single `createTamagui` call — consumed only by `TamaguiProvider` in `app/_layout.tsx` |
 
 `config.ts` must never be imported from other files in `src/design/` — that creates a circular dependency.

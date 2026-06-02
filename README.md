@@ -49,6 +49,7 @@ autodidact/
 ├── packages/
 │   ├── providers/     ← provider interfaces + factory (no vendor lock-in)
 │   ├── db/
+│   ├── env/           ← typed, fail-fast env validation (boot-time)
 │   ├── schemas/
 │   ├── prompts/
 │   ├── types/
@@ -67,27 +68,41 @@ pnpm install
 # 2. Create local dev env vars
 cp .env.example .env.dev
 
-# 3. Create .env.prod manually when you need production access
+# 3. (Recommended) Load env automatically with direnv
+#    Without this, only `pnpm dev` / migrate:* / db:* load env (via dotenv-cli).
+#    With it, every command — build, test, single-service runs — gets a real env.
+cp .envrc.example .envrc && direnv allow   # requires direnv (https://direnv.net)
 
-# 4. Start all services in dev mode
+# 4. Create .env.prod manually when you need production access
+
+# 5. Start all services in dev mode
 pnpm dev
 
-# 5. Run env-specific DB commands as needed
+# 6. Run env-specific DB commands as needed
 pnpm migrate:dev
 pnpm db:studio:dev
 ```
 
+> **Env loading.** Services validate their environment at boot via `@autodidact/env`
+> and fail fast with a clear message if a required variable is missing. With direnv
+> (step 3) `.env.dev` is loaded for *every* command in this directory; `.env.prod`
+> is selected explicitly by the `dotenv -e .env.prod --` wrappers (`migrate:prod`,
+> `db:studio:prod`), which override direnv in their subprocess.
+
 ## Provider Configuration
 
-Provider selection is driven by environment variables — no code changes needed to swap:
+Two provider switches are wired to code today — set them in the environment, no code change needed to swap:
 
 | Variable | Options | Default |
 |----------|---------|---------|
 | `LLM_PROVIDER` | `openai`, `anthropic` | `openai` |
-| `EMBEDDING_PROVIDER` | `openai` | `openai` |
-| `QUEUE_PROVIDER` | `bullmq` | `bullmq` |
-| `AUTH_PROVIDER` | `supabase` | `supabase` |
 | `CHECKPOINTER` | `memory`, `postgres` | `memory` |
+
+The provider-factory pattern (`packages/providers`) is designed to host more
+switches — `EMBEDDING_PROVIDER`, `QUEUE_PROVIDER`, `AUTH_PROVIDER` are reserved
+names but **not yet wired**: each factory currently hardcodes its single
+implemented option and ignores the env var. They live under "RESERVED" in
+`.env.example` so the template doesn't advertise behavior the code lacks.
 
 ## Documentation
 
