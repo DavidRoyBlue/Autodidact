@@ -16,6 +16,8 @@ Internal AI runtime. Runs all LangGraph graphs. Handles all LLM and embedding in
 - The checkpointer strategy (in-memory vs PostgreSQL) is controlled by the `CHECKPOINTER` env var via `createCheckpointer({})` — do not hardcode `MemorySaver` in any code path that runs in production.
 - `thread_id` in LangGraph `configurable` = `sessionId` from the request — this is the checkpoint key for conversation continuity. Changing the key breaks multi-turn history.
 - The `[MODULE_COMPLETE:score=N]` marker is stripped from teacher node output before it reaches the client (see `nodes.ts`). Users must never see this marker. Do not change the regex or strip logic without testing the SSE event stream end-to-end.
+- All node LLM calls go through `invokeModel()` (`src/llm/resilient-invoke.ts`) — never call `model.invoke()` directly in a node. It adds a per-attempt timeout, bounded backoff retry on transient errors (429/5xx/network), caller cancellation, and token-usage span attributes. Nodes receive the LangGraph `config` and forward `config.signal` so client disconnects cancel in-flight work.
+- Never send raw error text to clients. SSE error events must be built with `toErrorEvent()` (`src/errors.ts`), which maps to a safe `{ type:'error', code, message }`. Log full error detail server-side via the `logger`. Do not reintroduce `String(error)`.
 
 ---
 

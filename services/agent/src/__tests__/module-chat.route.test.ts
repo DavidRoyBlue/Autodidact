@@ -88,4 +88,34 @@ describe('POST /module-chat/stream', () => {
     expect(events).toContainEqual({ type: 'module_complete', score: 90 });
     expect(events).toContainEqual({ type: 'complete' });
   });
+
+  it('passes an abort signal into graph.stream for client-disconnect cancellation', async () => {
+    mockStream.mockReturnValue(streamTeacherThenEvaluator());
+    mockGetState.mockResolvedValue({ values: { completionSignaled: false } });
+
+    await registerModuleChatRoute(app, {} as never, {} as never);
+    await app.inject({ method: 'POST', url: '/module-chat/stream', payload: validBody });
+
+    const streamOpts = mockStream.mock.calls[0]![1] as { signal?: AbortSignal };
+    expect(streamOpts.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('emits a structured error event (no raw detail) when the graph throws', async () => {
+    mockStream.mockImplementation(() => {
+      throw { status: 503 };
+    });
+
+    await registerModuleChatRoute(app, {} as never, {} as never);
+    const res = await app.inject({ method: 'POST', url: '/module-chat/stream', payload: validBody });
+
+    const events = parseSseEvents(res.body);
+    const errorEvent = events.find((e) => e.type === 'error') as
+      | { type: 'error'; code: string; message: string }
+      | undefined;
+    expect(errorEvent).toBeDefined();
+    expect(errorEvent!.code).toBe('upstream_unavailable');
+    expect(typeof errorEvent!.message).toBe('string');
+    // The old behavior leaked String(error); ensure no raw `error` field remains.
+    expect(errorEvent).not.toHaveProperty('error');
+  });
 });

@@ -1,17 +1,23 @@
 import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages';
+import type { LangGraphRunnableConfig } from '@langchain/langgraph';
 import { buildModuleSystemPrompt, COMPLETION_EVALUATOR_SYSTEM_PROMPT, buildCompletionEvaluatorPrompt } from '@autodidact/prompts';
 import type { ILLMProvider } from '@autodidact/providers';
+import { invokeModel } from '../../llm/resilient-invoke.js';
 import type { ModuleChatStateType } from './state.js';
 
 export function makeTeacherNode(llmProvider: ILLMProvider) {
-  return async (state: ModuleChatStateType): Promise<Partial<ModuleChatStateType>> => {
+  return async (
+    state: ModuleChatStateType,
+    config?: LangGraphRunnableConfig,
+  ): Promise<Partial<ModuleChatStateType>> => {
     const model = llmProvider.getModel();
     const systemPrompt = buildModuleSystemPrompt(state.moduleBlueprint, state.courseProgress);
 
-    const response = await model.invoke([
-      new SystemMessage(systemPrompt),
-      ...state.messages,
-    ]);
+    const response = await invokeModel(
+      model,
+      [new SystemMessage(systemPrompt), ...state.messages],
+      { signal: config?.signal, modelName: llmProvider.getModelName(), node: 'teacher' },
+    );
 
     const content = typeof response.content === 'string'
       ? response.content
@@ -38,16 +44,21 @@ export function makeTeacherNode(llmProvider: ILLMProvider) {
 }
 
 export function makeEvaluationNode(llmProvider: ILLMProvider) {
-  return async (state: ModuleChatStateType): Promise<Partial<ModuleChatStateType>> => {
+  return async (
+    state: ModuleChatStateType,
+    config?: LangGraphRunnableConfig,
+  ): Promise<Partial<ModuleChatStateType>> => {
     const model = llmProvider.getModel();
 
-    const response = await model.invoke([
-      new SystemMessage(COMPLETION_EVALUATOR_SYSTEM_PROMPT),
-      ...state.messages,
-      new HumanMessage(
-        buildCompletionEvaluatorPrompt(state.moduleBlueprint.objectives),
-      ),
-    ]);
+    const response = await invokeModel(
+      model,
+      [
+        new SystemMessage(COMPLETION_EVALUATOR_SYSTEM_PROMPT),
+        ...state.messages,
+        new HumanMessage(buildCompletionEvaluatorPrompt(state.moduleBlueprint.objectives)),
+      ],
+      { signal: config?.signal, modelName: llmProvider.getModelName(), node: 'evaluator' },
+    );
 
     const content = typeof response.content === 'string'
       ? response.content

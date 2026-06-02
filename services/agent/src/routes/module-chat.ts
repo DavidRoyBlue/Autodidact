@@ -4,6 +4,7 @@ import { HumanMessage } from '@langchain/core/messages';
 import type { ILLMProvider, ICheckpointerProvider } from '@autodidact/providers';
 import type { Logger } from '@autodidact/observability';
 import { buildModuleChatGraph } from '../graphs/module-chat/graph.js';
+import { toErrorEvent } from '../errors.js';
 import type { ModuleBlueprint } from '@autodidact/types';
 import type { CourseProgressContext } from '../graphs/module-chat/state.js';
 
@@ -40,6 +41,13 @@ export async function registerModuleChatRoute(
       reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
+    // Cancel in-flight LLM work if the client disconnects mid-stream, so we stop
+    // paying for generations no one will receive. The signal is threaded through
+    // graph.stream() down to each node's invokeModel() call.
+    const abortController = new AbortController();
+    const onClose = () => abortController.abort();
+    request.raw.on('close', onClose);
+
     try {
       const config = { configurable: { thread_id: body.sessionId } };
 
@@ -56,6 +64,7 @@ export async function registerModuleChatRoute(
       const stream = await graph.stream(inputState, {
         ...config,
         streamMode: 'messages',
+        signal: abortController.signal,
       });
 
       // streamMode: 'messages' emits tokens from EVERY LLM call in the graph,
@@ -83,8 +92,16 @@ export async function registerModuleChatRoute(
 
       sendEvent({ type: 'complete' });
     } catch (error) {
-      sendEvent({ type: 'error', error: String(error) });
+      // Client disconnected: the connection is gone, nothing to send.
+      if (abortController.signal.aborted) {
+        logger?.info({ sessionId: body.sessionId }, 'module chat stream cancelled by client');
+      } else {
+        // Log full detail server-side; send only a safe, structured error event.
+        logger?.error({ err: error, sessionId: body.sessionId }, 'module chat stream failed');
+        sendEvent(toErrorEvent(error));
+      }
     } finally {
+      request.raw.off('close', onClose);
       reply.raw.end();
     }
   });

@@ -21,18 +21,18 @@ const SIGNAL_KEYS = [
  * `logger` is optional so node unit tests can exercise the raw node directly;
  * the graph builders pass the service logger.
  */
-export function instrumentNode<S>(
+export function instrumentNode<S, C = unknown>(
   nodeName: string,
-  fn: (state: S) => Promise<Partial<S>>,
+  fn: (state: S, config?: C) => Promise<Partial<S>>,
   logger?: Logger,
-): (state: S) => Promise<Partial<S>> {
-  return (state: S) =>
+): (state: S, config?: C) => Promise<Partial<S>> {
+  return (state: S, config?: C) =>
     withSpan(
       `graph.node.${nodeName}`,
       async () => {
         const start = performance.now();
         try {
-          const result = await fn(state);
+          const result = await fn(state, config);
           const latencyMs = Math.round(performance.now() - start);
 
           const signals: Record<string, unknown> = {};

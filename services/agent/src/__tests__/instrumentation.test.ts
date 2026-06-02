@@ -20,8 +20,9 @@ describe('instrumentNode()', () => {
     const inner = vi.fn(async () => ({}));
     const node = instrumentNode<Record<string, unknown>>('teacher', inner);
     const state = { messages: [] };
-    await node(state);
-    expect(inner).toHaveBeenCalledWith(state);
+    const config = { configurable: { thread_id: 's1' } };
+    await node(state, config as never);
+    expect(inner).toHaveBeenCalledWith(state, config);
   });
 
   it('logs node name, latency, and known state signals on success', async () => {
