@@ -145,6 +145,9 @@ importers:
       '@autodidact/config':
         specifier: workspace:*
         version: link:../config
+      '@autodidact/test-support':
+        specifier: workspace:*
+        version: link:../test-support
       '@autodidact/types':
         specifier: workspace:*
         version: link:../types

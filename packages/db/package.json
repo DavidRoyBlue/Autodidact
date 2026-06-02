@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@autodidact/config": "workspace:*",
+    "@autodidact/test-support": "workspace:*",
     "@autodidact/types": "workspace:*",
     "@types/node": "^22.0.0",
     "@types/pg": "^8.11.0",
