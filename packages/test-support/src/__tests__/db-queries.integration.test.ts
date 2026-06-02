@@ -1,22 +1,19 @@
 /**
  * Real-Postgres integration tests for the @autodidact/db query layer.
  *
- * Uses the @autodidact/test-support harness (Testcontainers pgvector/pgvector:pg16)
- * with all migrations applied, so the pgvector extension and every constraint is live.
+ * Lives in @autodidact/test-support (not packages/db) to avoid a build cycle:
+ * test-support depends on @autodidact/db, so db must not depend back on
+ * test-support. These tests need the harness, so they live with it.
  *
- * The singleton `db`/`pool` from client.ts is never touched here; all queries go
- * through `harness.db` / `harness.pool` connected to the container.
+ * Uses the Testcontainers pgvector/pgvector:pg16 harness with all migrations
+ * applied, so the pgvector extension and every constraint is live. The singleton
+ * `db`/`pool` from db's client.ts is never touched; all queries go through
+ * `harness.db` / `harness.pool` connected to the container.
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import {
-  withTestDatabase,
-  type TestDatabase,
-  seedUser,
-  seedCourse,
-  seedModules,
-  seedEnrollment,
-} from '@autodidact/test-support';
+import { withTestDatabase, type TestDatabase } from '../database.js';
+import { seedUser, seedCourse, seedModules, seedEnrollment } from '../seed.js';
 import { users, courses, modules, enrollments, sql, eq } from '@autodidact/db';
 
 let harness: TestDatabase;
@@ -95,9 +92,8 @@ describe('Round-trip: users / courses / modules', () => {
 
 describe('pgvector: topic_embedding round-trip + cosine-distance ordering', () => {
   /**
-   * Build a 1536-dim zero vector with one position set to 1.
-   * Two "near" courses share high values at the same dimension;
-   * "far" course differs completely, so cosine distance is larger.
+   * Build a 1536-dim zero vector with one position set to 1, so two courses
+   * sharing the same hot dimension are "near" and orthogonal ones are "far".
    */
   function makeVector(hotDimension: number, dims = 1536): number[] {
     const v = new Array<number>(dims).fill(0);
