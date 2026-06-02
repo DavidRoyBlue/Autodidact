@@ -56,7 +56,12 @@ export async function registerModuleChatRoute(
         streamMode: 'messages',
       });
 
-      for await (const [message, _meta] of stream) {
+      // streamMode: 'messages' emits tokens from EVERY LLM call in the graph,
+      // including the evaluator node (which produces raw scoring JSON). Only the
+      // teacher node's tokens are user-facing — filter on langgraph_node so the
+      // evaluator's JSON never reaches the client.
+      for await (const [message, meta] of stream) {
+        if (meta?.langgraph_node !== 'teacher') continue;
         if (message?.content) {
           const content = typeof message.content === 'string'
             ? message.content

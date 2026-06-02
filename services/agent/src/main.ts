@@ -21,6 +21,9 @@ async function start() {
   const llmProvider = createLLMProvider({});
   const embeddingProvider = createEmbeddingProvider({});
   const checkpointerProvider = createCheckpointer({});
+  // Prepare the checkpointer before any graph uses it. For CHECKPOINTER=postgres this
+  // runs PostgresSaver.setup(); without it getCheckpointer() throws "not initialized".
+  await checkpointerProvider.init();
 
   // Register routes
   await registerGenerateCourseRoute(app, llmProvider);

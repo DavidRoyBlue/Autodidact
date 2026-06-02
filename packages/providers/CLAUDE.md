@@ -16,6 +16,7 @@ Provider interfaces, factory functions, and concrete implementations for all ext
 - To add a new provider implementation: create `src/implementations/<category>/<name>.provider.ts`, implement the interface, add the selection branch in `factory.ts`, and update the README env var table. No service code should change.
 - `ILLMProvider.getModel()` returns a LangChain `BaseChatModel` — the interface is intentionally LangChain-aware because all LLM usage goes through LangGraph.
 - `ICheckpointerProvider.getCheckpointer()` returns a LangGraph `BaseCheckpointSaver`. Use `memory` in development/tests; `postgres` in production (requires `DATABASE_URL`).
+- `ICheckpointerProvider.init()` is a **required** part of the contract and must be `await`ed by the service bootstrap before `getCheckpointer()` is called. Memory is a no-op; Postgres runs `PostgresSaver.setup()`. `getCheckpointer()` on an uninitialized Postgres provider throws. A new checkpointer implementation must implement `init()`.
 
 ---
 
