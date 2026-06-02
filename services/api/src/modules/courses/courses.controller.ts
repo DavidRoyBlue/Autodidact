@@ -5,7 +5,6 @@ import {
   Param,
   Body,
   UseGuards,
-  UsePipes,
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -21,8 +20,12 @@ export class CoursesController {
   constructor(private readonly coursesService: CoursesService) {}
 
   @Post()
-  @UsePipes(new ZodValidationPipe(CreateCourseRequestSchema))
-  create(@Body() dto: CreateCourseRequest, @CurrentUser() user: AuthUser) {
+  create(
+    @Body(new ZodValidationPipe(CreateCourseRequestSchema)) dto: CreateCourseRequest,
+    @CurrentUser() user: AuthUser,
+  ) {
+    // The pipe is scoped to @Body — a method-level @UsePipes would also run the
+    // course schema against the @CurrentUser() arg, rejecting every request.
     return this.coursesService.createOrReuse(user.id, dto);
   }
 
