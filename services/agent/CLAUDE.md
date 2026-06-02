@@ -52,6 +52,7 @@ Internal AI runtime. Runs all LangGraph graphs. Handles all LLM and embedding in
 - **Graph invocation for module chat:** always pass `{ configurable: { thread_id: sessionId } }` so LangGraph can load and persist the correct conversation checkpoint.
 - **Request validation:** use Zod `parse()` or `safeParse()` in routes and return a structured 400 before the graph is invoked on invalid input.
 - **Completion detection:** after streaming ends, call `graph.getState(config)` to read `completionSignaled` and emit a `module_complete` SSE event if true.
+- **Node observability:** graph nodes are wrapped with `instrumentNode(name, fn, logger)` (`src/graphs/instrumentation.ts`) in the graph builders — it opens a `graph.node.<name>` span and logs latency + state signals. Pass the service `logger` into `buildModuleChatGraph`/`buildCourseGenerationGraph`. The wrapper preserves the registered node name, so the `langgraph_node` SSE filter is unaffected.
 
 ---
 
@@ -83,7 +84,8 @@ pnpm --filter @autodidact/agent build       # compile to dist/
 | POST | `/course/generate` | Invoke course-generation graph; returns `{ blueprint }` |
 | POST | `/module-chat/stream` | Stream module-chat graph output via SSE |
 | POST | `/embeddings/text` | Generate a text embedding vector |
-| GET | `/health` | Liveness check; returns `{ status: "ok" }` |
+| GET | `/health` | Liveness; process is up. Dependency-free `{ status: "ok" }` |
+| GET | `/ready` | Readiness; 200 once providers init and the checkpoint store answers `ping()`, else 503 |
 
 ---
 

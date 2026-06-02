@@ -1,14 +1,17 @@
 import { StateGraph, START, END } from '@langchain/langgraph';
+import type { Logger } from '@autodidact/observability';
 import { ModuleChatState } from './state.js';
 import { makeTeacherNode, makeEvaluationNode } from './nodes.js';
+import { instrumentNode } from '../instrumentation.js';
 import type { ILLMProvider, ICheckpointerProvider } from '@autodidact/providers';
 
 export function buildModuleChatGraph(
   llmProvider: ILLMProvider,
   checkpointerProvider: ICheckpointerProvider,
+  logger?: Logger,
 ) {
-  const teacherNode = makeTeacherNode(llmProvider);
-  const evaluationNode = makeEvaluationNode(llmProvider);
+  const teacherNode = instrumentNode('teacher', makeTeacherNode(llmProvider), logger);
+  const evaluationNode = instrumentNode('evaluator', makeEvaluationNode(llmProvider), logger);
   const checkpointer = checkpointerProvider.getCheckpointer();
 
   const graph = new StateGraph(ModuleChatState)

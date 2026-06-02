@@ -9,4 +9,12 @@ export interface ICheckpointerProvider {
    */
   init(): Promise<void>;
   getCheckpointer(): BaseCheckpointSaver;
+
+  /**
+   * Liveness probe for readiness checks. Resolves if the backing store is
+   * reachable, rejects otherwise. Optional: in-memory providers have no external
+   * dependency and may omit it. The Postgres provider issues a `SELECT 1`.
+   * A service `/ready` endpoint should call `provider.ping?.()`.
+   */
+  ping?(): Promise<void>;
 }

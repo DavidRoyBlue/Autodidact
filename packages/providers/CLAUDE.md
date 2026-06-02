@@ -17,6 +17,7 @@ Provider interfaces, factory functions, and concrete implementations for all ext
 - `ILLMProvider.getModel()` returns a LangChain `BaseChatModel` — the interface is intentionally LangChain-aware because all LLM usage goes through LangGraph.
 - `ICheckpointerProvider.getCheckpointer()` returns a LangGraph `BaseCheckpointSaver`. Use `memory` in development/tests; `postgres` in production (requires `DATABASE_URL`).
 - `ICheckpointerProvider.init()` is a **required** part of the contract and must be `await`ed by the service bootstrap before `getCheckpointer()` is called. Memory is a no-op; Postgres runs `PostgresSaver.setup()`. `getCheckpointer()` on an uninitialized Postgres provider throws. A new checkpointer implementation must implement `init()`.
+- `ICheckpointerProvider.ping()` is an **optional** liveness probe for readiness endpoints: it resolves when the backing store is reachable and rejects otherwise. Memory omits it (no external dependency); Postgres issues `SELECT 1` via the saver's pool. Callers must invoke it defensively as `provider.ping?.()`.
 
 ---
 

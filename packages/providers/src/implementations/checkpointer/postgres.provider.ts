@@ -26,4 +26,20 @@ export class PostgresCheckpointerProvider implements ICheckpointerProvider {
     this.saver = PostgresSaver.fromConnString(this.connectionString);
     await (this.saver as unknown as { setup(): Promise<void> }).setup();
   }
+
+  async ping(): Promise<void> {
+    if (!this.saver) {
+      throw new Error(
+        'PostgresCheckpointerProvider not initialized. Call init() first.',
+      );
+    }
+    // PostgresSaver wraps a node-postgres Pool; a trivial round-trip confirms the
+    // database is reachable without touching checkpoint data.
+    const pool = (this.saver as unknown as {
+      pool?: { query(sql: string): Promise<unknown> };
+    }).pool;
+    if (pool?.query) {
+      await pool.query('SELECT 1');
+    }
+  }
 }

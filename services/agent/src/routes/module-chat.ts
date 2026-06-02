@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { HumanMessage } from '@langchain/core/messages';
 import type { ILLMProvider, ICheckpointerProvider } from '@autodidact/providers';
+import type { Logger } from '@autodidact/observability';
 import { buildModuleChatGraph } from '../graphs/module-chat/graph.js';
 import type { ModuleBlueprint } from '@autodidact/types';
 import type { CourseProgressContext } from '../graphs/module-chat/state.js';
@@ -22,8 +23,9 @@ export async function registerModuleChatRoute(
   app: FastifyInstance,
   llmProvider: ILLMProvider,
   checkpointerProvider: ICheckpointerProvider,
+  logger?: Logger,
 ) {
-  const graph = buildModuleChatGraph(llmProvider, checkpointerProvider);
+  const graph = buildModuleChatGraph(llmProvider, checkpointerProvider, logger);
 
   app.post('/module-chat/stream', async (request, reply) => {
     const body = ModuleChatBodySchema.parse(request.body);
