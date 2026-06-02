@@ -4,6 +4,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createBaseConfig(overrides: Record<string, any> = {}) {
   const { test: testOverrides = {}, ...restOverrides } = overrides;
+  const { coverage: coverageOverrides = {}, ...restTest } = testOverrides;
   return defineConfig({
     plugins: [tsconfigPaths()],
     test: {
@@ -20,8 +21,9 @@ export function createBaseConfig(overrides: Record<string, any> = {}) {
           '**/vitest.workspace.ts',
           '**/node_modules/**',
         ],
+        ...coverageOverrides,
       },
-      ...testOverrides,
+      ...restTest,
     },
     ...restOverrides,
   });

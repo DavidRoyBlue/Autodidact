@@ -117,6 +117,12 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.18.0
         version: 8.59.2(eslint@9.39.4)(typescript@5.9.3)
+      '@vitest/coverage-v8':
+        specifier: ^2.1.0
+        version: 2.1.9(vitest@2.1.9(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.2))
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
       vite-tsconfig-paths:
         specifier: ^4.3.2
         version: 4.3.2(typescript@5.9.3)(vite@5.4.21(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.2))
