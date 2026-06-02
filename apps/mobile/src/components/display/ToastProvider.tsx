@@ -13,7 +13,7 @@ export function ToastProvider() {
       top={insets.top + 8}
       left="$4"
       right="$4"
-      zIndex="$3"
+      zIndex="$lg"
       gap="$2"
       pointerEvents="none"
     >

@@ -73,7 +73,7 @@ This subtree does NOT own:
 
 - `ToastProvider` ([`src/components/display/ToastProvider.tsx`](./src/components/display/ToastProvider.tsx))
   - Reads: `toast.store` toast queue
-  - Renders: animated toast overlay (absolutely positioned, zIndex `$3`)
+  - Renders: animated toast overlay (absolutely positioned, zIndex `$lg`)
   - Placed as: sibling to `<Slot>` inside `QueryClientProvider` in `app/_layout.tsx`
 
 - `ErrorBoundary` ([`src/components/layout/ErrorBoundary.tsx`](./src/components/layout/ErrorBoundary.tsx))

@@ -11,7 +11,7 @@ export function PositionBadge({ position, completed }: PositionBadgeProps) {
     <XStack
       width="$md"
       height="$md"
-      borderRadius="$full"
+      borderRadius="$xl"
       backgroundColor={completed ? '$success' : '$surfaceHover'}
       alignItems="center"
       justifyContent="center"

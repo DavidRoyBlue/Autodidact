@@ -22,6 +22,8 @@ export const tokens = createTokens({
     transparent:   'rgba(0,0,0,0)',
   },
   space: {
+    // Tamagui requires a `true` key for the default space, mirroring `size.true`.
+    true: 16,
     0.5: 2,
     1: 4,
     2: 8,
@@ -33,20 +35,28 @@ export const tokens = createTokens({
     10: 40,
   },
   size: {
+    // Tamagui requires a `true` key equal to the default size; it backs `$true`
+    // and unprefixed sizing. Aliased to the medium size.
+    true: 32,
     sm: 24,
     md: 32,
     lg: 40,
     xl: 56,
   },
+  // Tamagui v2 requires radius/zIndex token keys to be a subset of the `size`
+  // keys ({ true, sm, md, lg, xl }), each with a `true` default. Values are
+  // independent of the size scale — only the key namespace is shared.
   radius: {
+    true: 12,
     sm: 8,
     md: 12,
     lg: 16,
-    full: 9999,
+    xl: 9999, // fully rounded (pills/circles) — was `full`
   },
   zIndex: {
-    1: 100,
-    2: 200,
-    3: 300,
+    true: 100,
+    sm: 100,
+    md: 200,
+    lg: 300,
   },
 });
