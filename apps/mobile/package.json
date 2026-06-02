@@ -8,7 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@autodidact/types": "workspace:*",
@@ -39,6 +40,7 @@
     "@tamagui/babel-plugin": "2.0.0-rc.41",
     "@types/react": "~18.3.0",
     "@types/uuid": "^9.0.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.0"
   }
 }
