@@ -39,7 +39,7 @@ jobs:
             - [ ] Unit tests for new functions
             - [ ] Integration tests for new endpoints
             - [ ] Edge cases covered
-            - [ ] Test coverage > 80%
+            - [ ] Adequate test coverage for new/changed code
 
             ## Documentation
             - [ ] README updated if needed
