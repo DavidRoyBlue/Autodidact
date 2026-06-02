@@ -13,5 +13,13 @@ export default createBaseConfig({
         singleFork: true,
       },
     },
+    // @autodidact/test-support's CJS dist requires @autodidact/db synchronously at module
+    // load time, which triggers packages/db/src/supabase.ts to call createClient() before
+    // vi.mock('@autodidact/db') can intercept it. These stubs satisfy the Supabase URL
+    // validator; the actual client is never used (vi.mock returns supabaseAdmin: null).
+    env: {
+      SUPABASE_URL: 'https://placeholder.supabase.co',
+      SUPABASE_SECRET_KEY: 'placeholder',
+    },
   },
 });
