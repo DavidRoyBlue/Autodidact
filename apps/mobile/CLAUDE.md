@@ -193,7 +193,16 @@ pnpm --filter @autodidact/mobile start      # Expo dev server
 pnpm --filter @autodidact/mobile ios        # iOS simulator
 pnpm --filter @autodidact/mobile android    # Android emulator
 pnpm --filter @autodidact/mobile typecheck  # Type-check only (no test runner)
+
+# WSL2 + Windows-host Android emulator (see README → "Running on the Android emulator")
+pnpm emulator      # boot the AVD on Windows, make it visible to WSL adb / mobile-mcp
+pnpm mobile:run    # boot emulator + start Metro + open the app in Expo Go
 ```
+
+> **WSL2 adb invariant:** the **Windows** adb server must own port `5037`; start it
+> (`scripts/emulator.sh` does, via `adb.exe start-server`) **before any Linux adb
+> call**, so Linux adb stays a pure client and never spawns a competing server. Do
+> not run `~/android-platform-tools/adb start-server` directly.
 
 ---
 

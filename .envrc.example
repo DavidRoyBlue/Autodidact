@@ -1,0 +1,20 @@
+# direnv configuration template — copy to .envrc, then run `direnv allow`:
+#   cp .envrc.example .envrc && direnv allow
+#
+# Once allowed, every command run in this directory (pnpm build / test / typecheck,
+# pnpm --filter <svc> dev, …) inherits the variables from .env.dev — closing the
+# gap where standalone / single-service runs booted with an empty environment.
+#
+# .envrc is gitignored (it may hold machine-specific paths like a venv); this
+# .example is the committed, reproducible source. .env.dev stays the gitignored
+# secret store. The `dotenv -e .env.prod --` scripts in package.json remain the
+# explicit prod/CI path and override these values in their subprocess.
+
+# Optional: activate a local Python virtualenv if you use one.
+# source .venv/bin/activate
+
+# Load local dev environment for every command in this directory.
+dotenv_if_exists .env.dev
+
+# Optional personal overrides, never committed (.envrc.local is gitignored).
+source_env_if_exists .envrc.local

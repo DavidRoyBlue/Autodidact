@@ -31,7 +31,7 @@ export function Toast({ id, message, variant }: ToastProps) {
 
   return (
     <XStack
-      animation="fast"
+      transition="fast"
       enterStyle={{ opacity: 0, y: -12 }}
       exitStyle={{ opacity: 0, y: -12 }}
       backgroundColor={bgMap[variant]}

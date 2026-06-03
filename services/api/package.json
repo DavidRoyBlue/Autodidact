@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@autodidact/db": "workspace:*",
+    "@autodidact/env": "workspace:*",
     "@autodidact/observability": "workspace:*",
     "@autodidact/providers": "workspace:*",
     "@autodidact/schemas": "workspace:*",

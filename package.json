@@ -6,6 +6,8 @@
     "setup": "./scripts/setup.sh",
     "dev": "dotenv -e .env.dev -- ./scripts/dev.sh",
     "mobile": "./scripts/mobile.sh",
+    "mobile:run": "./scripts/run-mobile.sh",
+    "emulator": "./scripts/emulator.sh",
     "stop": "./scripts/stop.sh",
     "build": "turbo run build",
     "test": "./scripts/test.sh",

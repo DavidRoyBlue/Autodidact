@@ -49,6 +49,7 @@ autodidact/
 ├── packages/
 │   ├── providers/     ← provider interfaces + factory (no vendor lock-in)
 │   ├── db/
+│   ├── env/           ← typed, fail-fast env validation (boot-time)
 │   ├── schemas/
 │   ├── prompts/
 │   ├── types/
@@ -67,12 +68,17 @@ pnpm install
 # 2. Create local dev env vars
 cp .env.example .env.dev
 
-# 3. Create .env.prod manually when you need production access
+# 3. (Recommended) Load env automatically with direnv
+#    Without this, only `pnpm dev` / migrate:* / db:* load env (via dotenv-cli).
+#    With it, every command — build, test, single-service runs — gets a real env.
+cp .envrc.example .envrc && direnv allow   # requires direnv (https://direnv.net)
 
-# 4. Start all services in dev mode
+# 4. Create .env.prod manually when you need production access
+
+# 5. Start all services in dev mode
 pnpm dev
 
-# 5. Run env-specific DB commands as needed
+# 6. Run env-specific DB commands as needed
 pnpm migrate:dev
 pnpm db:studio:dev
 ```

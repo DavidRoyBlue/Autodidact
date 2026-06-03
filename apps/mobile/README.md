@@ -29,6 +29,39 @@ pnpm --filter @autodidact/mobile typecheck # Type-check only (no test runner)
 
 `app.json` `extra` block must supply `supabaseUrl`, `supabasePublishableKey`, and `apiBaseUrl`.
 
+### Running on the Android emulator (WSL2)
+
+The emulator lives on the **Windows host**; this repo runs in **WSL2**. Two helper
+scripts bridge the gap so you don't have to fiddle with adb across the boundary:
+
+```bash
+pnpm emulator     # boot the AVD on Windows + wait until it's visible to WSL adb
+pnpm mobile:run   # the above, then start Expo/Metro and open the app in Expo Go
+```
+
+Both are idempotent (safe to re-run). `mobile:run` leaves Metro running in the
+background (log: `.expo-dev.log`); the backend is **not** started — run `pnpm dev`
+separately for working auth/API.
+
+**How the adb wiring works (and prerequisites).** The **Windows** adb server owns
+port `5037`; the emulator (a Windows process) registers to it, and WSL's **Linux**
+adb is a pure client reaching that same server over `localhost:5037`. This relies on:
+
+- WSL **mirrored networking** (`.wslconfig` → `networkingMode=mirrored`) — shares
+  `localhost` between WSL and Windows.
+- **Matching adb versions** on both sides (Linux `~/android-platform-tools/adb` and
+  the Windows SDK's `adb.exe` — both must be the same major.minor.patch, e.g.
+  `37.0.0`). Mismatched versions make the two servers kill each other.
+
+`scripts/emulator.sh` self-heals the most common breakage (a stray Linux adb server
+grabbing `5037`) by killing it and re-establishing the Windows-owned server.
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `adb devices` empty after boot | stray Linux adb server owns `5037` | `~/android-platform-tools/adb kill-server`, re-run `pnpm emulator` |
+| device flickers `offline` | two adb servers fighting over the emulator | kill both servers (`adb.exe kill-server` + `adb kill-server`), re-run |
+| every `adb` command hangs (wedged server) | a Linux adb server grabbed `:5037` and got stuck | hard reset: `taskkill.exe /F /IM adb.exe` then `pkill -9 -f fork-server`, then re-run `pnpm emulator` (the qemu VM keeps running) |
+
 ## Folder structure
 
 ```
