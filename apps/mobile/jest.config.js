@@ -1,6 +1,6 @@
 /**
  * Jest is the second test runner in this monorepo, scoped to apps/mobile only
- * (ADR-023). React Native / Expo cannot run under Vitest, so the mobile unit and
+ * (ADR-025). React Native / Expo cannot run under Vitest, so the mobile unit and
  * component tests use jest-expo + @testing-library/react-native.
  */
 module.exports = {

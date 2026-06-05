@@ -11,6 +11,7 @@ Drizzle ORM client, schema definitions, database migrations, and the custom pgve
 ## Invariants (must not be broken)
 
 - Call `getDb()` at query time, not at module initialization. The pool is constructed when the module is first imported using `process.env['DATABASE_URL']`; if that env var is not yet loaded, the pool silently uses an empty connection string. Always call `getDb()` inside a function body, not at the top level of a module.
+- Call `getSupabaseAdmin()` at use time, not at module initialization. The admin client is built lazily from `SUPABASE_URL` / `SUPABASE_SECRET_KEY`; unlike the pg pool, `createClient` throws synchronously on an empty URL, so an eager top-level construction crashes before a service's boot-time env validation (`@autodidact/env`) can report the missing variable. Never call it at the top level of a module.
 - pgvector UPDATE statements require `db.execute(sql\`...\`)` with an explicit `::vector` cast. Drizzle's `.set()` does not handle the pgvector parameterization correctly and will produce malformed queries. See the usage example in `packages/db/README.md`.
 - Schema changes require a migration file. Never change a schema file without a corresponding `.sql` in `migrations/`. Generate with `pnpm db:generate:dev`, review the output SQL, then commit both together.
 - WSL2 requires the Supabase transaction-mode pooler URL (port 6543). The Supabase direct host (`db.<ref>.supabase.co:5432`) is IPv6-only and unreachable from WSL2. Set `DATABASE_URL` to the transaction pooler URL (`aws-1-<region>.pooler.supabase.com:6543`).
@@ -40,7 +41,7 @@ Drizzle ORM client, schema definitions, database migrations, and the custom pgve
 ## Key patterns to follow
 
 - Import Drizzle query helpers (`eq`, `and`, `sql`, etc.) from `@autodidact/db`, which re-exports them from `drizzle-orm`. Do not add a direct `drizzle-orm` import in service code when `@autodidact/db` already re-exports what you need.
-- Use `getDb()` and `getPool()` rather than importing `db` and `pool` directly — this makes the lazy initialization point explicit.
+- Use `getDb()`, `getPool()`, and `getSupabaseAdmin()` rather than importing eager singletons directly — this makes the lazy initialization point explicit.
 - Vector columns (currently `courses.topicEmbedding`, 1536 dimensions for `text-embedding-3-small`) use the custom `vector()` column type from `src/vector.ts`.
 
 ---

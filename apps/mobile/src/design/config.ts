@@ -2,7 +2,7 @@ import { createTamagui } from 'tamagui';
 import { createAnimations } from '@tamagui/animations-react-native';
 import { tokens } from './tokens';
 import { dark } from './themes';
-import { systemFont } from './typography';
+import { systemFont, monoFont } from './typography';
 
 const animations = createAnimations({
   fast:   { damping: 20, mass: 1.2, stiffness: 250, type: 'spring' },
@@ -17,6 +17,7 @@ const config = createTamagui({
   fonts: {
     body:    systemFont,
     heading: systemFont,
+    mono:    monoFont,
   },
   defaultFont: 'body',
   shorthands: {

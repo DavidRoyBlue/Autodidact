@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { MemorySaver } from '@langchain/langgraph';
-import { makeMockLLMProvider } from '@autodidact/config/test-utils';
-import type { ICheckpointerProvider } from '@autodidact/providers';
 
 // ────────────────────────────────────────────────────────────────────────────
-// Fake graph — controls what the SSE stream emits
+// Fake graph — controls what the SSE stream emits. The graph module is mocked so
+// route tests don't spin up real LangGraph chains. `stream` yields
+// [messageChunk, metadata] tuples like LangGraph's streamMode: 'messages';
+// metadata carries `langgraph_node` so we can prove only teacher tokens reach
+// the client.
 // ────────────────────────────────────────────────────────────────────────────
 
 const fakeStream = vi.fn();
@@ -19,26 +20,21 @@ vi.mock('../graphs/module-chat/graph.js', () => ({
 const { registerModuleChatRoute } = await import('../routes/module-chat.js');
 
 // ────────────────────────────────────────────────────────────────────────────
-// Inline MemoryCheckpointerProvider — avoids the dist/source boundary issue
-// when calling createCheckpointer() from @autodidact/providers
-// ────────────────────────────────────────────────────────────────────────────
-
-function makeMemoryCheckpointerProvider(): ICheckpointerProvider {
-  const saver = new MemorySaver();
-  return { getCheckpointer: () => saver };
-}
-
-// ────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────────────────────────────────────
 
-async function* makeStreamFixture(chunks: Array<{ content: string }>) {
+// The route filters on `meta.langgraph_node === 'teacher'`, so fixtures default
+// to teacher metadata; pass a different node to simulate non-teacher output.
+async function* makeStreamFixture(
+  chunks: Array<{ content: string }>,
+  node = 'teacher',
+) {
   for (const chunk of chunks) {
-    yield [chunk, {}];
+    yield [chunk, { langgraph_node: node }];
   }
 }
 
-function parseSSEBody(body: string) {
+function parseSSEBody(body: string): Array<Record<string, unknown>> {
   return body
     .split('\n\n')
     .filter(Boolean)
@@ -75,7 +71,8 @@ describe('POST /module-chat/stream', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     app = Fastify();
-    await registerModuleChatRoute(app, makeMockLLMProvider() as never, makeMemoryCheckpointerProvider());
+    // buildModuleChatGraph is mocked, so the provider args are unused.
+    await registerModuleChatRoute(app, {} as never, {} as never);
   });
 
   afterEach(async () => {
@@ -139,6 +136,55 @@ describe('POST /module-chat/stream', () => {
     });
   });
 
+  // ── Node filtering: only teacher tokens reach the client ─────────────────
+
+  describe('node filtering', () => {
+    it('streams teacher tokens but never the evaluator node output', async () => {
+      fakeStream.mockReturnValue(
+        (async function* () {
+          // teacher node streams the visible reply
+          yield [{ content: 'Closures capture variables.' }, { langgraph_node: 'teacher' }];
+          // evaluator node streams raw scoring JSON — MUST NOT reach the client
+          yield [
+            { content: '{"completed":true,"score":90,"feedback":"great"}' },
+            { langgraph_node: 'evaluator' },
+          ];
+        })(),
+      );
+      fakeGetState.mockReturnValue({
+        values: { completionSignaled: true, completionScore: 90 },
+      });
+
+      const res = await app.inject({ method: 'POST', url: '/module-chat/stream', payload: validPayload });
+      const events = parseSSEBody(res.body);
+      const tokenContents = events
+        .filter((e) => e['type'] === 'token')
+        .map((e) => e['content'] as string);
+
+      // Teacher content is streamed; evaluator JSON is filtered out.
+      expect(tokenContents).toContain('Closures capture variables.');
+      expect(tokenContents.some((c) => c.includes('feedback'))).toBe(false);
+      expect(tokenContents.some((c) => c.includes('"completed"'))).toBe(false);
+      // The legitimate module_complete event still carries the score from final state.
+      expect(events).toContainEqual({ type: 'module_complete', score: 90 });
+      expect(events).toContainEqual({ type: 'complete' });
+    });
+  });
+
+  // ── Client-disconnect cancellation ───────────────────────────────────────
+
+  describe('abort signal', () => {
+    it('passes an abort signal into graph.stream', async () => {
+      fakeStream.mockReturnValue(makeStreamFixture([]));
+      fakeGetState.mockReturnValue({ values: { completionSignaled: false } });
+
+      await app.inject({ method: 'POST', url: '/module-chat/stream', payload: validPayload });
+
+      const streamOpts = fakeStream.mock.calls[0]![1] as { signal?: AbortSignal };
+      expect(streamOpts.signal).toBeInstanceOf(AbortSignal);
+    });
+  });
+
   // ── module_complete event ───────────────────────────────────────────────
 
   describe('module_complete event when completionSignaled=true', () => {
@@ -171,20 +217,25 @@ describe('POST /module-chat/stream', () => {
     });
   });
 
-  // ── Error event ─────────────────────────────────────────────────────────
+  // ── Structured error event (no raw detail) ───────────────────────────────
 
   describe('error event when graph.stream throws', () => {
-    it('emits a single error event with the error message', async () => {
+    it('emits a structured error event (code + message, no raw detail)', async () => {
       fakeStream.mockImplementation(() => {
-        throw new Error('graph exploded');
+        throw { status: 503 };
       });
 
       const res = await app.inject({ method: 'POST', url: '/module-chat/stream', payload: validPayload });
       const events = parseSSEBody(res.body);
+      const errorEvent = events.find((e) => e['type'] === 'error') as
+        | { type: 'error'; code: string; message: string }
+        | undefined;
 
-      expect(events).toHaveLength(1);
-      expect(events[0]?.['type']).toBe('error');
-      expect(String(events[0]?.['error'])).toContain('graph exploded');
+      expect(errorEvent).toBeDefined();
+      expect(errorEvent!.code).toBe('upstream_unavailable');
+      expect(typeof errorEvent!.message).toBe('string');
+      // The old behavior leaked String(error); ensure no raw `error` field remains.
+      expect(errorEvent).not.toHaveProperty('error');
     });
 
     it('does not emit complete after an error', async () => {

@@ -73,7 +73,7 @@ This subtree does NOT own:
 
 - `ToastProvider` ([`src/components/display/ToastProvider.tsx`](./src/components/display/ToastProvider.tsx))
   - Reads: `toast.store` toast queue
-  - Renders: animated toast overlay (absolutely positioned, zIndex `$3`)
+  - Renders: animated toast overlay (absolutely positioned, zIndex `$lg`)
   - Placed as: sibling to `<Slot>` inside `QueryClientProvider` in `app/_layout.tsx`
 
 - `ErrorBoundary` ([`src/components/layout/ErrorBoundary.tsx`](./src/components/layout/ErrorBoundary.tsx))
@@ -194,13 +194,22 @@ pnpm --filter @autodidact/mobile ios        # iOS simulator
 pnpm --filter @autodidact/mobile android    # Android emulator
 pnpm --filter @autodidact/mobile typecheck  # Type-check
 pnpm --filter @autodidact/mobile test       # Jest unit/component tests (jest-expo)
+
+# WSL2 + Windows-host Android emulator (see README → "Running on the Android emulator")
+pnpm emulator      # boot the AVD on Windows, make it visible to WSL adb / mobile-mcp
+pnpm mobile:run    # boot emulator + start Metro + open the app in Expo Go
 ```
+
+> **WSL2 adb invariant:** the **Windows** adb server must own port `5037`; start it
+> (`scripts/emulator.sh` does, via `adb.exe start-server`) **before any Linux adb
+> call**, so Linux adb stays a pure client and never spawns a competing server. Do
+> not run `~/android-platform-tools/adb start-server` directly.
 
 ---
 
 ## Testing rules
 
-- **Jest, not Vitest** (ADR-023): the rest of the monorepo uses Vitest, but React
+- **Jest, not Vitest** (ADR-025): the rest of the monorepo uses Vitest, but React
   Native/Expo require **jest-expo** + `@testing-library/react-native`. Jest is
   scoped to this package only. Config: `jest.config.js` (pnpm-aware
   `transformIgnorePatterns`), setup: `jest-setup.ts`.
@@ -233,4 +242,4 @@ pnpm --filter @autodidact/mobile test       # Jest unit/component tests (jest-ex
 - [ADR-014 — Mobile navigation](../../docs/architecture/ADRs/apps/mobile/ADR-014-mobile-navigation.md) (Expo Router)
 - [ADR-015 — Mobile state management](../../docs/architecture/ADRs/apps/mobile/ADR-015-mobile-state-management.md) (TanStack Query + Zustand)
 - [ADR-011 — Real-time streaming transport](../../docs/architecture/ADRs/services/agent/ADR-011-realtime-streaming-transport.md) (SSE — consumed by `useSSE`)
-- [ADR-023 — Mobile testing strategy and second test runner](../../docs/architecture/ADRs/cross-cutting/ADR-023-mobile-testing-second-runner.md) (jest-expo + RN Testing Library; Maestro for e2e — Jest scoped to `apps/mobile` only)
+- [ADR-025 — Mobile testing strategy and second test runner](../../docs/architecture/ADRs/cross-cutting/ADR-025-mobile-testing-second-runner.md) (jest-expo + RN Testing Library; Maestro for e2e — Jest scoped to `apps/mobile` only)

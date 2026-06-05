@@ -110,6 +110,8 @@ export class ChatService {
           isFirstMessage: session.messages.length === 0,
           moduleBlueprint: mod[0].contentOutline
             ? {
+                // id lets the agent scope RAG retrieval to this module (ADR-024).
+                id: mod[0].id,
                 position: mod[0].position,
                 title: mod[0].title,
                 description: mod[0].description,

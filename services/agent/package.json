@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "eval": "node dist/eval/run.js",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -26,7 +27,9 @@
     "@autodidact/schemas": "workspace:*",
     "@autodidact/providers": "workspace:*",
     "@autodidact/prompts": "workspace:*",
-    "@autodidact/observability": "workspace:*"
+    "@autodidact/observability": "workspace:*",
+    "@autodidact/db": "workspace:*",
+    "@autodidact/env": "workspace:*"
   },
   "devDependencies": {
     "@autodidact/config": "workspace:*",

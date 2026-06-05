@@ -5,7 +5,7 @@
 
 ## Purpose of this subtree
 
-`@autodidact/e2e` is the **cross-service** end-to-end layer (ADR-024). It boots
+`@autodidact/e2e` is the **cross-service** end-to-end layer (ADR-026). It boots
 the real `api`, `agent`, and `worker` services as child processes against
 Testcontainers Postgres + Redis and drives full user journeys over real HTTP /
 SSE / BullMQ. It is the highest-fidelity layer in the test pyramid.
@@ -52,4 +52,4 @@ package — it has no `test` script; use `test:e2e`.
 
 ## Key Decisions
 
-- [ADR-024 — E2E testing strategy](../docs/architecture/ADRs/cross-cutting/ADR-024-e2e-testing-strategy.md)
+- [ADR-026 — E2E testing strategy](../docs/architecture/ADRs/cross-cutting/ADR-026-e2e-testing-strategy.md)

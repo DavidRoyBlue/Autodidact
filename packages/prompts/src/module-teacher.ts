@@ -9,11 +9,30 @@ export interface UserContext {
 export function buildModuleSystemPrompt(
   module: ModuleBlueprint,
   userContext: UserContext,
+  /**
+   * Optional RAG-retrieved reference material for the current question. When
+   * present, the teacher is instructed to ground its answer in this material.
+   * Empty/whitespace is treated as absent so callers can pass retrieval output
+   * unconditionally.
+   */
+  retrievedContext?: string,
 ): string {
   const objectivesList = module.objectives.map((o) => `- ${o}`).join('\n');
   const outlineList = module.contentOutline
     .map((s) => `**${s.title}**\n${s.points.map((p) => `  - ${p}`).join('\n')}`)
     .join('\n\n');
+
+  const groundingSection =
+    retrievedContext && retrievedContext.trim().length > 0
+      ? `
+
+## Retrieved Reference Material
+The following passages were retrieved from this module's source content for the student's
+current question. Prefer grounding your explanation in this material and stay consistent with it;
+if it does not cover the question, fall back to the content outline above.
+
+${retrievedContext.trim()}`
+      : '';
 
   return `You are an expert AI teacher guiding a student through a structured course.
 
@@ -26,7 +45,7 @@ ${module.description}
 ${objectivesList}
 
 ## Content Outline
-${outlineList}
+${outlineList}${groundingSection}
 
 ## Teaching Instructions
 - Start with a brief, engaging introduction to this module

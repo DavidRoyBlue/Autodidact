@@ -33,7 +33,7 @@ function makeMockProvider(responseContent: string) {
 // Inline MemoryCheckpointerProvider — avoids the dist/source boundary issue
 function makeMemoryCheckpointerProvider(): ICheckpointerProvider {
   const saver = new MemorySaver();
-  return { getCheckpointer: () => saver };
+  return { init: async () => {}, getCheckpointer: () => saver };
 }
 
 // ────────────────────────────────────────────────────────────────────────────

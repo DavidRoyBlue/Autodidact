@@ -6,6 +6,7 @@ import type { CourseGenerationJobData, ModuleBlueprint } from '@autodidact/types
 import type { Logger } from '@autodidact/observability';
 import { QUEUES, JOB_NAMES } from '../queues/definitions.js';
 import type { AgentClient } from '../services/agent.client.js';
+import { indexModuleChunks } from '../rag/index-chunks.js';
 
 export function createCourseGenerationWorker(
   connection: Redis,
@@ -33,7 +34,7 @@ export function createCourseGenerationWorker(
         moduleCount,
       });
 
-      await db.transaction(async (tx) => {
+      const insertedModules = await db.transaction(async (tx) => {
         await tx
           .update(courses)
           .set({
@@ -57,8 +58,25 @@ export function createCourseGenerationWorker(
           estimatedMinutes: m.estimatedMinutes,
         }));
 
-        await tx.insert(modules).values(moduleRows);
+        return tx
+          .insert(modules)
+          .values(moduleRows)
+          .returning({
+            id: modules.id,
+            title: modules.title,
+            description: modules.description,
+            objectives: modules.objectives,
+            contentOutline: modules.contentOutline,
+          });
       });
+
+      // RAG indexing (ADR-024): best-effort, AFTER the course-ready commit so a
+      // failure here never rolls back the course or triggers a full job retry.
+      try {
+        await indexModuleChunks(insertedModules, agentClient, logger);
+      } catch (err) {
+        logger.error({ err, courseId }, 'module content RAG indexing failed (non-fatal)');
+      }
 
       await queueProvider.enqueue(
         QUEUES.EMBEDDING,

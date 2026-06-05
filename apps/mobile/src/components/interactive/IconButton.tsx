@@ -5,7 +5,7 @@ const IconButtonFrame = styled(XStack, {
   name: 'IconButton',
   width: '$lg',
   height: '$lg',
-  borderRadius: '$full',
+  borderRadius: '$xl',
   alignItems: 'center',
   justifyContent: 'center',
   pressStyle: { opacity: 0.75 },

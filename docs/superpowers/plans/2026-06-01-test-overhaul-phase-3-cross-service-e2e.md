@@ -2,7 +2,7 @@
 
 > Execute via superpowers:subagent-driven-development. TDD where it pays. Two deliverables: a **mock provider pair** in `@autodidact/providers`, and a new **`e2e/` workspace package** that boots the real api + agent + worker against Testcontainers Postgres/Redis and drives one golden-path journey with the LLM mocked.
 
-**Goal (ADR-024 cross-service layer):** run the *real* three services together — provider-swapped to a mock LLM/embedding (`LLM_PROVIDER=mock`, `EMBEDDING_PROVIDER=mock`) — and verify the golden path end to end: create course → worker generates it (mock LLM) → enroll → chat turn (SSE) → module completes → next module unlocks. Plus a failure path (auth rejection).
+**Goal (ADR-026 cross-service layer):** run the *real* three services together — provider-swapped to a mock LLM/embedding (`LLM_PROVIDER=mock`, `EMBEDDING_PROVIDER=mock`) — and verify the golden path end to end: create course → worker generates it (mock LLM) → enroll → chat turn (SSE) → module completes → next module unlocks. Plus a failure path (auth rejection).
 
 **Architecture:** Single mock seam = the model. Everything else real: real HTTP between api↔agent, real BullMQ worker over real Redis, real Postgres, real LangGraph graphs, real SSE. Services run as **child processes** (`node dist/main.js`) — there are no per-service Dockerfiles. Postgres+Redis via `@autodidact/test-support` containers.
 
@@ -83,14 +83,14 @@ Keep assertions on real DB state for each transition.
 
 - Root `package.json`: a `test:e2e` script (e.g. `turbo run test:e2e` or `pnpm --filter @autodidact/e2e test`) if not present; ensure it builds first.
 - `e2e/CLAUDE.md` + `README.md`: how the harness works, the single mock seam, how to run, the build-first requirement.
-- Cross-link from `docs/architecture/ADRs/.../ADR-024` (e2e strategy) if it references the layers.
+- Cross-link from `docs/architecture/ADRs/.../ADR-026` (e2e strategy) if it references the layers.
 
 - [ ] Commit: `chore(e2e): wire test:e2e pipeline and document harness`.
 
 ---
 
 ## Self-Review
-- ADR-024 cross-service layer (real 3 services + real PG/Redis + mock model): Tasks 1–4. ✓
+- ADR-026 cross-service layer (real 3 services + real PG/Redis + mock model): Tasks 1–4. ✓
 - Single mock seam = model (+ a mock auth seam because we can't mint Supabase JWTs; everything else real). ✓
 - Golden path covers generate → enroll → chat → complete → unlock with real DB assertions; plus an auth failure path. ✓
 - Mock model is deterministic and decoupled (branches on stable prompt substrings). ✓

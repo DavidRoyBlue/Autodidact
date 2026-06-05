@@ -1,5 +1,23 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env.dev", ".env.prod"],
+  "globalEnv": [
+    "NODE_ENV",
+    "LOG_LEVEL",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "SUPABASE_URL",
+    "SUPABASE_SECRET_KEY",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "LLM_PROVIDER",
+    "CHECKPOINTER",
+    "AGENT_SERVICE_URL",
+    "API_PORT",
+    "AGENT_PORT",
+    "OTEL_EXPORTER_OTLP_ENDPOINT"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

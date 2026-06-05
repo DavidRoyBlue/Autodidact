@@ -17,6 +17,7 @@ Implements a stateful, multi-turn LangGraph `StateGraph` for AI-guided module le
 - **`messages` reducer:** `ModuleChatState.messages` uses `messagesStateReducer` from LangGraph. Nodes must return new messages as an array (e.g. `[new AIMessage(...)]`), not replace the full messages array. The reducer appends; it does not overwrite.
 - **Checkpointer is required:** this graph is compiled with `graph.compile({ checkpointer })`. The checkpointer comes from `ICheckpointerProvider`. Never compile this graph without a checkpointer — doing so makes the graph stateless and breaks all multi-turn conversations.
 - **Do not add nodes between teacher and evaluator** without auditing the checkpoint state shape. Nodes added to an existing graph with live checkpointed sessions can break replay if they introduce new state keys.
+- **Only `teacher` node tokens may stream to the client.** `streamMode: 'messages'` emits tokens from *every* LLM call in the graph, including the `evaluator` (which produces raw scoring JSON). The route (`routes/module-chat.ts`) filters on `meta.langgraph_node === 'teacher'`; never remove that filter or the evaluator's JSON leaks into the SSE `token` stream. Any new LLM-calling node is non-user-facing by default — add it to the filter allowlist only if its output is meant for the learner.
 
 ---
 

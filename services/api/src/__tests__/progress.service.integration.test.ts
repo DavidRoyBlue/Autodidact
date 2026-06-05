@@ -20,7 +20,7 @@ vi.mock('@autodidact/db', async () => {
     ...schema,
     eq, and, sql, or, inArray, desc, asc, gt, lt, gte, lte,
     getDb: () => harness.db,
-    supabaseAdmin: null,
+    getSupabaseAdmin: () => null,
   };
 });
 

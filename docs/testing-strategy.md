@@ -1,7 +1,7 @@
 # Testing strategy
 
-How testing is structured across the Autodidact monorepo. See ADR-023 (mobile
-second runner) and ADR-024 (e2e strategy) for the durable decisions.
+How testing is structured across the Autodidact monorepo. See ADR-025 (mobile
+second runner) and ADR-026 (e2e strategy) for the durable decisions.
 
 ## The pyramid — one mock seam per layer, real everything else
 
