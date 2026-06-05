@@ -17,6 +17,12 @@ React Native client for Autodidact — an AI-powered learning platform where use
 | Auth / realtime | Supabase | 2 |
 | SSE streaming | @microsoft/fetch-event-source | 2 |
 
+## Known dependency risk
+
+`tamagui` and `@tamagui/*` are pinned to `2.0.0-rc.41` (a release candidate).
+Renovate's `mobile` group is disabled for these — bump them manually, and move
+off the RC to the GA `2.0.0` release once it ships.
+
 ## Running
 
 ```bash
@@ -61,6 +67,32 @@ grabbing `5037`) by killing it and re-establishing the Windows-owned server.
 | `adb devices` empty after boot | stray Linux adb server owns `5037` | `~/android-platform-tools/adb kill-server`, re-run `pnpm emulator` |
 | device flickers `offline` | two adb servers fighting over the emulator | kill both servers (`adb.exe kill-server` + `adb kill-server`), re-run |
 | every `adb` command hangs (wedged server) | a Linux adb server grabbed `:5037` and got stuck | hard reset: `taskkill.exe /F /IM adb.exe` then `pkill -9 -f fork-server`, then re-run `pnpm emulator` (the qemu VM keeps running) |
+| "emulator did not register" | `emulator.exe` mis-launched / wrong AVD | check the AVD name (default `Medium_Phone`); `emulator.exe -list-avds` |
+| app stuck on Expo splash | Metro still bundling / can't reach Metro | wait and retry; check `.expo-dev.log` |
+
+#### Letting mobile-mcp see the emulator (one-time setup)
+
+`mobile-mcp` (used by Claude to screenshot/drive the app) resolves adb to
+`$ANDROID_HOME/platform-tools/adb`. Our `ANDROID_HOME` is the **Windows** SDK, which
+only ships `adb.exe` — so mobile-mcp must be pointed at a small WSL "shim SDK" whose
+`platform-tools/adb` is the **Linux** adb. `scripts/emulator.sh` creates/maintains
+that shim at `~/.android-sdk-wsl`; you just need to point the mobile-mcp server at
+it **once** by adding `ANDROID_HOME` to its env, then restart Claude:
+
+```jsonc
+// in the mobile-mcp server config (its env block):
+"env": {
+  "ANDROID_HOME": "/home/<you>/.android-sdk-wsl",
+  "ADB_SERVER_SOCKET": "tcp:localhost:5037"
+}
+```
+
+After this, `mobile_list_available_devices` shows `emulator-5554` and screenshots
+work (binary-safe — adb's screencap streams over the protocol socket to `:5037`,
+not through WSL interop).
+
+Claude can also do all of this when you ask it to "run the mobile app" — see the
+`run-mobile` skill in [`.claude/skills/run-mobile/`](../../.claude/skills/run-mobile/SKILL.md).
 
 ## Folder structure
 

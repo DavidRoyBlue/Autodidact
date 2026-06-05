@@ -23,6 +23,7 @@ Plans are structured task lists written before implementation begins. They are t
 | [2026-04-28 — Mobile Design System](2026-04-28-mobile-design-system.md) | In progress |
 | [2026-04-29 — Fix Vitest Hoisting](2026-04-29-fix-vitest-hoisting.md) | In progress |
 | [2026-04-29 — JWKS Auth](2026-04-29-jwks-auth.md) | In progress |
+| [2026-06-02 — CI/CD & Dependency Hardening](2026-06-02-cicd-dependency-fixes.md) | Not started |
 
 ---
 

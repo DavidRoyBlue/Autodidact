@@ -28,7 +28,8 @@
     "@autodidact/providers": "workspace:*",
     "@autodidact/prompts": "workspace:*",
     "@autodidact/observability": "workspace:*",
-    "@autodidact/db": "workspace:*"
+    "@autodidact/db": "workspace:*",
+    "@autodidact/env": "workspace:*"
   },
   "devDependencies": {
     "@autodidact/config": "workspace:*",

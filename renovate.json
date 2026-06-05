@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    "group:monorepos"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "dev dependencies"
+    },
+    {
+      "matchPackagePatterns": ["^@langchain/"],
+      "groupName": "langchain"
+    },
+    {
+      "matchPackagePatterns": ["^expo", "^react-native", "^@tamagui/"],
+      "groupName": "mobile",
+      "enabled": false
+    }
+  ],
+  "vulnerabilityAlerts": { "labels": ["security"] },
+  "schedule": ["before 6am on monday"]
+}

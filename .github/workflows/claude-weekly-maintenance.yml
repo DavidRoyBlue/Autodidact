@@ -7,13 +7,14 @@ on:
 jobs:
   maintenance:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
       issues: write
       pull-requests: write
       id-token: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -26,7 +27,7 @@ jobs:
             Perform weekly repository maintenance:
 
             1. Check for outdated dependencies in package.json
-            2. Scan for security vulnerabilities using `npm audit`
+            2. Scan for security vulnerabilities using `pnpm audit`
             3. Review open issues older than 90 days
             4. Check for TODO comments in recent commits
             5. Verify README.md examples still work
@@ -35,4 +36,4 @@ jobs:
             If critical security issues are found, also comment on open PRs.
 
           claude_args: |
-            --allowedTools "Read,Bash(npm:*),Bash(gh issue:*),Bash(git:*)"
+            --allowedTools "Read,Bash(pnpm:*),Bash(gh issue:*),Bash(git:*)"

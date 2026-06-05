@@ -12,6 +12,7 @@ import {
   isLangSmithTracingEnabled,
 } from '@autodidact/observability';
 import { getPool } from '@autodidact/db';
+import { loadAgentEnv } from '@autodidact/env';
 import { registerGenerateCourseRoute } from './routes/generate-course.js';
 import { registerModuleChatRoute } from './routes/module-chat.js';
 import { registerEmbeddingsRoute } from './routes/embeddings.js';
@@ -19,12 +20,12 @@ import { registerHealthRoutes } from './routes/health.js';
 import { PgVectorContentRetriever, type ContentRetriever } from './rag/retriever.js';
 
 const logger = createLogger('agent');
-const port = parseInt(process.env['AGENT_PORT'] ?? '3001', 10);
 
 async function start() {
   // OTEL traces export only when OTEL_EXPORTER_OTLP_ENDPOINT is set (no-op otherwise).
   initTracer('agent');
 
+  const env = loadAgentEnv();
   const app = Fastify({ logger: false });
   await app.register(cors, { origin: true });
 
@@ -74,8 +75,8 @@ async function start() {
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 
-  await app.listen({ port, host: '0.0.0.0' });
-  logger.info({ port }, 'Agent service started');
+  await app.listen({ port: env.AGENT_PORT, host: '0.0.0.0' });
+  logger.info({ port: env.AGENT_PORT }, 'Agent service started');
 }
 
 start().catch((err) => {

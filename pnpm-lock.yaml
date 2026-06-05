@@ -32,6 +32,9 @@ importers:
       '@autodidact/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@babel/runtime':
+        specifier: ^7.29.2
+        version: 7.29.2
       '@expo/vector-icons':
         specifier: ^14.0.3
         version: 14.1.0(expo-font@13.0.4(expo@52.0.49)(react@18.3.1))(react-native@0.76.3(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(@types/react@18.3.28)(react@18.3.1))(react@18.3.1)
@@ -39,7 +42,7 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1
       '@supabase/supabase-js':
-        specifier: ^2.45.0
+        specifier: ^2.46.0
         version: 2.104.1
       '@tamagui/animations-react-native':
         specifier: 2.0.0-rc.41
@@ -108,6 +111,9 @@ importers:
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.2)
 
   packages/config:
     devDependencies:
@@ -154,6 +160,25 @@ importers:
       drizzle-kit:
         specifier: ^0.29.0
         version: 0.29.1
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.2)
+
+  packages/env:
+    dependencies:
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@autodidact/config':
+        specifier: workspace:*
+        version: link:../config
+      '@vitest/coverage-v8':
+        specifier: ^2.1.0
+        version: 2.1.9(vitest@2.1.9(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.2))
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
@@ -293,6 +318,9 @@ importers:
       '@autodidact/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@autodidact/env':
+        specifier: workspace:*
+        version: link:../../packages/env
       '@autodidact/observability':
         specifier: workspace:*
         version: link:../../packages/observability
@@ -354,6 +382,9 @@ importers:
       '@autodidact/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@autodidact/env':
+        specifier: workspace:*
+        version: link:../../packages/env
       '@autodidact/observability':
         specifier: workspace:*
         version: link:../../packages/observability
@@ -437,7 +468,7 @@ importers:
         specifier: ^10.13.0
         version: 10.28.0
       typescript:
-        specifier: ^5.5.4
+        specifier: ^5.6.3
         version: 5.9.3
       vitest:
         specifier: ^2.1.0
@@ -448,6 +479,9 @@ importers:
       '@autodidact/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@autodidact/env':
+        specifier: workspace:*
+        version: link:../../packages/env
       '@autodidact/observability':
         specifier: workspace:*
         version: link:../../packages/observability
@@ -474,7 +508,7 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9(vitest@2.1.9(@types/node@22.19.17)(lightningcss@1.32.0)(terser@5.46.2))
       typescript:
-        specifier: ^5.5.4
+        specifier: ^5.6.3
         version: 5.9.3
       vitest:
         specifier: ^2.1.0
