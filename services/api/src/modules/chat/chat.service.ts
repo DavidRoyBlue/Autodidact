@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { Observable, Subject } from 'rxjs';
 import type { MessageEvent } from '@nestjs/common';
-import { getDb, chatSessions, modules, eq } from '@autodidact/db';
+import { getDb, chatSessions, courses, modules, moduleProgress, eq, and } from '@autodidact/db';
 import { ProgressService } from '../progress/progress.service.js';
 import type { ChatMessage } from '@autodidact/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -71,6 +71,33 @@ export class ChatService {
         })
         .where(eq(chatSessions.id, sessionId));
 
+      // Build the course-progress context the agent's module-chat route requires.
+      const courseId = mod[0].courseId;
+      const [course] = await db
+        .select({ title: courses.title })
+        .from(courses)
+        .where(eq(courses.id, courseId))
+        .limit(1);
+      const allModules = await db
+        .select({ id: modules.id })
+        .from(modules)
+        .where(eq(modules.courseId, courseId));
+      const completedModules = await db
+        .select({ id: moduleProgress.moduleId })
+        .from(moduleProgress)
+        .where(
+          and(
+            eq(moduleProgress.userId, userId),
+            eq(moduleProgress.courseId, courseId),
+            eq(moduleProgress.status, 'completed'),
+          ),
+        );
+      const courseProgress = {
+        courseTitle: course?.title ?? '',
+        completedModuleCount: completedModules.length,
+        totalModuleCount: allModules.length,
+      };
+
       // Proxy SSE stream from agent service
       const res = await fetch(`${agentServiceUrl}/module-chat/stream`, {
         method: 'POST',
@@ -79,8 +106,12 @@ export class ChatService {
           sessionId: session.threadId,
           userId,
           message: content,
+          courseProgress,
+          isFirstMessage: session.messages.length === 0,
           moduleBlueprint: mod[0].contentOutline
             ? {
+                // id lets the agent scope RAG retrieval to this module (ADR-024).
+                id: mod[0].id,
                 position: mod[0].position,
                 title: mod[0].title,
                 description: mod[0].description,
@@ -123,8 +154,10 @@ export class ChatService {
 
               if (event.type === 'token' && event.content) {
                 assistantContent += event.content;
-              } else if (event.type === 'complete') {
-                completionScore = event.score ?? null;
+              } else if (event.type === 'module_complete' || event.type === 'complete') {
+                // The agent carries the score on `module_complete`; `complete` is
+                // the terminator and may omit it. Keep the last score we saw.
+                completionScore = event.score ?? completionScore;
               }
             } catch {
               // Ignore malformed SSE lines

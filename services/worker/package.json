@@ -24,8 +24,10 @@
   },
   "devDependencies": {
     "@autodidact/config": "workspace:*",
+    "@autodidact/test-support": "workspace:*",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^2.1.0",
+    "drizzle-orm": "^0.38.0",
     "typescript": "^5.6.3",
     "vitest": "^2.1.0"
   }

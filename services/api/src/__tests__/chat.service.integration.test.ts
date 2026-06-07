@@ -1,44 +1,57 @@
 import 'reflect-metadata';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { firstValueFrom } from 'rxjs';
 import { toArray } from 'rxjs/operators';
 import type { MessageEvent } from '@nestjs/common';
 import type { Observable } from 'rxjs';
+import {
+  withTestDatabase,
+  type TestDatabase,
+  seedUser,
+  seedCourse,
+  seedModules,
+  seedEnrollment,
+  seedModuleProgress,
+} from '@autodidact/test-support';
 
 // ────────────────────────────────────────────────────────────────────────────
-// Mock @autodidact/db
+// Real-DB harness: assigned in beforeAll; getDb() closure defers until call time.
 // ────────────────────────────────────────────────────────────────────────────
 
-const mockUpdate = vi.fn();
-const mockSet = vi.fn();
-const mockUpdateWhere = vi.fn().mockResolvedValue(undefined);
-const mockLimit = vi.fn();
-const mockWhere = vi.fn();
-const mockFrom = vi.fn();
-const mockSelect = vi.fn();
-const mockInsert = vi.fn();
-const mockInsertValues = vi.fn();
+let harness: TestDatabase;
 
-vi.mock('@autodidact/db', () => ({
-  getDb: vi.fn(() => ({
-    select: mockSelect,
-    update: mockUpdate,
-    insert: mockInsert,
-  })),
-  chatSessions: { id: 'chatSessions.id', moduleId: 'chatSessions.moduleId' },
-  modules: { id: 'modules.id', courseId: 'modules.courseId' },
-  enrollments: {},
-  moduleProgress: {},
-  courses: {},
-  eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
-  and: vi.fn((...args: unknown[]) => ({ and: args })),
-  sql: vi.fn((s: TemplateStringsArray, ...v: unknown[]) => ({ sql: s, v })),
-}));
+vi.mock('@autodidact/db', async () => {
+  const { eq, and, sql, or, inArray, desc, asc, gt, lt, gte, lte } = await import('drizzle-orm');
+  const schema = await import('../../../../packages/db/src/schema/index.js');
+  return {
+    ...schema,
+    eq, and, sql, or, inArray, desc, asc, gt, lt, gte, lte,
+    getDb: () => harness.db,
+    supabaseAdmin: null,
+  };
+});
 
-vi.mock('uuid', () => ({ v4: vi.fn(() => 'test-uuid-123') }));
-
+import {
+  chatSessions,
+  moduleProgress,
+  eq,
+  and,
+} from '@autodidact/db';
 import { ChatService } from '../modules/chat/chat.service.js';
+import { ProgressService } from '../modules/progress/progress.service.js';
 
+// ────────────────────────────────────────────────────────────────────────────
+
+beforeAll(async () => {
+  harness = await withTestDatabase();
+}, 90_000);
+
+afterAll(async () => {
+  await harness?.close();
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// SSE stream builder — reused across all token-streaming tests
 // ────────────────────────────────────────────────────────────────────────────
 
 function makeSseStream(lines: string[]): ReadableStream<Uint8Array> {
@@ -57,74 +70,66 @@ async function collectEvents(obs: Observable<MessageEvent>): Promise<MessageEven
   return firstValueFrom(obs.pipe(toArray()));
 }
 
-const sampleSession = {
-  id: 'session-1',
-  moduleId: 'module-1',
-  threadId: 'thread-1',
-  userId: 'user-1',
-  messages: [],
-};
-
-const sampleModule = {
-  id: 'module-1',
-  position: 0,
-  title: 'Variables',
-  description: 'Learn variables.',
-  objectives: ['Declare variables'],
-  contentOutline: [{ title: 'Basics', points: ['Assignment'] }],
-  estimatedMinutes: 30,
-  courseId: 'course-1',
-};
-
-function makeProgressService() {
-  return { completeModule: vi.fn().mockResolvedValue(undefined) };
-}
-
-function setupSelectMock(firstResult: unknown[], secondResult: unknown[] = [sampleModule]) {
-  let callCount = 0;
-  mockSelect.mockImplementation(() => {
-    const resultForThisCall = callCount === 0 ? firstResult : secondResult;
-    callCount++;
-    return {
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue(resultForThisCall),
-        }),
-      }),
-    };
-  });
-}
-
-function setupUpdateMock() {
-  mockUpdateWhere.mockResolvedValue(undefined);
-  const mockUpdateSet = vi.fn().mockReturnValue({ where: mockUpdateWhere });
-  mockUpdate.mockReturnValue({ set: mockUpdateSet });
-}
+// ────────────────────────────────────────────────────────────────────────────
 
 describe('ChatService.streamMessage()', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    setupUpdateMock();
+  let userId: string;
+  let courseId: string;
+  let moduleId: string;
+  let sessionId: string;
+  let service: ChatService;
+
+  beforeEach(async () => {
+    await harness.truncate();
+
+    // Seed real rows so FK constraints are satisfied
+    const user = await seedUser(harness.db);
+    const course = await seedCourse(harness.db, user.id);
+    userId = user.id;
+    courseId = course.id;
+
+    const mods = await seedModules(harness.db, courseId, 2);
+    moduleId = mods[0]!.id;
+
+    await seedEnrollment(harness.db, userId, courseId);
+    await seedModuleProgress(harness.db, userId, courseId, mods);
+
+    // Insert a real chat_sessions row
+    const [session] = await harness.db
+      .insert(chatSessions)
+      .values({ userId, moduleId, threadId: 'test-thread', messages: [] })
+      .returning({ id: chatSessions.id });
+    if (!session) throw new Error('Failed to create chat session');
+    sessionId = session.id;
+
+    // Build real service with real ProgressService (writes real DB rows)
+    service = new ChatService(new ProgressService());
   });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Error cases
+  // ──────────────────────────────────────────────────────────────────────────
 
   describe('error cases', () => {
     it('emits an error event when the module is not found', async () => {
-      // getSession returns session, module query returns []
-      let call = 0;
-      mockSelect.mockImplementation(() => {
-        const res = call === 0 ? [sampleSession] : [];
-        call++;
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue(res),
-            }),
-          }),
-        };
-      });
-      const progressSvc = makeProgressService();
-      const service = new ChatService(progressSvc as never);
-      const events = await collectEvents(service.streamMessage('session-1', 'user-1', 'hi', 'http://agent'));
+      // Use raw SQL to update the session's module_id to a non-existent UUID,
+      // bypassing the FK constraint (superuser can do this via session_replication_role).
+      // This simulates a session whose module is missing to exercise the "module not found" branch.
+      const fakeModuleId = '00000000-0000-0000-0000-000000000001';
+      await harness.pool.query(`SET session_replication_role = 'replica'`);
+      await harness.pool.query(
+        `UPDATE chat_sessions SET module_id = $1 WHERE id = $2`,
+        [fakeModuleId, sessionId],
+      );
+      await harness.pool.query(`SET session_replication_role = 'origin'`);
+
+      const events = await collectEvents(
+        service.streamMessage(sessionId, userId, 'hi', 'http://agent'),
+      );
       const errorEvent = events.find((e) => {
         const parsed = JSON.parse(e.data as string) as { type: string };
         return parsed.type === 'error';
@@ -133,22 +138,10 @@ describe('ChatService.streamMessage()', () => {
     });
 
     it('emits an error event when agent fetch fails (non-ok response)', async () => {
-      let call = 0;
-      mockSelect.mockImplementation(() => {
-        const res = call === 0 ? [sampleSession] : [sampleModule];
-        call++;
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue(res),
-            }),
-          }),
-        };
-      });
       vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, body: null, status: 500 }));
-      const progressSvc = makeProgressService();
-      const service = new ChatService(progressSvc as never);
-      const events = await collectEvents(service.streamMessage('session-1', 'user-1', 'hi', 'http://agent'));
+      const events = await collectEvents(
+        service.streamMessage(sessionId, userId, 'hi', 'http://agent'),
+      );
       const errorEvent = events.find((e) => {
         const parsed = JSON.parse(e.data as string) as { type: string };
         return parsed.type === 'error';
@@ -157,21 +150,12 @@ describe('ChatService.streamMessage()', () => {
     });
   });
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Token streaming
+  // ──────────────────────────────────────────────────────────────────────────
+
   describe('token streaming', () => {
     it('forwards token events from the SSE stream', async () => {
-      // First call: getSession; second call: module; third call: getSession again for assistant persist; fourth: module for completion
-      let call = 0;
-      const results = [[sampleSession], [sampleModule], [sampleSession], [sampleModule]];
-      mockSelect.mockImplementation(() => {
-        const res = results[call++] ?? [];
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue(res),
-            }),
-          }),
-        };
-      });
       vi.stubGlobal(
         'fetch',
         vi.fn().mockResolvedValue({
@@ -182,9 +166,9 @@ describe('ChatService.streamMessage()', () => {
           ]),
         }),
       );
-      const progressSvc = makeProgressService();
-      const service = new ChatService(progressSvc as never);
-      const events = await collectEvents(service.streamMessage('session-1', 'user-1', 'hi', 'http://agent'));
+      const events = await collectEvents(
+        service.streamMessage(sessionId, userId, 'hi', 'http://agent'),
+      );
       const tokenEvents = events.filter((e) => {
         const p = JSON.parse(e.data as string) as { type: string };
         return p.type === 'token';
@@ -192,19 +176,7 @@ describe('ChatService.streamMessage()', () => {
       expect(tokenEvents).toHaveLength(2);
     });
 
-    it('calls progressService.completeModule when score >= 60', async () => {
-      let call = 0;
-      const results = [[sampleSession], [sampleModule], [sampleSession], [sampleModule]];
-      mockSelect.mockImplementation(() => {
-        const res = results[call++] ?? [];
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue(res),
-            }),
-          }),
-        };
-      });
+    it('calls completeModule (real DB effect: module_progress→completed) when score >= 60', async () => {
       vi.stubGlobal(
         'fetch',
         vi.fn().mockResolvedValue({
@@ -215,25 +187,21 @@ describe('ChatService.streamMessage()', () => {
           ]),
         }),
       );
-      const progressSvc = makeProgressService();
-      const service = new ChatService(progressSvc as never);
-      await collectEvents(service.streamMessage('session-1', 'user-1', 'hi', 'http://agent'));
-      expect(progressSvc.completeModule).toHaveBeenCalledWith('user-1', 'module-1', 'course-1', 80);
+
+      await collectEvents(service.streamMessage(sessionId, userId, 'hi', 'http://agent'));
+
+      // Real DB cross-check: module_progress row for position-0 module must be 'completed'
+      // with the correct score, proving completeModule wrote through to the real DB.
+      const [progress] = await harness.db
+        .select({ status: moduleProgress.status, completionScore: moduleProgress.completionScore })
+        .from(moduleProgress)
+        .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.moduleId, moduleId)));
+
+      expect(progress?.status).toBe('completed');
+      expect(progress?.completionScore).toBe(80);
     });
 
-    it('does NOT call completeModule when score < 60', async () => {
-      let call = 0;
-      const results = [[sampleSession], [sampleModule], [sampleSession], [sampleModule]];
-      mockSelect.mockImplementation(() => {
-        const res = results[call++] ?? [];
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue(res),
-            }),
-          }),
-        };
-      });
+    it('does NOT call completeModule (module_progress stays unchanged) when score < 60', async () => {
       vi.stubGlobal(
         'fetch',
         vi.fn().mockResolvedValue({
@@ -244,10 +212,16 @@ describe('ChatService.streamMessage()', () => {
           ]),
         }),
       );
-      const progressSvc = makeProgressService();
-      const service = new ChatService(progressSvc as never);
-      await collectEvents(service.streamMessage('session-1', 'user-1', 'hi', 'http://agent'));
-      expect(progressSvc.completeModule).not.toHaveBeenCalled();
+
+      await collectEvents(service.streamMessage(sessionId, userId, 'hi', 'http://agent'));
+
+      // Real DB cross-check: module_progress for position-0 must NOT be 'completed'
+      const [progress] = await harness.db
+        .select({ status: moduleProgress.status })
+        .from(moduleProgress)
+        .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.moduleId, moduleId)));
+
+      expect(progress?.status).not.toBe('completed');
     });
   });
 });

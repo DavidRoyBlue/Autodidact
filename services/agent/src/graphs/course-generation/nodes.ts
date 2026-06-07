@@ -1,4 +1,5 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import type { LangGraphRunnableConfig } from '@langchain/langgraph';
 import { CourseBlueprintSchema } from '@autodidact/schemas';
 import {
   COURSE_GENERATION_SYSTEM_PROMPT,
@@ -6,10 +7,14 @@ import {
 } from '@autodidact/prompts';
 import type { ILLMProvider } from '@autodidact/providers';
 import type { CourseBlueprint } from '@autodidact/types';
+import { invokeModel } from '../../llm/resilient-invoke.js';
 import type { CourseGenerationStateType } from './state.js';
 
 export function makeGenerateBlueprintNode(llmProvider: ILLMProvider) {
-  return async (state: CourseGenerationStateType): Promise<Partial<CourseGenerationStateType>> => {
+  return async (
+    state: CourseGenerationStateType,
+    config?: LangGraphRunnableConfig,
+  ): Promise<Partial<CourseGenerationStateType>> => {
     const model = llmProvider.getModel();
 
     const messages = [
@@ -23,7 +28,11 @@ export function makeGenerateBlueprintNode(llmProvider: ILLMProvider) {
       ),
     ];
 
-    const response = await model.invoke(messages);
+    const response = await invokeModel(model, messages, {
+      signal: config?.signal,
+      modelName: llmProvider.getModelName(),
+      node: 'generateBlueprint',
+    });
     const content = typeof response.content === 'string'
       ? response.content
       : JSON.stringify(response.content);

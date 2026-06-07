@@ -192,7 +192,8 @@ Chat streaming flow:
 pnpm --filter @autodidact/mobile start      # Expo dev server
 pnpm --filter @autodidact/mobile ios        # iOS simulator
 pnpm --filter @autodidact/mobile android    # Android emulator
-pnpm --filter @autodidact/mobile typecheck  # Type-check only (no test runner)
+pnpm --filter @autodidact/mobile typecheck  # Type-check
+pnpm --filter @autodidact/mobile test       # Jest unit/component tests (jest-expo)
 
 # WSL2 + Windows-host Android emulator (see README → "Running on the Android emulator")
 pnpm emulator      # boot the AVD on Windows, make it visible to WSL adb / mobile-mcp
@@ -203,6 +204,23 @@ pnpm mobile:run    # boot emulator + start Metro + open the app in Expo Go
 > (`scripts/emulator.sh` does, via `adb.exe start-server`) **before any Linux adb
 > call**, so Linux adb stays a pure client and never spawns a competing server. Do
 > not run `~/android-platform-tools/adb start-server` directly.
+
+---
+
+## Testing rules
+
+- **Jest, not Vitest** (ADR-025): the rest of the monorepo uses Vitest, but React
+  Native/Expo require **jest-expo** + `@testing-library/react-native`. Jest is
+  scoped to this package only. Config: `jest.config.js` (pnpm-aware
+  `transformIgnorePatterns`), setup: `jest-setup.ts`.
+- Unit-test pure logic directly: Zustand stores (`src/stores/`), `apiFetch`
+  (`src/api/client.ts`), hooks via `renderHook`. Mock `expo-secure-store`,
+  `expo-router`, `../lib/supabase`, and `fetch` at the seam.
+- Component tests render through the app's Tamagui config — use
+  `renderWithProviders` from `src/test-utils/render.tsx` (wraps `TamaguiProvider`).
+- `jest.mock()` factory variables must be prefixed `mock` (hoisting rule).
+- UI e2e is **Maestro** (`.maestro/`), manual/nightly against a device + a
+  mock-provider backend — never the PR gate. See `.maestro/README.md`.
 
 ---
 
@@ -224,3 +242,4 @@ pnpm mobile:run    # boot emulator + start Metro + open the app in Expo Go
 - [ADR-014 — Mobile navigation](../../docs/architecture/ADRs/apps/mobile/ADR-014-mobile-navigation.md) (Expo Router)
 - [ADR-015 — Mobile state management](../../docs/architecture/ADRs/apps/mobile/ADR-015-mobile-state-management.md) (TanStack Query + Zustand)
 - [ADR-011 — Real-time streaming transport](../../docs/architecture/ADRs/services/agent/ADR-011-realtime-streaming-transport.md) (SSE — consumed by `useSSE`)
+- [ADR-025 — Mobile testing strategy and second test runner](../../docs/architecture/ADRs/cross-cutting/ADR-025-mobile-testing-second-runner.md) (jest-expo + RN Testing Library; Maestro for e2e — Jest scoped to `apps/mobile` only)

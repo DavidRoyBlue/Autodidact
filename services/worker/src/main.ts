@@ -5,6 +5,7 @@ import { loadWorkerEnv } from '@autodidact/env';
 import { AgentClient } from './services/agent.client.js';
 import { createCourseGenerationWorker } from './processors/course-generation.processor.js';
 import { createEmbeddingWorker } from './processors/embedding.processor.js';
+import { createShutdownHandler } from './shutdown.js';
 
 const logger = createLogger('worker');
 
@@ -27,10 +28,15 @@ async function start() {
     logger.error({ jobId: job?.id, err }, 'Embedding job failed');
   });
 
+  const shutdownHandler = createShutdownHandler({
+    workers: [courseWorker, embeddingWorker],
+    queueProvider,
+    redis,
+  });
+
   const shutdown = async () => {
     logger.info('Shutting down workers...');
-    await Promise.all([courseWorker.close(), embeddingWorker.close(), queueProvider.close()]);
-    redis.disconnect();
+    await shutdownHandler();
     process.exit(0);
   };
 

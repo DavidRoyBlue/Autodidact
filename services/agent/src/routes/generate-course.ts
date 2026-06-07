@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z, ZodError } from 'zod';
 import type { ILLMProvider } from '@autodidact/providers';
+import type { Logger } from '@autodidact/observability';
 import { buildCourseGenerationGraph } from '../graphs/course-generation/graph.js';
 import type { DifficultyLevel } from '@autodidact/types';
 
@@ -14,8 +15,9 @@ const GenerateCourseBodySchema = z.object({
 export async function registerGenerateCourseRoute(
   app: FastifyInstance,
   llmProvider: ILLMProvider,
+  logger?: Logger,
 ) {
-  const graph = buildCourseGenerationGraph(llmProvider);
+  const graph = buildCourseGenerationGraph(llmProvider, logger);
 
   app.post('/course/generate', async (request, reply) => {
     let body: z.infer<typeof GenerateCourseBodySchema>;

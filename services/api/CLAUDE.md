@@ -21,7 +21,7 @@ It does NOT run AI models. All AI logic lives in `services/agent`.
 - No AI logic belongs in this service; AI calls go through `ApiAgentClient` to `services/agent`
 - `QUEUE_PROVIDER_TOKEN` and `AUTH_PROVIDER_TOKEN` are injected via DI tokens — never import concrete provider classes directly from `@autodidact/providers`
 - `ApiAgentClient` (`src/services/agent.client.ts`) is the only component that calls the Agent service HTTP API
-- All controller inputs are validated with `ZodValidationPipe` and schemas from `@autodidact/schemas`
+- All controller inputs are validated with `ZodValidationPipe` and schemas from `@autodidact/schemas`. Scope the pipe to the body parameter — `@Body(new ZodValidationPipe(Schema))` — **not** method-level `@UsePipes`: the pipe ignores parameter metadata, so a method-level pipe also runs the body schema against `@CurrentUser()` and rejects every request.
 - The global prefix is `v1` (set in `main.ts`) — all routes are under `/v1/`
 
 ---
@@ -55,7 +55,7 @@ It does NOT run AI models. All AI logic lives in `services/agent`.
 
 - **Module-per-feature**: each feature (`auth`, `courses`, `chat`, `progress`) is a NestJS module. Cross-module dependencies are explicit imports (e.g., `ChatModule` imports `ProgressModule`).
 - **Provider token injection**: external dependencies (auth backend, queue) are injected using string tokens (`AUTH_PROVIDER_TOKEN`, `QUEUE_PROVIDER_TOKEN`) defined in `src/providers.token.ts`. Factories call `createAuthProvider()` / `createQueueProvider()` from `@autodidact/providers`.
-- **Global auth module**: `AuthModule` is decorated `@Global()` — `AuthGuard` is available everywhere without re-importing `AuthModule`.
+- **Global provider modules**: both providers live in `@Global()` modules — `AuthModule` (`AUTH_PROVIDER_TOKEN` + `AuthGuard`) and `QueueModule` (`QUEUE_PROVIDER_TOKEN`). A provider declared inline in `AppModule` is **not** visible to the feature modules `AppModule` imports (exports flow to importers, not importees), so any token a feature module injects must come from a `@Global()` module. `AuthGuard` uses `@Inject(AUTH_PROVIDER_TOKEN)` on its constructor (the dependency is an interface, erased at runtime) so `@UseGuards(AuthGuard)` resolves in every module context.
 
 ---
 
@@ -80,6 +80,14 @@ pnpm --filter @autodidact/api test          # run tests (vitest)
 pnpm --filter @autodidact/api test:coverage # test with coverage report
 pnpm --filter @autodidact/api typecheck     # type-check without emitting
 ```
+
+---
+
+## Testing rules
+
+- Layers: unit/integration tests (instantiate services directly, real Postgres via `@autodidact/test-support`) live in `src/__tests__/*.test.ts`; the API-level e2e (`src/__tests__/e2e/app.e2e.test.ts`) boots the real `AppModule` over `@nestjs/testing` + `supertest` against a Testcontainers Postgres.
+- The e2e mocks exactly two seams — auth (`overrideGuard(AuthGuard)` + `AUTH_PROVIDER`) and the LLM (`ApiAgentClient`); the queue is mocked via `QUEUE_PROVIDER_TOKEN`. DB is redirected with `vi.mock('@autodidact/db')` (`getDb`/`getPool` → harness). Everything else (routing, guards, filter, pipes, SQL) is real.
+- `vitest.config.ts` uses **`unplugin-swc`** so TypeScript is transformed with `emitDecoratorMetadata`. NestJS reflected constructor injection needs it; vitest's default esbuild cannot emit decorator metadata and silently leaves constructor-injected providers `undefined`. It also resolves `@autodidact/providers` to its built **dist** to avoid pulling LLM SDK source into vite-node. Run `pnpm --filter @autodidact/api build` for sibling packages before the e2e if their dist is stale.
 
 ---
 

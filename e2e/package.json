@@ -1,0 +1,26 @@
+{
+  "name": "@autodidact/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "vitest run",
+    "test:e2e:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@autodidact/api": "workspace:*",
+    "@autodidact/agent": "workspace:*",
+    "@autodidact/worker": "workspace:*",
+    "@autodidact/config": "workspace:*",
+    "@autodidact/db": "workspace:*",
+    "@autodidact/schemas": "workspace:*",
+    "@autodidact/test-support": "workspace:*",
+    "@autodidact/types": "workspace:*",
+    "@types/node": "^22.0.0",
+    "drizzle-orm": "^0.38.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.0"
+  }
+}

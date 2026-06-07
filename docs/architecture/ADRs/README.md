@@ -32,6 +32,9 @@ Sort within each section by ADR number.
 - [ADR-018 — Testing strategy](./cross-cutting/ADR-018-testing-strategy.md)
 - [ADR-019 — Code quality tooling](./cross-cutting/ADR-019-code-quality-tooling.md)
 - [ADR-020 — Authentication strategy](./cross-cutting/ADR-020-authentication-strategy.md)
+- [ADR-023 — Defer the LangChain/LangGraph 1.x major upgrade](./cross-cutting/ADR-023-langchain-1x-upgrade-deferral.md)
+- [ADR-025 — Mobile testing strategy and second test runner](./cross-cutting/ADR-025-mobile-testing-second-runner.md)
+- [ADR-026 — End-to-end testing strategy](./cross-cutting/ADR-026-e2e-testing-strategy.md)
 
 ### Apps — Mobile
 - [ADR-003 — Mobile application platform](./apps/mobile/ADR-003-mobile-application-platform.md)
@@ -44,6 +47,7 @@ Sort within each section by ADR number.
 - [ADR-005 — AI agent server framework](./services/agent/ADR-005-ai-agent-server-framework.md)
 - [ADR-006 — AI orchestration framework](./services/agent/ADR-006-ai-orchestration-framework.md)
 - [ADR-011 — Real-time streaming transport](./services/agent/ADR-011-realtime-streaming-transport.md)
+- [ADR-024 — Content RAG storage & retrieval for grounded tutoring](./services/agent/ADR-024-content-rag-storage-and-retrieval.md)
 - [ADR-007 — Background job queue](./services/worker/ADR-007-background-job-queue.md)
 
 ### Packages

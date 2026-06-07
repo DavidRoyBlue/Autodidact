@@ -1,0 +1,43 @@
+# Golden-path mobile e2e: sign in → create a course → wait for generation →
+# open a module → chat a turn → see the assistant reply.
+#
+# Mirrors the cross-service golden path (@autodidact/e2e) but through the real
+# UI. Run against a backend started with LLM_PROVIDER=mock so generation is
+# fast and deterministic.
+#
+# NOTE: the selectors below the sign-in step are a starting scaffold and must be
+# validated against a running build (screen labels/testIDs may differ). Keep
+# this flow in the nightly/manual lane until verified on-device.
+appId: com.autodidact.app
+---
+- runFlow: sign-in.yaml
+
+# Create a course
+- tapOn:
+    text: "New Course|Create|Generate"
+    optional: true
+- tapOn:
+    id: "course-topic-input"
+    optional: true
+- inputText: "TypeScript basics"
+- tapOn:
+    text: "Generate|Create Course"
+    optional: true
+
+# Generation polls until ready, then routes into the course
+- extendedWaitUntil:
+    visible: "Module 1"
+    timeout: 60000
+
+# Open the first module and chat a turn
+- tapOn: "Module 1"
+- tapOn:
+    id: "chat-input"
+    optional: true
+- inputText: "I understand this module now."
+- tapOn:
+    text: "Send"
+    optional: true
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 30000

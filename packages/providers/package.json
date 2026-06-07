@@ -13,10 +13,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@langchain/core": "^0.3.0",
-    "@langchain/openai": "^0.3.0",
     "@langchain/anthropic": "^0.3.0",
+    "@langchain/core": "^0.3.0",
     "@langchain/langgraph": "^0.2.0",
+    "@langchain/openai": "^0.3.0",
     "@supabase/supabase-js": "^2.46.0",
     "bullmq": "^5.0.0",
     "ioredis": "^5.4.0",
@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@autodidact/config": "workspace:*",
+    "@autodidact/schemas": "workspace:^",
     "@autodidact/types": "workspace:*",
     "@vitest/coverage-v8": "^2.1.0",
     "typescript": "^5.6.3",

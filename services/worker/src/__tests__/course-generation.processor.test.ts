@@ -20,7 +20,10 @@ vi.mock('bullmq', () => ({
 const mockTxUpdate = vi.fn();
 const mockTxUpdateSet = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
 const mockTxInsert = vi.fn();
-const mockTxInsertValues = vi.fn().mockResolvedValue(undefined);
+// tx.insert(modules).values(rows).returning(...) → inserted rows (with ids)
+const mockTxInsertValues = vi.fn().mockReturnValue({
+  returning: vi.fn().mockResolvedValue([]),
+});
 
 const mockUpdate = vi.fn();
 const mockUpdateSet = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
@@ -34,7 +37,7 @@ const mockTransaction = vi.fn().mockImplementation(async (fn: (tx: unknown) => P
   };
   mockTxUpdate.mockReturnValue({ set: mockTxUpdateSet });
   mockTxInsert.mockReturnValue({ values: mockTxInsertValues });
-  await fn(tx);
+  return fn(tx);
 });
 
 vi.mock('@autodidact/db', () => ({
@@ -106,11 +109,11 @@ describe('createCourseGenerationWorker — processor function', () => {
     mockInsert.mockReturnValue({ values: mockInsertValues });
     mockUpdateSet.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
     mockTxUpdateSet.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
-    mockTxInsertValues.mockResolvedValue(undefined);
-    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<void>) => {
+    mockTxInsertValues.mockReturnValue({ returning: vi.fn().mockResolvedValue([]) });
+    mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
       mockTxUpdate.mockReturnValue({ set: mockTxUpdateSet });
       mockTxInsert.mockReturnValue({ values: mockTxInsertValues });
-      await fn({ update: mockTxUpdate, insert: mockTxInsert });
+      return fn({ update: mockTxUpdate, insert: mockTxInsert });
     });
   });
 
