@@ -59,7 +59,7 @@ else
 fi
 
 # ── Docker infra ──────────────────────────────────────────────────────────────
-step "Starting local infrastructure (Postgres + Redis)"
+step "Starting local infrastructure (Postgres)"
 docker compose up -d
 ok "Docker services started"
 

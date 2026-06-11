@@ -24,8 +24,8 @@
  *
  * Queue seam:
  *   QUEUE_PROVIDER lives in the @Global QueueModule, so it is overridden cleanly
- *   with a mock (no Redis needed). Overriding it also stops the real
- *   createQueueProvider factory from constructing IORedis.
+ *   with a mock. Overriding it also stops the real createQueueProvider factory
+ *   from dispatching loopback HTTP requests.
  *
  * Agent seam:
  *   ApiAgentClient is overridden with a mock embedding. The HealthController's

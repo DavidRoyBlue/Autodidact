@@ -12,26 +12,29 @@ C4Container
         Container(mobile, "Mobile App", "Expo / React Native", "UI for course creation, module learning, and progress tracking. Runs on iOS and Android.")
         Container(api, "API Service", "NestJS / Node.js :3000", "Public REST API. Handles auth, course orchestration, SSE chat proxy, and progress tracking.")
         Container(agent, "Agent Service", "Fastify / LangGraph :3001", "Internal AI service. Runs LangGraph graphs for course generation and module chat. Streams SSE.")
-        Container(worker, "Worker Service", "BullMQ / Node.js (no HTTP)", "Background job processor. Runs course generation and embedding jobs from the queue.")
+        Container(worker, "Worker Service", "Fastify / Node.js (internal)", "Background task handler. Processes course generation and embedding tasks delivered as HTTP POSTs.")
         ContainerDb(postgres, "PostgreSQL", "Supabase / pgvector", "Primary data store. Courses, modules, enrollments, progress, chat sessions, user profiles.")
-        ContainerDb(redis, "Redis", "Redis 7 / BullMQ", "Job queue backend. Stores BullMQ job state for COURSE_GENERATION and EMBEDDING queues.")
     }
 
+    System_Ext(tasks, "Cloud Tasks", "GCP managed task queues (course-generation, embedding)")
     System_Ext(llm, "LLM Provider", "OpenAI or Anthropic (configured via env)")
     System_Ext(supabase_auth, "Supabase Auth", "JWT verification service")
 
     Rel(learner, mobile, "Uses", "Touch / UI")
     Rel(mobile, api, "REST + SSE", "HTTPS")
     Rel(api, agent, "Course gen + embeddings + chat stream", "HTTP (internal)")
-    Rel(api, redis, "Enqueues background jobs", "Redis protocol")
+    Rel(api, tasks, "Creates generation tasks", "HTTPS (Cloud Tasks API)")
     Rel(api, postgres, "Reads/writes course, enrollment, progress, session data", "PostgreSQL")
     Rel(api, supabase_auth, "Verifies JWT tokens", "HTTPS")
-    Rel(worker, redis, "Dequeues and acks jobs", "Redis protocol")
+    Rel(tasks, worker, "Delivers tasks to /tasks/:name", "HTTPS (OIDC-authenticated POST)")
+    Rel(worker, tasks, "Creates embedding follow-up task", "HTTPS (Cloud Tasks API)")
     Rel(worker, agent, "Calls generate-course and embeddings routes", "HTTP (internal)")
     Rel(worker, postgres, "Updates course status, inserts modules, stores embeddings", "PostgreSQL")
     Rel(agent, llm, "Invokes LLM for generation and teaching", "HTTPS")
     Rel(agent, postgres, "Reads/writes LangGraph checkpoints (prod)", "PostgreSQL")
 ```
+
+In local development the Cloud Tasks hop is replaced by the loopback queue provider: enqueue POSTs the payload straight to the worker's `/tasks/:name` endpoint over plain HTTP — the same contract, no queue service.
 
 ## Container Descriptions
 
@@ -53,7 +56,7 @@ C4Container
 | **Auth** | `AuthGuard` verifies Supabase JWT on every protected route |
 | **DI** | 4 feature modules: Auth, Courses, Chat, Progress. Queue provider injected by token. |
 | **SSE proxy** | Chat stream: proxies Agent SSE via native `fetch` → RxJS `Subject` → NestJS `@Sse` |
-| **Queue** | Enqueues `COURSE_GENERATION` jobs via `IQueueProvider` |
+| **Queue** | Creates `generate-course` tasks via `IQueueProvider` (Cloud Tasks / loopback) |
 
 ### Agent Service
 | | |
@@ -67,11 +70,11 @@ C4Container
 ### Worker Service
 | | |
 |---|---|
-| **Technology** | Node.js + BullMQ (no HTTP server) |
-| **Queues** | `COURSE_GENERATION` (concurrency 3), `EMBEDDING` (concurrency 5) |
-| **Job chaining** | After course generation completes, enqueues `EMBEDDING` job automatically |
-| **Retries** | 3 attempts, exponential backoff (5 s base delay) |
-| **Deployment** | Cloud Run with min 1 instance (always-on daemon) |
+| **Technology** | Node.js + Fastify (internal HTTP task handler) |
+| **Endpoints** | `POST /tasks/generate-course`, `POST /tasks/generate-embedding`, `GET /health` |
+| **Task chaining** | After course generation completes, creates the `generate-embedding` task automatically |
+| **Retries** | Queue-level (Cloud Tasks `retry_config`: 3 attempts, 5 s → 125 s backoff); final failed attempt marks the course `failed` |
+| **Deployment** | Cloud Run, scale-to-zero; invoked by Cloud Tasks with an OIDC token (IAM-authenticated) |
 
 ### PostgreSQL (Supabase)
 | | |
@@ -81,25 +84,17 @@ C4Container
 | **Access** | API and Worker via `DATABASE_URL` (Drizzle ORM). Agent in prod for checkpointer. |
 | **Schema** | 6 tables: `users`, `courses`, `modules`, `enrollments`, `module_progress`, `chat_sessions` |
 
-### Redis
-| | |
-|---|---|
-| **Version** | Redis 7 |
-| **Deployment** | GCP Memorystore (prod), Docker (local dev) |
-| **Usage** | BullMQ queue backend only (no session storage or caching) |
-| **Queues** | `course-generation`, `embedding` |
-
 ## Communication Map
 
 | From | To | Protocol | Description |
 |------|----|----------|-------------|
-| Mobile | API | HTTPS REST | Course creation, listing, enrollment, progress |
+| Mobile | API | HTTPS REST | Course creation, listing, enrollment, progress, generation-status polling |
 | Mobile | API | HTTPS SSE | Chat message streaming |
 | API | Agent | HTTP POST | Embedding generation, SSE chat proxying |
-| API | Agent | HTTP POST | (via Worker) Course blueprint generation |
-| API | Redis | Redis | Enqueue `COURSE_GENERATION` job |
-| Worker | Redis | Redis | Dequeue and ack jobs |
-| Worker | Agent | HTTP POST | `/generate-course`, `/embeddings/text` |
+| API | Cloud Tasks | HTTPS | Create `generate-course` task |
+| Cloud Tasks | Worker | HTTPS POST (OIDC) | Deliver tasks to `/tasks/:name` |
+| Worker | Cloud Tasks | HTTPS | Create `generate-embedding` follow-up task |
+| Worker | Agent | HTTP POST | `/course/generate`, `/embeddings/text` |
 | Worker | PostgreSQL | SQL | Update course status, insert modules, store embeddings |
 | Agent | LLM Provider | HTTPS | Course generation, teaching, evaluation |
 | Agent | PostgreSQL | SQL | LangGraph checkpoint reads/writes (prod only) |
@@ -111,11 +106,11 @@ Internet
   └── Cloud Run (public ingress)
         └── API Service (:3000)
               ├── → Agent Service (:3001)  [Cloud Run internal]
-              ├── → Redis                  [VPC private]
+              ├── → Cloud Tasks            [GCP API]
               └── → Supabase PostgreSQL    [external managed]
-Worker Service  [Cloud Run internal, no inbound]
+Worker Service  [Cloud Run internal; inbound only from Cloud Tasks via IAM-verified OIDC]
               ├── → Agent Service
-              ├── → Redis
+              ├── → Cloud Tasks
               └── → Supabase PostgreSQL
 ```
 

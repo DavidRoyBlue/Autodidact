@@ -3,16 +3,16 @@
 > Agent-binding rules live in [CLAUDE.md](./CLAUDE.md).
 
 The top of the test pyramid (ADR-024). Boots the **real** `api`, `agent`, and
-`worker` services as child processes against Testcontainers Postgres + Redis,
+`worker` services as child processes against a Testcontainers Postgres,
 with the LLM/embedding/auth swapped to deterministic mock providers
 (`*_PROVIDER=mock`), and drives complete user journeys over real HTTP, SSE, and
-BullMQ.
+loopback task dispatch (the same `/tasks/:name` HTTP contract Cloud Tasks uses in production).
 
 ## What it covers
 
 The golden path, end to end across all three services:
 
-1. **Create** a course (`POST /v1/courses`) → api enqueues a BullMQ job.
+1. **Create** a course (`POST /v1/courses`) → api dispatches a task POST to the worker.
 2. **Generate** — the worker picks up the job, calls the agent (mock LLM), and
    writes the course `ready` + module rows.
 3. **Enroll** → `module_progress` rows (position 0 `available`, rest `locked`).
@@ -32,7 +32,7 @@ Requires Docker. Not part of the default `pnpm test` gate (see CLAUDE.md).
 
 ## How it works
 
-`src/harness.ts` boots Postgres + Redis (via `@autodidact/test-support`), then
+`src/harness.ts` boots Postgres (via `@autodidact/test-support`), then
 spawns each service's `dist/main.js` with env pointed at the containers and the
 mock providers, waits for health, and returns handles plus a `db`/`pool` for
 assertions and a `stop()` teardown.

@@ -41,13 +41,16 @@ not a permanent doc; delete after triage.
 
 ## 🚩 Open reconsiderations — start your review here
 
-These are the three ADRs whose first-principles analysis concluded that a
+These are the ADRs whose first-principles analysis concluded that a
 *different* tool would be a better fit. Each ADR includes the migration
 trigger condition.
 
-1. **[ADR-007 — Background job queue](./services/worker/ADR-007-background-job-queue.md)** — current: BullMQ + Memorystore Redis + standalone worker service. Better fit: GCP Cloud Tasks (drops Redis instance and worker service; ~$50–80/month savings). Trigger: explicit infra-simplification sprint, or Memorystore costs becoming visible on the GCP bill.
-2. **[ADR-013 — Mobile UI system](./apps/mobile/ADR-013-mobile-ui-system.md)** — current: Tamagui (`2.0.0-rc.41`). Better fit: NativeWind (lighter, more idiomatic for our RN-only mobile app; Tamagui's compile-time cross-platform win doesn't pay off without a web target). Trigger: planned UI refresh, sustained Tamagui RC churn, or measurable bundle-weight impact on launch time.
-3. **[ADR-020 — Authentication strategy](./cross-cutting/ADR-020-authentication-strategy.md)** — current: Supabase Auth (bundled with [ADR-002](./cross-cutting/ADR-002-database-platform.md)). Better fit: Better Auth (TS-native, Drizzle-integrated, no vendor lock-in, free at scale). Trigger: Supabase Auth incident >2h, MAU costs >$200/mo, custom session feature need, or a planned auth refresh.
+> Resolved 2026-06-11: ADR-007 (background job queue) — its flag fired and the
+> migration to GCP Cloud Tasks was executed in
+> [ADR-027](./services/worker/ADR-027-background-job-queue-cloud-tasks.md).
+
+1. **[ADR-013 — Mobile UI system](./apps/mobile/ADR-013-mobile-ui-system.md)** — current: Tamagui (`2.0.0-rc.41`). Better fit: NativeWind (lighter, more idiomatic for our RN-only mobile app; Tamagui's compile-time cross-platform win doesn't pay off without a web target). Trigger: planned UI refresh, sustained Tamagui RC churn, or measurable bundle-weight impact on launch time.
+2. **[ADR-020 — Authentication strategy](./cross-cutting/ADR-020-authentication-strategy.md)** — current: Supabase Auth (bundled with [ADR-002](./cross-cutting/ADR-002-database-platform.md)). Better fit: Better Auth (TS-native, Drizzle-integrated, no vendor lock-in, free at scale). Trigger: Supabase Auth incident >2h, MAU costs >$200/mo, custom session feature need, or a planned auth refresh.
 
 ## Things I want you to examine first
 

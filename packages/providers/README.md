@@ -43,11 +43,13 @@ All factory functions accept an optional `ProviderConfig` object. If a field is 
 |---------|---------|---------|---------|
 | `LLM_PROVIDER` | `createLLMProvider` | `openai`, `anthropic`, `mock` | `openai` |
 | `EMBEDDING_PROVIDER` | `createEmbeddingProvider` | `openai`, `mock` | `openai` |
-| `QUEUE_PROVIDER` | `createQueueProvider` | `bullmq` | `bullmq` |
+| `QUEUE_PROVIDER` | `createQueueProvider` | `loopback`, `cloudtasks` | `loopback` |
 | `AUTH_PROVIDER` | `createAuthProvider` | `supabase`, `mock` | `supabase` |
 | `CHECKPOINTER` | `createCheckpointer` | `memory`, `postgres` | `memory` |
 
 > `mock` (LLM/embedding/auth) selects deterministic, network-free providers used **only** by the cross-service e2e (`@autodidact/e2e`) — never in dev or production.
+>
+> `cloudtasks` additionally reads `GCP_PROJECT_ID`, `CLOUD_TASKS_LOCATION`, `WORKER_TASK_BASE_URL`, and `CLOUD_TASKS_INVOKER_SA`; `loopback` reads `WORKER_TASK_BASE_URL` (default `http://localhost:3002`). Retry/backoff is queue-level config (Terraform), so `EnqueueOptions.attempts/backoff` are advisory and ignored.
 
 ## Internal Structure
 
@@ -69,7 +71,8 @@ packages/providers/src/
     │   ├── openai-embedding.provider.ts   # OpenAIEmbeddings (text-embedding-3-small)
     │   └── cohere-embedding.provider.ts   # Stub — not production-ready
     ├── queue/
-    │   └── bullmq.provider.ts         # BullMQ + IORedis
+    │   ├── cloud-tasks.provider.ts    # GCP Cloud Tasks (prod)
+    │   └── loopback.provider.ts       # Direct HTTP POST to the worker (dev)
     ├── auth/
     │   └── supabase-auth.provider.ts  # Supabase JWT verification
     └── checkpointer/

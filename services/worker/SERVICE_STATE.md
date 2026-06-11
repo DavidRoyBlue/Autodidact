@@ -1,11 +1,11 @@
 # Service State: Worker
 
-> Background job processor (BullMQ). No HTTP server. Always-on daemon.
+> Background task handler (Fastify HTTP, invoked by Cloud Tasks / loopback). Internal only; scale-to-zero.
 > Pair docs: [`README.md`](./README.md) · [`CLAUDE.md`](./CLAUDE.md)
 
 ## Purpose
 
-Consumes two Redis queues. `course-generation`: calls the Agent for a blueprint, writes course + all module rows in one transaction (`status → ready`), then enqueues the embedding job. `embedding`: calls the Agent for a topic vector and stores it via raw pgvector SQL, making the course eligible for similarity reuse. The only service that writes `status = 'ready'`.
+Handles task POSTs on two endpoints. `/tasks/generate-course`: calls the Agent for a blueprint, writes course + all module rows in one transaction (`status → ready`), then enqueues the embedding task. `/tasks/generate-embedding`: calls the Agent for a topic vector and stores it via raw pgvector SQL, making the course eligible for similarity reuse. The only service that writes `status = 'ready'` or `status = 'failed'`.
 
 ## Status
 
@@ -15,46 +15,44 @@ Consumes two Redis queues. `course-generation`: calls the Agent for a blueprint,
 
 ## Current State
 
-- Both processors implemented with retry (`attempts: 3`, exponential backoff, 5s base) and concurrency (course: 3, embedding: 5).
+- Migrated from BullMQ/Redis poller to a Cloud Tasks HTTP handler (ADR-027): Fastify app with zod-validated task endpoints; retries are queue-level (Terraform `retry_config`, 3 attempts, 5 s → 125 s).
+- Failed-generation recovery implemented: the final failed attempt (retry-count header vs `TASK_MAX_ATTEMPTS`, or any loopback failure) marks the course `failed` — guarded so a committed `ready` course is never flipped back.
 - Course write is transactional; module rows roll back with the status update.
-- Job chaining (course → embedding) implemented; graceful SIGTERM/SIGINT shutdown.
+- Task chaining (course → embedding) implemented; graceful SIGTERM/SIGINT shutdown (Fastify close + provider close).
 - All AI calls go through `AgentClient` (`/course/generate`, `/embeddings/text`); no direct LLM SDKs.
-- 3 test files (agent client, both processors). Green in CI.
+- Tests: app route semantics (validation, retry signalling, terminal failure), both processors (unit), both task endpoints against real Postgres (integration). Green locally.
 
 ## Infrastructure
 
-- API (HTTP): ➖ none by design (pure worker)
+- API (HTTP): ✅ internal task endpoints only (`/tasks/:name`, `/health`); IAM-authenticated in prod
 - Database: ✅ Drizzle/Postgres + raw pgvector SQL
-- Auth: ➖ none (internal)
-- Queue: ✅ BullMQ on Redis/Memorystore
+- Auth: ➖ platform-level (Cloud Run IAM verifies Cloud Tasks' OIDC tokens)
+- Queue: ✅ GCP Cloud Tasks (prod) / loopback HTTP provider (dev)
 - Error Tracking: ❌ none wired
 
 ## Current Bottleneck
 
-No failed-job recovery. After 3 failed attempts a course is left stuck in `status = 'generating'` with no cleanup job — the user can never recover it without manual DB intervention. This is the single biggest gap before real users.
+No alerting. Failed generations now surface to the user as `status='failed'`, but nothing notifies us — repeated failures (agent outage, bad prompts) are only visible by inspecting the DB or Cloud Tasks console.
 
 ## Known Issues
 
-- Stuck `generating` courses are unrecoverable (no dead-letter handling / reconciliation job).
-- Requires `min-instances = 1` on Cloud Run to avoid a cold-start queue backlog (configured in Terraform).
-- ADR-007 carries a 🚩 reconsideration flag (BullMQ/Memorystore vs. Cloud Tasks).
-- No alerting on repeated job failures.
+- No alerting on repeated task failures or `failed`-course rate.
+- Loopback dev mode is single-attempt — retry behaviour is not exercised locally.
+- In-flight BullMQ jobs at cutover are not migrated (deploy during a quiet window or regenerate).
 
 ## Next Steps
 
-1. Add a cleanup/reconciliation job to mark long-stuck `generating` courses as `failed` and surface them.
-2. Add a dead-letter queue or failure webhook + alerting.
-3. Wire error tracking for processor exceptions.
-4. Resolve the ADR-007 transport decision before scaling.
+1. Add alerting on the `failed`-course rate / Cloud Tasks queue metrics.
+2. Wire error tracking for processor exceptions.
+3. Surface a "retry generation" action in the app for `failed` courses.
 
 ## Open Questions
 
 - Should a failed generation auto-retry from the user's side, or surface a "retry" action in the app?
-- Cloud Tasks vs. BullMQ for production durability (ADR-007)?
 
 ## Confidence
 
 - Developers: ✅ — small, well-tested, clear invariants.
-- Internal testers: ⚠️ — works with Redis + DB + Agent up; failures leave stuck rows.
-- Beta users: ⚠️ — needs failed-job recovery so users aren't stranded.
-- Production users: ❌ — no recovery, no alerting, transport decision open.
+- Internal testers: ✅ — works with DB + Agent up; failures mark the course `failed` instead of stranding it.
+- Beta users: ⚠️ — recovery exists; alerting still missing.
+- Production users: ❌ — no alerting/error tracking; Cloud Tasks path not yet exercised in prod.

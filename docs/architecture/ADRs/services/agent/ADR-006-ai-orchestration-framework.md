@@ -79,7 +79,7 @@ transport works around whatever the orchestrator yields).
 - Growing ecosystem and community in 2026; recommended for new TS projects in several recent comparisons.
 
 **Cons**
-- We don't use the all-in-one pieces. We have BullMQ for job orchestration ([ADR-007](../worker/ADR-007-background-job-queue.md)), pgvector for our specific course-similarity use case ([ADR-010](../../packages/db/ADR-010-vector-search-strategy.md)), pino + OTel for observability ([ADR-017](../../packages/observability/ADR-017-observability-stack.md)). Mastra's bundle bring-along is value we don't use.
+- We don't use the all-in-one pieces. We have BullMQ for job orchestration ([ADR-007](../../_superseded/ADR-007-background-job-queue.md)), pgvector for our specific course-similarity use case ([ADR-010](../../packages/db/ADR-010-vector-search-strategy.md)), pino + OTel for observability ([ADR-017](../../packages/observability/ADR-017-observability-stack.md)). Mastra's bundle bring-along is value we don't use.
 - Mastra's *checkpoint* model is different from LangGraph's. Migrating means rewriting `state.ts` and reasoning about persistence boundaries again.
 - Younger production track record. LangGraph has years; Mastra has roughly one year of widespread use as of 2026.
 - Migration cost: we have functioning LangGraph code with checkpointing wired through `ICheckpointerProvider`. Replacing it is real engineering effort, not a config change.
@@ -111,7 +111,7 @@ transport works around whatever the orchestrator yields).
 
 **Cons**
 - Inngest is fundamentally a job platform with workflow primitives, not a conversation orchestrator. Graph-based stateful chat (with checkpoints loaded between turns from a `thread_id`) is awkward.
-- Adopting Inngest here would also mean reconsidering [ADR-007](../worker/ADR-007-background-job-queue.md) — and we already have BullMQ working there.
+- Adopting Inngest here would also mean reconsidering [ADR-007](../../_superseded/ADR-007-background-job-queue.md) — and we already have BullMQ working there.
 - Vendor concentration with Inngest if we used them for both.
 - Not what Inngest's strengths optimize for.
 

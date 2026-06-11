@@ -12,7 +12,7 @@ Mobile App
     ▼ HTTPS REST + SSE
 API Service (:3000)
     ├──▶ Agent Service (:3001)   [internal HTTP — embeddings, chat stream]
-    ├──▶ Redis                   [BullMQ job enqueue]
+    ├──▶ Cloud Tasks             [task enqueue — loopback HTTP in dev]
     └──▶ PostgreSQL              [course data, enrollments, progress, sessions]
 ```
 
@@ -52,7 +52,7 @@ All routes are prefixed with `/v1` (set in `main.ts` via `app.setGlobalPrefix('v
 |--------|------|------|
 | Agent service | `POST /embeddings/text` | Every `POST /courses` request |
 | Agent service | `POST /module-chat/stream` | Every chat stream request |
-| Redis (BullMQ) | Enqueue `GENERATE_COURSE` | New course (no similarity match) |
+| Cloud Tasks (loopback in dev) | Enqueue `generate-course` task | New course (no similarity match) |
 | PostgreSQL | Read/write | All business logic |
 
 ## Examples
@@ -241,11 +241,11 @@ Common status codes: `400` validation failed · `401` missing or invalid JWT · 
 | Module | Path | Responsibility |
 |--------|------|----------------|
 | **AuthModule** | `src/modules/auth/` | `AuthGuard` — verifies JWT, injects `AuthUser` into request |
-| **CoursesModule** | `src/modules/courses/` | Course creation, enrollment, listing, job polling |
+| **CoursesModule** | `src/modules/courses/` | Course creation, enrollment, listing, generation-status polling |
 | **ChatModule** | `src/modules/chat/` | Session creation, SSE streaming proxy, message persistence |
 | **ProgressModule** | `src/modules/progress/` | Module status tracking and sequential unlock |
 | **AgentClient** | `src/services/agent.client.ts` | HTTP wrapper for Agent service calls |
-| **QueueProvider** | injected via `QUEUE_PROVIDER_TOKEN` | BullMQ job enqueue |
+| **QueueProvider** | injected via `QUEUE_PROVIDER_TOKEN` | Task enqueue (Cloud Tasks / loopback) |
 | **Common** | `src/common/` | `ZodValidationPipe`, `AllExceptionsFilter`, `@CurrentUser()` |
 
 ## Key Flows
@@ -258,8 +258,8 @@ POST /courses { topic, difficulty, moduleCount }
   2. Cosine similarity query (pgvector <=> operator, threshold 0.92)
   3a. Match found → enrollUser(userId, existingCourseId) → return { courseId, status: 'ready', reused: true }
   3b. No match   → INSERT courses (status: 'pending')
-                 → BullMQ.enqueue(COURSE_GENERATION, { courseId, topic, ... })
-                 → return { courseId, jobId, status: 'pending', reused: false }
+                 → queueProvider.enqueue(COURSE_GENERATION, { courseId, topic, ... })
+                 → return { courseId, status: 'pending', reused: false }
 ```
 
 ### Chat streaming
@@ -305,10 +305,10 @@ pnpm --filter @autodidact/api test
 | `DATABASE_URL` | PostgreSQL connection string |
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_SECRET_KEY` | Admin access key |
-| `REDIS_URL` | Redis connection string |
 | `AGENT_SERVICE_URL` | Internal URL of Agent service |
 | `AUTH_PROVIDER` | `supabase` (default) |
-| `QUEUE_PROVIDER` | `bullmq` (default) |
+| `QUEUE_PROVIDER` | `loopback` (dev default) \| `cloudtasks` (prod) |
+| `WORKER_TASK_BASE_URL` | Worker URL tasks are POSTed to |
 
 See also:
 - [Module: Auth](src/modules/auth/README.md)

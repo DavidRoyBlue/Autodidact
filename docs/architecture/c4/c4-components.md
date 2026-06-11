@@ -78,24 +78,27 @@ graph TD
 
 ```mermaid
 graph TD
-    subgraph "Worker Service (BullMQ)"
+    subgraph "Worker Service (task handler)"
         MAIN[main.ts<br/>Worker bootstrap]
-        CGP[CourseGenerationProcessor<br/>COURSE_GENERATION queue]
-        EP[EmbeddingProcessor<br/>EMBEDDING queue]
+        APP[app.ts<br/>Fastify task routes /tasks/:name]
+        CGP[processCourseGeneration<br/>generate-course tasks]
+        EP[processEmbedding<br/>generate-embedding tasks]
         WAC[WorkerAgentClient<br/>HTTP client to Agent]
     end
 
-    MAIN --> CGP
-    MAIN --> EP
+    MAIN --> APP
+    APP --> CGP
+    APP --> EP
     CGP --> WAC
     EP --> WAC
-    CGP -->|enqueues| EP
+    CGP -->|enqueues follow-up task| EP
 ```
 
 | Component | Files | Responsibility |
 |-----------|-------|----------------|
-| **CourseGenerationProcessor** | `processors/course-generation.processor.ts` | Dequeues `GENERATE_COURSE` jobs. Updates course status `pending → generating`. Calls Agent `/generate-course`. Saves blueprint + modules in a DB transaction. Updates status `generating → ready`. Enqueues `GENERATE_EMBEDDING` job. Concurrency: 3. |
-| **EmbeddingProcessor** | `processors/embedding.processor.ts` | Dequeues `GENERATE_EMBEDDING` jobs. Calls Agent `/embeddings/text`. Stores `topic_embedding` vector via raw SQL (`::vector` cast). Concurrency: 5. |
+| **App (task routes)** | `app.ts` | Fastify routes `POST /tasks/generate-course` and `POST /tasks/generate-embedding`. Validates payloads (Zod), maps failures to retry (5xx) or terminal failure (marks course `failed` on the final attempt). |
+| **processCourseGeneration** | `processors/course-generation.processor.ts` | Updates course status `pending → generating`. Calls Agent `/course/generate`. Saves blueprint + modules in a DB transaction (`status → ready`). Enqueues the `generate-embedding` follow-up task. |
+| **processEmbedding** | `processors/embedding.processor.ts` | Calls Agent `/embeddings/text`. Stores `topic_embedding` vector via raw SQL (`::vector` cast). |
 | **WorkerAgentClient** | `services/agent.client.ts` | Typed HTTP wrapper. `generateCourse(data)`, `generateEmbedding(topic)`. Reads `AGENT_SERVICE_URL`. |
 
 ---

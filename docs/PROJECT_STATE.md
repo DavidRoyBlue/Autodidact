@@ -10,7 +10,7 @@
 
 Autodidact is an AI-powered learning platform. A user names a topic; the system generates a structured, multi-module course on demand, then teaches each module through a stateful AI chat tutor that decides when the learner has mastered the material and unlocks the next module. The only client is an Expo React Native mobile app; all intelligence lives in backend services.
 
-The architecture deliberately separates concerns: a public HTTP API (NestJS) owns auth and orchestration but runs no models; an internal AI runtime (Fastify + LangGraph) owns every LLM/embedding call; a background worker (BullMQ) owns long-running course generation. Vendor choices (LLM provider, queue, auth, checkpointer) sit behind a provider-abstraction package so they can be swapped via env vars. The project is engineered for production from the start — Terraform IaC, GCP Cloud Run deployment, gated CI — but is being built by what appears to be a solo developer and has not yet been operationally hardened or proven under real traffic.
+The architecture deliberately separates concerns: a public HTTP API (NestJS) owns auth and orchestration but runs no models; an internal AI runtime (Fastify + LangGraph) owns every LLM/embedding call; a background worker (HTTP task handler driven by GCP Cloud Tasks) owns long-running course generation. Vendor choices (LLM provider, queue, auth, checkpointer) sit behind a provider-abstraction package so they can be swapped via env vars. The project is engineered for production from the start — Terraform IaC, GCP Cloud Run deployment, gated CI — but is being built by what appears to be a solo developer and has not yet been operationally hardened or proven under real traffic.
 
 ---
 
@@ -25,11 +25,11 @@ Stateless public gateway for the mobile client. Owns auth verification (single s
 **Functional**
 
 #### Implementation
-Five modules with real controllers and services: `courses` (`POST/GET /courses`, status, enroll), `chat` (sessions + SSE `…/stream` proxy), `progress` (`GET /progress/:courseId`, completeModule unlock logic), `auth` (Bearer guard), `health`. `createOrReuse()` runs a pgvector cosine-similarity check (threshold 0.92) before inserting a new course and enqueuing a BullMQ job. Chat streams are bridged via RxJS and persisted, triggering module completion when score ≥ 60. All inputs validated with Zod pipes; global exception filter; env validated at boot. Evidence: `services/api/src/modules/courses/courses.service.ts`, `…/chat/chat.service.ts`, `…/progress/progress.service.ts`.
+Five modules with real controllers and services: `courses` (`POST/GET /courses`, status, enroll), `chat` (sessions + SSE `…/stream` proxy), `progress` (`GET /progress/:courseId`, completeModule unlock logic), `auth` (Bearer guard), `health`. `createOrReuse()` runs a pgvector cosine-similarity check (threshold 0.92) before inserting a new course and enqueuing a generation task. Chat streams are bridged via RxJS and persisted, triggering module completion when score ≥ 60. All inputs validated with Zod pipes; global exception filter; env validated at boot. Evidence: `services/api/src/modules/courses/courses.service.ts`, `…/chat/chat.service.ts`, `…/progress/progress.service.ts`.
 
 #### Infrastructure
 - **Database:** PostgreSQL via Drizzle (`@autodidact/db`) — writes `courses`, `modules`, `enrollments`, `module_progress`, `chat_sessions`; pgvector for similarity.
-- **Queue:** BullMQ + Redis (enqueue only) via `IQueueProvider`.
+- **Queue:** GCP Cloud Tasks (loopback HTTP in dev) — enqueue only, via `IQueueProvider`.
 - **Auth:** Supabase via `IAuthProvider`.
 - **External services:** calls `services/agent` over HTTP (`AGENT_SERVICE_URL`) for embeddings and chat SSE.
 - **Observability:** `@autodidact/observability` structured logging.
@@ -94,7 +94,7 @@ Add execution timeouts and make the evaluator fallback fail-closed (do not compl
 
 ---
 
-### services/worker — Background Processor (BullMQ)
+### services/worker — Background Task Handler (Cloud Tasks)
 
 #### Purpose
 Always-on daemon (no HTTP). Consumes two queues: `course-generation` (calls agent, writes blueprint+modules in a transaction, flips course to `ready`, enqueues embedding) and `embedding` (calls agent, stores topic vector). Only service that writes `courses.status = 'ready'`.
@@ -107,7 +107,7 @@ Two processor factories wired in `main.ts` with concurrency 3 (course-gen) and 5
 
 #### Infrastructure
 - **Database:** PostgreSQL via Drizzle (writes `courses`, `modules`, `topic_embedding`).
-- **Queue:** BullMQ + Redis (consumes both queues).
+- **Queue:** GCP Cloud Tasks delivers task POSTs (loopback HTTP in dev); enqueues the embedding follow-up.
 - **External services:** agent HTTP (`AGENT_SERVICE_URL`).
 
 #### Readiness
@@ -118,7 +118,7 @@ Two processor factories wired in `main.ts` with concurrency 3 (course-gen) and 5
 | Database Connected | ✅ |
 | Auth Connected | N/A |
 | Production Config | ⚠️ no agent retry; DB transaction held open across the slow agent call; no dead-letter handling |
-| Monitoring | ⚠️ logging + BullMQ `failed` events only; no heartbeat/metrics |
+| Monitoring | ⚠️ logging only; no heartbeat/metrics/alerting |
 
 #### Known Issues
 - **Stuck-course recovery missing:** if all retries fail, the course stays `status = 'generating'` forever — no reset/cleanup job.
@@ -195,7 +195,7 @@ Containerized deployment to GCP Cloud Run with Terraform IaC and gated GitHub Ac
 #### Implementation
 - **CI** (`.github/workflows/ci.yml`): on PR + push to master → install → `pnpm lint` → `pnpm typecheck` → `pnpm test`.
 - **Deploy** (`.github/workflows/deploy.yml`): on push to master / manual → lint+typecheck+test gate → OIDC auth to GCP (no static keys) → build & push 3 Docker images to Artifact Registry → run DB migrations (`PROD_DATABASE_URL` secret) → `gcloud run deploy` for `autodidact-api`, `-agent`, `-worker`. Uses GitHub `environment: production` (approval gate available via repo settings — enforcement not verifiable from code).
-- **IaC** (`infra/`): Terraform modules for `artifact-registry`, `redis` (Memorystore), `cloud-run-service`; `environments/prod`; GCS remote state (`backend.tf`).
+- **IaC** (`infra/`): Terraform modules for `artifact-registry`, `cloud-tasks`, `cloud-run-service`; `environments/prod`; GCS remote state (`backend.tf`).
 - **Local dev:** `docker-compose.yml` (Postgres + Redis); per-service `Dockerfile`s; pnpm 9.12.3 + Node ≥20 + Turbo.
 - **Other workflows:** several Claude-automation workflows (PR review, triage, doc-sync, weekly maintenance, ADR review).
 
@@ -305,7 +305,7 @@ The immediate objective appears to be: **get the mobile app building cleanly on 
 10. Retry/backoff or circuit breaker between all services.
 11. pgvector index tuning + queue capacity planning for scale.
 12. Light theme for mobile; populate the reserved `chatSessionId` (Phase 2).
-13. Revisit deferred ADRs (BullMQ → Cloud Tasks, Tamagui → NativeWind, Supabase Auth → alternative) once usage data exists.
+13. Revisit deferred ADRs (Tamagui → NativeWind, Supabase Auth → alternative) once usage data exists. (BullMQ → Cloud Tasks executed in ADR-027.)
 
 ---
 

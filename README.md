@@ -22,12 +22,11 @@ AI-native learning platform that generates structured courses and teaches them t
 ### Backend
 - NestJS (API)
 - LangGraph TS (Agent)
-- BullMQ (Worker)
+- Cloud Tasks task handler (Worker)
 
 ### Data
 - Supabase PostgreSQL
 - Drizzle ORM
-- Redis
 - pgvector
 
 ### Infra

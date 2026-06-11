@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Real infrastructure harness (Postgres + Redis via Testcontainers) and seed factories for integration and e2e tests across the monorepo.
+Real infrastructure harness (Postgres via Testcontainers) and seed factories for integration and e2e tests across the monorepo.
 
 ## Invariants (must not be broken)
 

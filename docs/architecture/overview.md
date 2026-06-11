@@ -8,9 +8,9 @@ Autodidact uses a monorepo with separate applications, services, and shared pack
 
 ### Course Generation
 ```
-Mobile → API (POST /courses) → BullMQ queue → Worker → Agent service → LLM
-                                                      → DB (Drizzle/Supabase)
-                                                      → Redis (cache + queue)
+Mobile → API (POST /courses) → Cloud Tasks → Worker (HTTP) → Agent service → LLM
+                                                            → DB (Drizzle/Supabase)
+                                                            → Cloud Tasks (embedding follow-up)
 ```
 
 ### Module Chat
@@ -34,7 +34,7 @@ Mobile → API (POST /courses) → Agent /embeddings/text
 ### Services
 - `services/api` — NestJS. Public-facing. Auth, course management, chat SSE proxy, progress.
 - `services/agent` — Fastify. LangGraph graphs. Course generation and module chat.
-- `services/worker` — BullMQ workers. Async course generation and embedding.
+- `services/worker` — HTTP task handler (Cloud Tasks). Async course generation and embedding.
 
 ### Packages
 - `packages/providers` — Provider interfaces + implementations. The key abstraction layer.

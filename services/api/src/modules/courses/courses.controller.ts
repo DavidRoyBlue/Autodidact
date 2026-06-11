@@ -34,9 +34,9 @@ export class CoursesController {
     return this.coursesService.getUserCourses(user.id);
   }
 
-  @Get('status/:jobId')
-  status(@Param('jobId') jobId: string) {
-    return this.coursesService.getJobStatus(jobId);
+  @Get('status/:courseId')
+  status(@Param('courseId') courseId: string) {
+    return this.coursesService.getGenerationStatus(courseId);
   }
 
   @Get(':id')

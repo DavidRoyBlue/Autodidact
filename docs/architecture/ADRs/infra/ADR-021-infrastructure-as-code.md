@@ -8,7 +8,7 @@ Date: 2026-05-10
 ## Context
 
 We deploy three services to GCP Cloud Run ([ADR-012](./ADR-012-cloud-hosting-platform.md))
-plus supporting infrastructure: Memorystore Redis ([ADR-007](../services/worker/ADR-007-background-job-queue.md)),
+plus supporting infrastructure: Memorystore Redis ([ADR-007](../_superseded/ADR-007-background-job-queue.md)),
 Artifact Registry (container images), Secret Manager (env secrets), VPC
 connector, IAM bindings, service accounts. Terraform state lives in a GCS
 bucket (`autodidact-terraform-state`).

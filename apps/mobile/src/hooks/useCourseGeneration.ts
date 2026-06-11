@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { useJobStatus } from '../api/courses';
+import { useGenerationStatus } from '../api/courses';
 
-export function useCourseGeneration(courseId: string | null, jobId: string | null) {
+export function useCourseGeneration(courseId: string | null) {
   const router = useRouter();
-  const { data } = useJobStatus(jobId);
+  const { data } = useGenerationStatus(courseId);
 
   useEffect(() => {
     if (data?.status === 'completed' && courseId) {
@@ -13,7 +13,7 @@ export function useCourseGeneration(courseId: string | null, jobId: string | nul
   }, [data?.status, courseId, router]);
 
   return {
-    isGenerating: data?.status === 'waiting' || data?.status === 'active',
+    isGenerating: data?.status === 'pending' || data?.status === 'active',
     failed: data?.status === 'failed',
     status: data?.status ?? null,
   };

@@ -48,7 +48,7 @@ Sort within each section by ADR number.
 - [ADR-006 — AI orchestration framework](./services/agent/ADR-006-ai-orchestration-framework.md)
 - [ADR-011 — Real-time streaming transport](./services/agent/ADR-011-realtime-streaming-transport.md)
 - [ADR-024 — Content RAG storage & retrieval for grounded tutoring](./services/agent/ADR-024-content-rag-storage-and-retrieval.md)
-- [ADR-007 — Background job queue](./services/worker/ADR-007-background-job-queue.md)
+- [ADR-027 — Background job queue — migrate to GCP Cloud Tasks](./services/worker/ADR-027-background-job-queue-cloud-tasks.md) (supersedes [ADR-007](./_superseded/ADR-007-background-job-queue.md))
 
 ### Packages
 - [ADR-008 — ORM / data access layer](./packages/db/ADR-008-orm-data-access.md)
@@ -68,7 +68,6 @@ ADRs whose honest analysis concluded that a *different* tool would be a better
 fit, but where we are staying with the current choice for legacy/inertia/cost
 reasons. Each entry names the trigger condition under which we should migrate.
 
-- [ADR-007 — Background job queue](./services/worker/ADR-007-background-job-queue.md): would-be-better → **GCP Cloud Tasks** (drops Memorystore Redis + the standalone worker service). Trigger: explicit infra-simplification sprint, or Memorystore costs becoming noticeable on the GCP bill.
 - [ADR-013 — Mobile UI system](./apps/mobile/ADR-013-mobile-ui-system.md): would-be-better → **NativeWind** (lighter, more idiomatic for our RN-only app; Tamagui's cross-platform compile-time win doesn't pay off without a web target). Trigger: planned UI refresh, sustained Tamagui RC churn, or measurable bundle-weight impact on launch.
 - [ADR-020 — Authentication strategy](./cross-cutting/ADR-020-authentication-strategy.md): would-be-better → **Better Auth** (TS-native, Drizzle-integrated, no vendor lock-in). Trigger: Supabase Auth incident >2h, MAU costs >$200/mo, custom-session feature need, or a planned auth refresh.
 

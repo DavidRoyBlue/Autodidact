@@ -1,14 +1,15 @@
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
-import { Queue } from 'bullmq';
-import { Redis } from 'ioredis';
 import {
   withTestDatabase,
-  withTestRedis,
   type TestDatabase,
-  type TestRedis,
   seedUser,
 } from '@autodidact/test-support';
-import { makeMockAgentClient, makeMockQueueProvider, makeMockLogger, sampleBlueprint } from '@autodidact/config/test-utils';
+import {
+  makeMockAgentClient,
+  makeMockQueueProvider,
+  makeMockLogger,
+  sampleBlueprint,
+} from '@autodidact/config/test-utils';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Redirect @autodidact/db → harness DB
@@ -28,27 +29,22 @@ vi.mock('@autodidact/db', async () => {
 });
 
 import { courses, modules, eq } from '@autodidact/db';
-import { createCourseGenerationWorker } from '../processors/course-generation.processor.js';
+import { buildApp } from '../app.js';
 import { QUEUES, JOB_NAMES } from '../queues/definitions.js';
 
 // ────────────────────────────────────────────────────────────────────────────
 
-let redisHarness: TestRedis;
-let redisConn: Redis;
-
 beforeAll(async () => {
-  [dbHarness, redisHarness] = await Promise.all([withTestDatabase(), withTestRedis()]);
-  redisConn = new Redis(redisHarness.url, { maxRetriesPerRequest: null });
+  dbHarness = await withTestDatabase();
 }, 90_000);
 
 afterAll(async () => {
-  await redisConn.quit();
-  await Promise.all([dbHarness?.close(), redisHarness?.close()]);
+  await dbHarness?.close();
 });
 
 // ────────────────────────────────────────────────────────────────────────────
 
-describe('course-generation processor — real Redis + real DB', () => {
+describe('generate-course task endpoint — real DB', () => {
   let courseId: string;
   let userId: string;
 
@@ -75,54 +71,35 @@ describe('course-generation processor — real Redis + real DB', () => {
     courseId = course.id;
   });
 
-  it('processes a real BullMQ job: sets status=ready and inserts modules', async () => {
-    const agentClient = makeMockAgentClient();
-    const queueProvider = makeMockQueueProvider();
-    const logger = makeMockLogger();
-
-    // Build the worker before enqueuing so it's already listening
-    const worker = createCourseGenerationWorker(
-      redisConn,
-      agentClient as never,
-      queueProvider as never,
-      logger as never,
-    );
-
-    // Wait for the worker to be ready (BullMQ needs a tick to register)
-    await new Promise<void>((resolve) => {
-      if (worker.isRunning()) return resolve();
-      worker.once('ready', resolve);
-      // If already running, 'ready' may have fired; check again after a tick
-      setTimeout(resolve, 50);
+  function makeTaskApp(
+    agentClient = makeMockAgentClient(),
+    queueProvider = makeMockQueueProvider(),
+  ) {
+    const app = buildApp({
+      agentClient: agentClient as never,
+      queueProvider: queueProvider as never,
+      logger: makeMockLogger() as never,
+      maxAttempts: 3,
     });
+    return { app, agentClient, queueProvider };
+  }
 
-    // Enqueue a real job
-    const queue = new Queue(QUEUES.COURSE_GENERATION, { connection: redisConn });
-    try {
-      await queue.add(JOB_NAMES.GENERATE_COURSE, {
+  it('processes a task POST: sets status=ready and inserts modules', async () => {
+    const { app } = makeTaskApp();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/tasks/${JOB_NAMES.GENERATE_COURSE}`,
+      payload: {
         courseId,
         userId,
         topic: 'Python',
         difficulty: 'beginner',
         moduleCount: 1,
-      });
+      },
+    });
 
-      // Await job completion
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Timed out waiting for job completion')), 30_000);
-        worker.once('completed', () => {
-          clearTimeout(timeout);
-          resolve();
-        });
-        worker.once('failed', (_job, err) => {
-          clearTimeout(timeout);
-          reject(err);
-        });
-      });
-    } finally {
-      await worker.close();
-      await queue.close();
-    }
+    expect(res.statusCode).toBe(204);
 
     // Assert DB state
     const [updatedCourse] = await dbHarness.db
@@ -142,49 +119,88 @@ describe('course-generation processor — real Redis + real DB', () => {
     expect(insertedModules[0]?.title).toBe(sampleBlueprint.modules[0]?.title);
   });
 
-  it('enqueues an embedding follow-up job after successful course generation', async () => {
-    const agentClient = makeMockAgentClient();
-    const queueProvider = makeMockQueueProvider();
-    const logger = makeMockLogger();
+  it('enqueues an embedding follow-up task after successful course generation', async () => {
+    const { app, queueProvider } = makeTaskApp();
 
-    const worker = createCourseGenerationWorker(
-      redisConn,
-      agentClient as never,
-      queueProvider as never,
-      logger as never,
-    );
-
-    await new Promise<void>((resolve) => {
-      if (worker.isRunning()) return resolve();
-      worker.once('ready', resolve);
-      setTimeout(resolve, 50);
-    });
-
-    const queue = new Queue(QUEUES.COURSE_GENERATION, { connection: redisConn });
-    try {
-      await queue.add(JOB_NAMES.GENERATE_COURSE, {
+    const res = await app.inject({
+      method: 'POST',
+      url: `/tasks/${JOB_NAMES.GENERATE_COURSE}`,
+      payload: {
         courseId,
         userId,
         topic: 'Python',
         difficulty: 'beginner',
         moduleCount: 1,
-      });
+      },
+    });
 
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Timed out waiting for job completion')), 30_000);
-        worker.once('completed', () => { clearTimeout(timeout); resolve(); });
-        worker.once('failed', (_job, err) => { clearTimeout(timeout); reject(err); });
-      });
-    } finally {
-      await worker.close();
-      await queue.close();
-    }
-
+    expect(res.statusCode).toBe(204);
     expect(queueProvider.enqueue).toHaveBeenCalledWith(
       QUEUES.EMBEDDING,
       JOB_NAMES.GENERATE_EMBEDDING,
       { courseId, topic: 'Python' },
-      expect.any(Object),
     );
+  });
+
+  it('marks the course failed in the DB when the final attempt fails', async () => {
+    const agentClient = makeMockAgentClient();
+    (agentClient.generateCourse as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('agent down'),
+    );
+    const { app } = makeTaskApp(agentClient);
+
+    // No retry-count header → treated as the single, final attempt (loopback).
+    const res = await app.inject({
+      method: 'POST',
+      url: `/tasks/${JOB_NAMES.GENERATE_COURSE}`,
+      payload: {
+        courseId,
+        userId,
+        topic: 'Python',
+        difficulty: 'beginner',
+        moduleCount: 1,
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ status: 'failed' });
+
+    const [failedCourse] = await dbHarness.db
+      .select({ status: courses.status })
+      .from(courses)
+      .where(eq(courses.id, courseId));
+
+    expect(failedCourse?.status).toBe('failed');
+  });
+
+  it('returns 500 and leaves the course in generating on a non-final attempt', async () => {
+    const agentClient = makeMockAgentClient();
+    (agentClient.generateCourse as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('agent down'),
+    );
+    const { app } = makeTaskApp(agentClient);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/tasks/${JOB_NAMES.GENERATE_COURSE}`,
+      payload: {
+        courseId,
+        userId,
+        topic: 'Python',
+        difficulty: 'beginner',
+        moduleCount: 1,
+      },
+      headers: { 'x-cloudtasks-taskretrycount': '0' }, // first of 3 attempts
+    });
+
+    expect(res.statusCode).toBe(500);
+
+    const [course] = await dbHarness.db
+      .select({ status: courses.status })
+      .from(courses)
+      .where(eq(courses.id, courseId));
+
+    // Still in-flight: Cloud Tasks will redeliver and the next attempt reruns.
+    expect(course?.status).toBe('generating');
   });
 });

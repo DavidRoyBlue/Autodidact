@@ -4,7 +4,7 @@ export default createBaseConfig({
   test: {
     name: 'e2e',
     include: ['src/__tests__/**/*.test.ts'],
-    // Booting three child-process services + Testcontainers Postgres/Redis is slow.
+    // Booting three child-process services + Testcontainers Postgres is slow.
     testTimeout: 120_000,
     hookTimeout: 180_000,
     pool: 'forks',

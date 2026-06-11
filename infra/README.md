@@ -7,7 +7,7 @@ Terraform infrastructure as code for the Autodidact production environment on GC
 This folder is responsible for:
 - Provisioning GCP Cloud Run services (api, agent, worker)
 - Artifact Registry (`autodidact` repository) for Docker images
-- Redis (Memorystore, STANDARD_HA tier, Redis 7.0) for BullMQ queue state
+- Cloud Tasks queues (`autodidact-course-generation`, `autodidact-embedding`) for background work, incl. enqueuer/OIDC IAM (ADR-027)
 
 This folder is not responsible for:
 - Application code deployment (handled by CI/CD — images are built and pushed separately)
@@ -36,7 +36,7 @@ infra/
 └── modules/
     ├── cloud-run-service/        # Reusable Cloud Run v2 service + IAM
     ├── artifact-registry/        # Docker image registry (DOCKER format)
-    └── redis/                    # Memorystore Redis instance
+    └── cloud-tasks/              # Task queues + enqueuer/OIDC IAM
 ```
 
 ---
@@ -47,9 +47,9 @@ infra/
 |---------|--------|-----|--------|-----|-----|
 | autodidact-api | yes | 1 | 512Mi | 1 | 10 |
 | autodidact-agent | no | 2 | 2Gi | 1 | 5 |
-| autodidact-worker | no | 1 | 512Mi | 1 | 3 |
+| autodidact-worker | no | 1 | 512Mi | 0 | 3 |
 
-All services source their environment variables exclusively from GCP Secret Manager by secret name — no values are stored in Terraform state.
+Services source secret env vars from GCP Secret Manager by secret name; non-secret Cloud Tasks config (project id, location, invoker SA, ports) is injected as plain env vars via `plain_env_vars`.
 
 ---
 

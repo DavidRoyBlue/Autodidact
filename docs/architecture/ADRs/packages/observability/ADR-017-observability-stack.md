@@ -8,7 +8,7 @@ Date: 2026-05-10
 ## Context
 
 Three services run on Cloud Run, communicating asynchronously
-(API → Worker via [BullMQ](../../services/worker/ADR-007-background-job-queue.md);
+(API → Worker via [BullMQ](../../_superseded/ADR-007-background-job-queue.md);
 API → Agent over internal HTTP; Agent → LLM vendors). When something goes
 wrong — a 500 from a course-creation request, a stuck `generating`
 status, an SSE stream that silently drops — we need three things:

@@ -44,8 +44,8 @@ import type {
   UserProgress,             // Enrollment + all module progress for a user
 
   // Job queue payloads
-  CourseGenerationJobData,  // BullMQ job data for course generation
-  EmbeddingJobData,         // BullMQ job data for embedding generation
+  CourseGenerationJobData,  // Task payload for course generation
+  EmbeddingJobData,         // Task payload for embedding generation
 } from '@autodidact/types';
 ```
 
@@ -78,6 +78,6 @@ function createChunk(token: string): StreamChunk {
 
 ## Gotchas
 
-- `JobStatus` includes `'delayed'` (a BullMQ state) in addition to the standard `'pending' | 'active' | 'completed' | 'failed'` states. Do not rely on the BullMQ-specific states in business logic that must be portable.
+- `JobStatus` includes `'delayed'` (a legacy queue state, unused since the Cloud Tasks migration) in addition to the standard `'pending' | 'active' | 'completed' | 'failed'` states. Do not rely on `'delayed'` in business logic.
 - `StreamChunk.type: 'module_complete'` carries `score` and `feedback` fields — these are only populated on the `module_complete` event, not on `token` chunks.
 - Do not add Zod schemas or `z.infer<>` types to this package. They belong in `@autodidact/schemas`.

@@ -12,7 +12,7 @@ Provider interfaces, factory functions, and concrete implementations for all ext
 
 - Never import concrete provider classes directly in service code. Services must call the factory function (`createLLMProvider()`, etc.) and receive an interface type. Concrete classes are an internal detail of this package.
 - The five provider interfaces are: `ILLMProvider`, `IEmbeddingProvider`, `IQueueProvider`, `IAuthProvider`, `ICheckpointerProvider`. All live in `src/interfaces/`.
-- The active provider is selected by the factory function reading an env var (`LLM_PROVIDER`, `EMBEDDING_PROVIDER`, `AUTH_PROVIDER`, `CHECKPOINTER`). Do not add provider-selection logic anywhere outside `src/factory.ts`.
+- The active provider is selected by the factory function reading an env var (`LLM_PROVIDER`, `EMBEDDING_PROVIDER`, `QUEUE_PROVIDER`, `AUTH_PROVIDER`, `CHECKPOINTER`). Do not add provider-selection logic anywhere outside `src/factory.ts`.
 - A `mock` option exists for `LLM_PROVIDER`, `EMBEDDING_PROVIDER`, and `AUTH_PROVIDER` — deterministic, network-free implementations used **only** by the cross-service e2e (`@autodidact/e2e`). Never select `mock` in dev or production.
 - To add a new provider implementation: create `src/implementations/<category>/<name>.provider.ts`, implement the interface, add the selection branch in `factory.ts`, and update the README env var table. No service code should change.
 - `ILLMProvider.getModel()` returns a LangChain `BaseChatModel` — the interface is intentionally LangChain-aware because all LLM usage goes through LangGraph.
@@ -25,7 +25,7 @@ Provider interfaces, factory functions, and concrete implementations for all ext
 ## Library / tooling rules
 
 - Use: LangChain/LangGraph types (`BaseChatModel`, `Embeddings`, `BaseCheckpointSaver`) as the return types in interfaces — this keeps the abstraction LangChain-compatible without coupling to specific SDKs.
-- Do not use: vendor SDKs (openai, anthropic, @supabase/supabase-js, bullmq, ioredis) outside of `src/implementations/`.
+- Do not use: vendor SDKs (openai, anthropic, @supabase/supabase-js, @google-cloud/tasks) outside of `src/implementations/`.
 
 ---
 
@@ -55,5 +55,5 @@ Provider interfaces, factory functions, and concrete implementations for all ext
 
 - [ADR-009 — External vendor abstraction](../../docs/architecture/ADRs/packages/providers/ADR-009-external-vendor-abstraction.md) (custom interfaces + factories)
 - [ADR-006 — AI orchestration framework](../../docs/architecture/ADRs/services/agent/ADR-006-ai-orchestration-framework.md) (LangGraph — shapes the LLM/checkpointer return types)
-- [ADR-007 — Background job queue](../../docs/architecture/ADRs/services/worker/ADR-007-background-job-queue.md) (BullMQ — shape of `IQueueProvider`)
+- [ADR-027 — Background job queue — migrate to GCP Cloud Tasks](../../docs/architecture/ADRs/services/worker/ADR-027-background-job-queue-cloud-tasks.md) (Cloud Tasks / loopback — shape of `IQueueProvider`)
 - [ADR-020 — Authentication strategy](../../docs/architecture/ADRs/cross-cutting/ADR-020-authentication-strategy.md) (Supabase Auth — shape of `IAuthProvider`)

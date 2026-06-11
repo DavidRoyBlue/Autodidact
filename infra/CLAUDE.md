@@ -4,7 +4,7 @@
 
 ## Purpose of this subtree
 
-Terraform infrastructure as code for the Autodidact production environment on GCP. Manages: Cloud Run services (api, agent, worker), Artifact Registry for Docker images, and a Redis instance (Memorystore) used by BullMQ. State is stored in GCS.
+Terraform infrastructure as code for the Autodidact production environment on GCP. Manages: Cloud Run services (api, agent, worker), Artifact Registry for Docker images, and Cloud Tasks queues for background work (ADR-027). State is stored in GCS.
 
 ---
 
@@ -15,7 +15,8 @@ Terraform infrastructure as code for the Autodidact production environment on GC
 - Never commit `.terraform/` directories or `terraform.tfstate` files — state is remote (GCS bucket `autodidact-terraform-state`)
 - Reusable modules live in `infra/modules/` — do not duplicate infrastructure resource definitions in environment configs
 - All secrets are sourced from GCP Secret Manager by name — never hardcode secret values in `.tf` files
-- The `env_vars` map in each `cloud-run-service` module invocation contains Secret Manager secret names (not values) — the module resolves them via `secret_key_ref`
+- The `env_vars` map in each `cloud-run-service` module invocation contains Secret Manager secret names (not values) — the module resolves them via `secret_key_ref`. Non-secret values (project id, region, ports) go in `plain_env_vars`
+- The worker's Cloud Tasks queue `retry_config.max_attempts` and the worker's `TASK_MAX_ATTEMPTS` env var must stay in sync — the worker uses it to detect the final attempt
 
 ---
 
@@ -45,7 +46,7 @@ Terraform infrastructure as code for the Autodidact production environment on GC
 - One Cloud Run service per backend service (api, agent, worker), each instantiated via `modules/cloud-run-service`
 - `allow_public = true` only for the api service — agent and worker are internal only
 - Environment variables for services are Secret Manager references — add new secrets to the `env_vars` map by secret name
-- `min_instances = 1` on all services prevents cold starts in production — do not set to 0 unless intentionally accepting cold start latency
+- `min_instances = 1` on api and agent prevents cold starts in production. The worker intentionally runs `min_instances = 0` — Cloud Tasks pushes tasks over HTTP, and a ~1 s cold start on a 10–30 s job is accepted (ADR-027)
 
 ---
 
@@ -73,4 +74,4 @@ terraform apply         # apply after reviewing plan output
 - [ADR-012 — Cloud hosting platform](../docs/architecture/ADRs/infra/ADR-012-cloud-hosting-platform.md) (GCP Cloud Run)
 - [ADR-021 — Infrastructure as code](../docs/architecture/ADRs/infra/ADR-021-infrastructure-as-code.md) (Terraform)
 - [ADR-022 — CI/CD platform](../docs/architecture/ADRs/infra/ADR-022-cicd-platform.md) (GitHub Actions)
-- [ADR-007 — Background job queue](../docs/architecture/ADRs/services/worker/ADR-007-background-job-queue.md) (Memorystore Redis — 🚩)
+- [ADR-027 — Background job queue — migrate to GCP Cloud Tasks](../docs/architecture/ADRs/services/worker/ADR-027-background-job-queue-cloud-tasks.md) (Cloud Tasks queues; supersedes ADR-007)

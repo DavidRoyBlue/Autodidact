@@ -28,7 +28,7 @@ docker info &>/dev/null 2>&1 || die "Docker is not running. Start Docker Desktop
 ok "All pre-flight checks passed"
 
 # ── Docker infra ──────────────────────────────────────────────────────────────
-step "Starting local infrastructure (Postgres + Redis)"
+step "Starting local infrastructure (Postgres)"
 docker compose up -d
 ok "Docker services started"
 
@@ -58,7 +58,7 @@ ok "Migrations applied"
 step "Starting all backend services"
 echo -e "${YELLOW}  API     → http://localhost:3000/v1${NC}"
 echo -e "${YELLOW}  Agent   → http://localhost:3001     (internal)${NC}"
-echo -e "${YELLOW}  Worker  → background job processor${NC}"
+echo -e "${YELLOW}  Worker  → http://localhost:3002     (internal task handler)${NC}"
 echo
 echo -e "${YELLOW}Mobile: open a new terminal and run  ./scripts/mobile.sh${NC}"
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}\n"

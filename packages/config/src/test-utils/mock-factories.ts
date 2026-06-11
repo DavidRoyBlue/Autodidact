@@ -42,7 +42,6 @@ export function makeMockLLMProvider(responseContent = 'mock response') {
 export function makeMockQueueProvider() {
   return {
     enqueue: vi.fn().mockResolvedValue('test-job-id'),
-    getJobStatus: vi.fn().mockResolvedValue('pending' as const),
     close: vi.fn().mockResolvedValue(undefined),
   };
 }

@@ -42,4 +42,3 @@ Stand up one working end-to-end environment: reconcile the secret-name drift, pr
 - Is there a staging environment, or does `master` deploy straight to production (current `deploy.yml`)?
 - What is the acceptable LLM spend ceiling, and how is it enforced?
 - First beta target: iOS, Android, or both — and via which distribution channel?
-- BullMQ/Memorystore vs. Cloud Tasks for production job durability (ADR-007 🚩)?

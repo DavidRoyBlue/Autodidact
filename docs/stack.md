@@ -20,7 +20,7 @@ Each row links to the ADR documenting the choice (drivers, alternatives, rationa
 - **SSE** — token streaming transport across agent → API → mobile. → [ADR-011](architecture/ADRs/services/agent/ADR-011-realtime-streaming-transport.md)
 
 ## Background Jobs
-- **BullMQ + Redis** 🚩 — async course generation and embedding jobs. → [ADR-007](architecture/ADRs/services/worker/ADR-007-background-job-queue.md)
+- **GCP Cloud Tasks** — async course generation and embedding tasks, pushed to the worker over IAM-authenticated HTTP. → [ADR-027](architecture/ADRs/services/worker/ADR-027-background-job-queue-cloud-tasks.md)
 
 ## Database
 - **Supabase PostgreSQL** — managed Postgres with bundled auth + storage. → [ADR-002](architecture/ADRs/cross-cutting/ADR-002-database-platform.md)

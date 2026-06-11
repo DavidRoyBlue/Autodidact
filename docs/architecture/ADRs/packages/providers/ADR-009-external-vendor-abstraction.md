@@ -24,7 +24,7 @@ against an interface.
 This ADR is about the **structure of vendor abstraction**, not about which
 vendors we use. The actual vendor choices live in their own ADRs (LLM
 orchestration in [ADR-006](../../services/agent/ADR-006-ai-orchestration-framework.md),
-queue in [ADR-007](../../services/worker/ADR-007-background-job-queue.md),
+queue in [ADR-007](../../_superseded/ADR-007-background-job-queue.md),
 auth in [ADR-020](../../cross-cutting/ADR-020-authentication-strategy.md),
 hosting in [ADR-012](../../infra/ADR-012-cloud-hosting-platform.md)). It sits
 upstream of those ADRs because any of them could be reconsidered without
@@ -90,7 +90,7 @@ restructuring the abstraction.
 **Cons**
 - Adds a runtime framework dependency just for vendor selection. The factory pattern (Option B) gives us 90% of the benefit with 10% of the framework cost.
 - Decorator-based DI requires `reflect-metadata` and TS `experimentalDecorators` flag. The agent and worker would inherit this constraint without otherwise needing it.
-- The API service already has a DI container (NestJS's). Bolting another DI framework alongside it is duplication; using NestJS DI for everything would lock the agent and worker into NestJS, which conflicts with their existing framework choices ([ADR-005](../../services/agent/ADR-005-ai-agent-server-framework.md), [ADR-007](../../services/worker/ADR-007-background-job-queue.md)).
+- The API service already has a DI container (NestJS's). Bolting another DI framework alongside it is duplication; using NestJS DI for everything would lock the agent and worker into NestJS, which conflicts with their existing framework choices ([ADR-005](../../services/agent/ADR-005-ai-agent-server-framework.md), [ADR-007](../../_superseded/ADR-007-background-job-queue.md)).
 - Onboarding cost: a new dev has to learn the container, the binding tokens, and the lifecycle model before they can add a provider.
 - Lifecycle management is real value at large scale; at our scale the providers are all effectively singletons.
 

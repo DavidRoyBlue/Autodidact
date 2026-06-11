@@ -1,19 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ────────────────────────────────────────────────────────────────────────────
-// Capture the BullMQ Worker processor function
-// ────────────────────────────────────────────────────────────────────────────
-
-let capturedProcessorFn: ((job: Record<string, unknown>) => Promise<void>) | undefined;
-
-vi.mock('bullmq', () => ({
-  Worker: vi.fn().mockImplementation((_queue: string, fn: (job: unknown) => Promise<void>) => {
-    capturedProcessorFn = fn as (job: Record<string, unknown>) => Promise<void>;
-    return { close: vi.fn() };
-  }),
-}));
-
-// ────────────────────────────────────────────────────────────────────────────
 // Mock @autodidact/db
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -30,7 +17,7 @@ vi.mock('@autodidact/db', () => ({
   })),
 }));
 
-const { createEmbeddingWorker } = await import('../processors/embedding.processor.js');
+const { processEmbedding } = await import('../processors/embedding.processor.js');
 
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -42,25 +29,24 @@ function makeLogger() {
   return { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() };
 }
 
-describe('createEmbeddingWorker — processor function', () => {
+function makeDeps(agent = makeAgentClient()) {
+  return { agentClient: agent as never, logger: makeLogger() as never };
+}
+
+describe('processEmbedding', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    capturedProcessorFn = undefined;
     mockExecute.mockResolvedValue(undefined);
   });
 
   it('calls agentClient.generateEmbedding with the job topic', async () => {
     const agent = makeAgentClient();
-    createEmbeddingWorker({} as never, agent as never, makeLogger() as never);
-    expect(capturedProcessorFn).toBeDefined();
-    await capturedProcessorFn!({ data: { courseId: 'c-1', topic: 'Python' } });
+    await processEmbedding({ courseId: 'c-1', topic: 'Python' }, makeDeps(agent));
     expect(agent.generateEmbedding).toHaveBeenCalledWith('Python');
   });
 
   it('executes a SQL UPDATE that includes the ::vector cast', async () => {
-    const agent = makeAgentClient([0.1, 0.2, 0.3]);
-    createEmbeddingWorker({} as never, agent as never, makeLogger() as never);
-    await capturedProcessorFn!({ data: { courseId: 'c-1', topic: 'Python' } });
+    await processEmbedding({ courseId: 'c-1', topic: 'Python' }, makeDeps());
     expect(mockExecute).toHaveBeenCalledOnce();
     // The SQL template strings should contain ::vector
     const sqlArg = mockExecute.mock.calls[0]?.[0] as { strings: TemplateStringsArray };
@@ -70,9 +56,10 @@ describe('createEmbeddingWorker — processor function', () => {
 
   it('constructs the correct vector literal from the embedding', async () => {
     const vector = [0.1, 0.2, 0.3];
-    const agent = makeAgentClient(vector);
-    createEmbeddingWorker({} as never, agent as never, makeLogger() as never);
-    await capturedProcessorFn!({ data: { courseId: 'c-1', topic: 'Python' } });
+    await processEmbedding(
+      { courseId: 'c-1', topic: 'Python' },
+      makeDeps(makeAgentClient(vector)),
+    );
     // The vectorLiteral "[0.1,0.2,0.3]" is passed as a template param to sql``
     const sqlArg = mockExecute.mock.calls[0]?.[0] as { values: unknown[] };
     const vectorLiteral = sqlArg.values[0] as string;
@@ -80,10 +67,17 @@ describe('createEmbeddingWorker — processor function', () => {
   });
 
   it('passes courseId as the WHERE clause parameter', async () => {
-    const agent = makeAgentClient();
-    createEmbeddingWorker({} as never, agent as never, makeLogger() as never);
-    await capturedProcessorFn!({ data: { courseId: 'course-uuid-99', topic: 'Rust' } });
+    await processEmbedding({ courseId: 'course-uuid-99', topic: 'Rust' }, makeDeps());
     const sqlArg = mockExecute.mock.calls[0]?.[0] as { values: unknown[] };
     expect(sqlArg.values).toContain('course-uuid-99');
+  });
+
+  it('propagates agent failures (route handler owns retry semantics)', async () => {
+    const agent = makeAgentClient();
+    agent.generateEmbedding.mockRejectedValue(new Error('embed failed'));
+    await expect(
+      processEmbedding({ courseId: 'c-1', topic: 'Python' }, makeDeps(agent)),
+    ).rejects.toThrow('embed failed');
+    expect(mockExecute).not.toHaveBeenCalled();
   });
 });

@@ -9,7 +9,7 @@ type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 const difficulties: Difficulty[] = ['beginner', 'intermediate', 'advanced'];
 
 const STATUS_LABELS: Record<string, string> = {
-  waiting:   'Queued...',
+  pending:   'Queued...',
   active:    'Generating course...',
   completed: 'Almost ready...',
   failed:    'Failed',
@@ -19,17 +19,18 @@ export default function HomeScreen() {
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty>('beginner');
   const [pendingCourseId, setPendingCourseId] = useState<string | null>(null);
-  const [pendingJobId, setPendingJobId] = useState<string | null>(null);
 
   const { mutateAsync: createCourse, isPending } = useCreateCourse();
-  const { isGenerating, failed, status } = useCourseGeneration(pendingCourseId, pendingJobId);
+  const { isGenerating, failed, status } = useCourseGeneration(pendingCourseId);
 
   const handleStart = async () => {
     if (!topic.trim()) return;
     try {
       const result = await createCourse({ topic: topic.trim(), difficulty });
-      setPendingCourseId(result.courseId);
-      setPendingJobId(result.status === 'ready' || result.reused ? null : (result.jobId ?? null));
+      // Reused/ready courses need no polling — only poll while generating.
+      setPendingCourseId(
+        result.status === 'ready' || result.reused ? null : result.courseId,
+      );
     } catch {
       Alert.alert('Error', 'Failed to start course generation');
     }

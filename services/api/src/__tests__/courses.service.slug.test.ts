@@ -59,10 +59,9 @@ function makeMockAgentClient(embedding: number[] = [0.1, 0.2, 0.3]) {
   };
 }
 
-function makeMockQueueProvider(jobId = 'job-abc') {
+function makeMockQueueProvider(taskId = 'task-abc') {
   return {
-    enqueue: vi.fn().mockResolvedValue(jobId),
-    getJobStatus: vi.fn(),
+    enqueue: vi.fn().mockResolvedValue(taskId),
     close: vi.fn(),
   };
 }
@@ -152,11 +151,11 @@ describe('CoursesService — createOrReuse routing', () => {
     mockReturning.mockResolvedValue([{ id: 'new-course-id' }]);
     mockValues.mockReturnValue({ returning: mockReturning });
     mockInsert.mockReturnValue({ values: mockValues });
-    const queueProvider = makeMockQueueProvider('job-xyz');
+    const queueProvider = makeMockQueueProvider('task-xyz');
     const service = new CoursesService(makeMockAgentClient() as never, queueProvider as never);
     const result = await service.createOrReuse('user-1', { topic: 'Rust', difficulty: 'intermediate', moduleCount: 8 });
     expect(result.reused).toBe(false);
-    expect(result.jobId).toBe('job-xyz');
+    expect(result.courseId).toBe('new-course-id');
     expect(queueProvider.enqueue).toHaveBeenCalledOnce();
   });
 });

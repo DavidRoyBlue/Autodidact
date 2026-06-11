@@ -105,7 +105,7 @@ describe('Golden path: create → generate (worker+agent, mock LLM) → enroll �
     expect(typeof courseId).toBe('string');
     expect(body.status).toBe('pending');
 
-    // Worker picks up the BullMQ job, calls the agent (mock LLM), writes ready + modules.
+    // Worker receives the loopback task POST, calls the agent (mock LLM), writes ready + modules.
     await waitForCourseReady(courseId);
 
     const mods = await harness.db

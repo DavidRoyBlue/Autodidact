@@ -38,7 +38,7 @@ jobs:
   test:
     name: Unit & integration (Vitest + jest-expo)
     runs-on: ubuntu-latest
-    # ubuntu-latest ships Docker, so Testcontainers (Postgres/Redis) work.
+    # ubuntu-latest ships Docker, so Testcontainers (Postgres) works.
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -55,7 +55,7 @@ jobs:
           restore-keys: |
             turbo-${{ runner.os }}-
 
-      - name: Test (builds first; includes real-PG/Redis integration + mobile jest)
+      - name: Test (builds first; includes real-PG integration + mobile jest)
         run: pnpm test
       - name: Audit dependencies
         run: pnpm audit --audit-level high || true

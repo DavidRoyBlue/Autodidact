@@ -8,7 +8,8 @@ import { AnthropicLLMProvider } from './implementations/llm/anthropic.provider.j
 import { MockLLMProvider } from './implementations/llm/mock.provider.js';
 import { OpenAIEmbeddingProvider } from './implementations/embedding/openai-embedding.provider.js';
 import { MockEmbeddingProvider } from './implementations/embedding/mock-embedding.provider.js';
-import { BullMQQueueProvider } from './implementations/queue/bullmq.provider.js';
+import { CloudTasksQueueProvider } from './implementations/queue/cloud-tasks.provider.js';
+import { LoopbackQueueProvider } from './implementations/queue/loopback.provider.js';
 import { SupabaseAuthProvider } from './implementations/auth/supabase-auth.provider.js';
 import { MockAuthProvider } from './implementations/auth/mock-auth.provider.js';
 import { MemoryCheckpointerProvider } from './implementations/checkpointer/memory.provider.js';
@@ -22,9 +23,12 @@ export interface ProviderConfig {
   checkpointer?: string;
   openaiApiKey?: string;
   anthropicApiKey?: string;
-  redisUrl?: string;
   supabaseUrl?: string;
   databaseUrl?: string;
+  workerBaseUrl?: string;
+  gcpProjectId?: string;
+  cloudTasksLocation?: string;
+  cloudTasksInvokerSa?: string;
 }
 
 export function createLLMProvider(config: ProviderConfig = {}): ILLMProvider {
@@ -53,8 +57,19 @@ export function createEmbeddingProvider(config: ProviderConfig = {}): IEmbedding
 }
 
 export function createQueueProvider(config: ProviderConfig = {}): IQueueProvider {
-  return new BullMQQueueProvider({
-    redisUrl: config.redisUrl ?? process.env['REDIS_URL'] ?? 'redis://localhost:6379',
+  const provider = config.queueProvider ?? process.env['QUEUE_PROVIDER'] ?? 'loopback';
+  if (provider === 'cloudtasks') {
+    return new CloudTasksQueueProvider({
+      projectId: config.gcpProjectId ?? process.env['GCP_PROJECT_ID'] ?? '',
+      location: config.cloudTasksLocation ?? process.env['CLOUD_TASKS_LOCATION'] ?? 'us-central1',
+      workerBaseUrl: config.workerBaseUrl ?? process.env['WORKER_TASK_BASE_URL'] ?? '',
+      invokerServiceAccount:
+        config.cloudTasksInvokerSa ?? process.env['CLOUD_TASKS_INVOKER_SA'] ?? '',
+    });
+  }
+  return new LoopbackQueueProvider({
+    workerBaseUrl:
+      config.workerBaseUrl ?? process.env['WORKER_TASK_BASE_URL'] ?? 'http://localhost:3002',
   });
 }
 
