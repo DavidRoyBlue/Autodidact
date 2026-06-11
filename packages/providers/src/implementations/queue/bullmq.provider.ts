@@ -1,14 +1,14 @@
 import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
+import { Redis } from 'ioredis';
 import type { IQueueProvider, EnqueueOptions } from '../../interfaces/queue.js';
 import type { JobStatus } from '@autodidact/types';
 
 export class BullMQQueueProvider implements IQueueProvider {
-  private readonly connection: IORedis;
+  private readonly connection: Redis;
   private readonly queues = new Map<string, Queue>();
 
   constructor(config: { redisUrl: string }) {
-    this.connection = new IORedis(config.redisUrl, { maxRetriesPerRequest: null });
+    this.connection = new Redis(config.redisUrl, { maxRetriesPerRequest: null });
   }
 
   private getQueue(name: string): Queue {

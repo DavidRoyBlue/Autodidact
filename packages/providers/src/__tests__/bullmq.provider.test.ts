@@ -18,9 +18,10 @@ const { mockQuit, mockQueueAdd, mockQueueGetJob, mockQueueClose, MockQueue } = v
   return { mockQuit, mockQueueAdd, mockQueueGetJob, mockQueueClose, MockQueue };
 });
 
-vi.mock('ioredis', () => ({
-  default: vi.fn().mockImplementation(() => ({ quit: mockQuit })),
-}));
+vi.mock('ioredis', () => {
+  const RedisMock = vi.fn().mockImplementation(() => ({ quit: mockQuit }));
+  return { Redis: RedisMock, default: RedisMock };
+});
 
 vi.mock('bullmq', () => ({ Queue: MockQueue }));
 
