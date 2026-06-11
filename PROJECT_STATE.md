@@ -9,18 +9,18 @@ An AI-native learning platform: generate a structured course from any topic, the
 
 ## Current State
 
-MVP is **code-complete and CI-green** — three backend services, a mobile app, and eight shared packages are all really implemented (not scaffolding), with lint + typecheck + tests running on every PR and before deploy. What it is **not** yet is *operated*: there is no evidence the stack has run end-to-end against provisioned cloud infrastructure. Environment/secret setup is still open (`docs/todo.md`), Terraform provisions secret names the code does not read, the agent's conversation checkpointer still defaults to in-memory, and no observability or error-tracking backend is wired. The gap is squarely between "builds and passes tests" and "deployable and operable."
+MVP is **code-complete and CI-green** — three backend services, a mobile app, and nine shared packages are all really implemented (not scaffolding), with lint + typecheck + tests running on every PR and before deploy. Feature scope includes RAG-grounded module chat (ADR-024): the Worker indexes module content into `module_content_chunks`, and the Agent's teacher node retrieves it when `RAG_ENABLED`. What it is **not** yet is *operated*: there is no evidence the stack has run end-to-end against provisioned cloud infrastructure. Environment/secret setup is still open (`docs/todo.md`), Terraform provisions secret names the code does not read, the agent's conversation checkpointer still defaults to in-memory, and no observability or error-tracking backend is wired. The gap is squarely between "builds and passes tests" and "deployable and operable."
 
 ## Services
 
 | Service | Dev | Beta | Prod | Main Bottleneck |
 |---------|-----|------|------|-----------------|
-| [Mobile](apps/mobile/SERVICE_STATE.md) | ✅ | ⚠️ | ❌ | No build/release pipeline; ~no tests |
+| [Mobile](apps/mobile/SERVICE_STATE.md) | ✅ | ⚠️ | ❌ | No build/release pipeline; e2e is manual-only (Maestro), not PR-gated |
 | [API](services/api/SERVICE_STATE.md) | ✅ | ⚠️ | ❌ | Infra secret-name drift; no monitoring |
 | [Agent](services/agent/SERVICE_STATE.md) | ✅ | ⚠️ | ❌ | Checkpointer defaults to memory; no cost controls |
 | [Worker](services/worker/SERVICE_STATE.md) | ✅ | ⚠️ | ❌ | No failed-job recovery (stuck courses) |
 
-Provider wiring today: only `LLM_PROVIDER` (openai/anthropic) and `CHECKPOINTER` (memory/postgres) are live. `EMBEDDING_PROVIDER`, `QUEUE_PROVIDER`, `AUTH_PROVIDER` are reserved names; factories hardcode the single implemented option. The Cohere embedding provider is an explicit stub.
+Provider wiring today: each axis has exactly one real production implementation. `LLM_PROVIDER` (openai/anthropic) and `CHECKPOINTER` (memory/postgres) are the only axes with two live options. `EMBEDDING_PROVIDER` and `AUTH_PROVIDER` are read by their factories but offer only a `mock` test variant beside the single real impl (OpenAI, Supabase); unrecognized values fall through to the default. `QUEUE_PROVIDER` is not read at all — BullMQ is hardcoded. The Cohere embedding provider is an explicit stub (throws, not wired into the factory).
 
 ## Current Bottleneck
 

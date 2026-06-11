@@ -19,7 +19,8 @@ Consumes two Redis queues. `course-generation`: calls the Agent for a blueprint,
 - Course write is transactional; module rows roll back with the status update.
 - Job chaining (course → embedding) implemented; graceful SIGTERM/SIGINT shutdown.
 - All AI calls go through `AgentClient` (`/course/generate`, `/embeddings/text`); no direct LLM SDKs.
-- 3 test files (agent client, both processors). Green in CI.
+- After a course is written, `indexModuleChunks()` (`src/rag/index-chunks.ts`) chunks each module's content into `module_content_chunks` with embeddings (ADR-024), making the course eligible for RAG-grounded chat.
+- 7 test files (agent client, both processors, both integration suites, chunking, shutdown). Green in CI.
 
 ## Infrastructure
 
