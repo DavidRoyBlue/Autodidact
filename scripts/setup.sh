@@ -22,8 +22,11 @@ echo "────────────────────────�
 # ── Check prerequisites ───────────────────────────────────────────────────────
 step "Checking prerequisites"
 
-NODE_VERSION=$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1 || echo "0")
-[[ "$NODE_VERSION" -ge 20 ]] || die "Node.js >= 20 required (found: $(node --version 2>/dev/null || echo 'not installed')). Install from https://nodejs.org"
+NODE_RAW=$(node --version 2>/dev/null | sed 's/v//' || echo "0.0")
+NODE_MAJOR=$(echo "$NODE_RAW" | cut -d. -f1)
+NODE_MINOR=$(echo "$NODE_RAW" | cut -d. -f2)
+{ [[ "$NODE_MAJOR" -gt 22 ]] || { [[ "$NODE_MAJOR" -eq 22 ]] && [[ "$NODE_MINOR" -ge 12 ]]; }; } \
+  || die "Node.js >= 22.12 required (found: $(node --version 2>/dev/null || echo 'not installed')). Install from https://nodejs.org"
 ok "Node.js $(node --version)"
 
 command -v pnpm &>/dev/null || die "pnpm not found. Install: npm install -g pnpm@9"
