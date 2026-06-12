@@ -40,6 +40,11 @@ export async function processCourseGeneration(
   });
 
   const insertedModules = await db.transaction(async (tx) => {
+    // A retry can reach here with modules already committed (e.g. the previous
+    // attempt failed on the follow-up enqueue, after this transaction). Delete
+    // before insert so a re-run replaces rather than duplicates the module set.
+    await tx.delete(modules).where(eq(modules.courseId, courseId));
+
     await tx
       .update(courses)
       .set({

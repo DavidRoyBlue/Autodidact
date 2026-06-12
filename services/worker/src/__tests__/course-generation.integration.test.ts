@@ -142,6 +142,39 @@ describe('generate-course task endpoint — real DB', () => {
     );
   });
 
+  it('replaces (not duplicates) modules when a task is redelivered after the ready-commit', async () => {
+    // Simulates: attempt 1 commits the ready-transaction but fails on the
+    // follow-up embedding enqueue → 500 → Cloud Tasks redelivers the task.
+    const queueProvider = makeMockQueueProvider();
+    (queueProvider.enqueue as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error('cloud tasks unavailable'),
+    );
+    const { app } = makeTaskApp(makeMockAgentClient(), queueProvider);
+
+    const payload = { courseId, userId, topic: 'Python', difficulty: 'beginner', moduleCount: 1 };
+    const first = await app.inject({
+      method: 'POST',
+      url: `/tasks/${JOB_NAMES.GENERATE_COURSE}`,
+      payload,
+      headers: { 'x-cloudtasks-taskretrycount': '0' },
+    });
+    expect(first.statusCode).toBe(500); // modules committed, enqueue failed
+
+    const second = await app.inject({
+      method: 'POST',
+      url: `/tasks/${JOB_NAMES.GENERATE_COURSE}`,
+      payload,
+      headers: { 'x-cloudtasks-taskretrycount': '1' },
+    });
+    expect(second.statusCode).toBe(204);
+
+    const moduleRows = await dbHarness.db
+      .select({ position: modules.position })
+      .from(modules)
+      .where(eq(modules.courseId, courseId));
+    expect(moduleRows).toHaveLength(sampleBlueprint.modules.length);
+  });
+
   it('marks the course failed in the DB when the final attempt fails', async () => {
     const agentClient = makeMockAgentClient();
     (agentClient.generateCourse as ReturnType<typeof vi.fn>).mockRejectedValue(

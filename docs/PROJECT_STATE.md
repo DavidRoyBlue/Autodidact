@@ -41,7 +41,7 @@ Five modules with real controllers and services: `courses` (`POST/GET /courses`,
 | Tests | ✅ 10 test files, real assertions |
 | Database Connected | ✅ |
 | Auth Connected | ✅ |
-| Production Config | ⚠️ CORS `origin: '*'`; no graceful DB/Redis cleanup; `AGENT_SERVICE_URL` read via `?? 'http://localhost:3001'` fallback in 3 places, not in env schema |
+| Production Config | ⚠️ CORS `origin: '*'`; no graceful DB cleanup; `AGENT_SERVICE_URL` read via `?? 'http://localhost:3001'` fallback in 3 places, not in env schema |
 | Monitoring | ⚠️ logging only; `/health` checks DB + agent, no probes wired in code |
 
 #### Known Issues
@@ -97,13 +97,13 @@ Add execution timeouts and make the evaluator fallback fail-closed (do not compl
 ### services/worker — Background Task Handler (Cloud Tasks)
 
 #### Purpose
-Always-on daemon (no HTTP). Consumes two queues: `course-generation` (calls agent, writes blueprint+modules in a transaction, flips course to `ready`, enqueues embedding) and `embedding` (calls agent, stores topic vector). Only service that writes `courses.status = 'ready'`.
+Thin Fastify HTTP task handler, invoked per-task. Two task endpoints: `POST /tasks/generate-course` (calls agent, writes blueprint+modules in a transaction, flips course to `ready`, enqueues embedding) and `POST /tasks/generate-embedding` (calls agent, stores topic vector). Only service that writes `courses.status = 'ready'` or `'failed'`.
 
 #### Status
 **Functional**
 
 #### Implementation
-Two processor factories wired in `main.ts` with concurrency 3 (course-gen) and 5 (embedding), exponential backoff (5/25/125s), and SIGTERM/SIGINT shutdown closing workers + Redis. Course-gen holds an atomic DB transaction for the blueprint+module insert; embedding uses raw SQL with a `::vector` cast (Drizzle `.set()` limitation). Evidence: `services/worker/src/processors/*.processor.ts`.
+Pure processor functions called by Fastify routes in `app.ts`; retry/backoff is queue-level (Cloud Tasks `retry_config`, 3 attempts) and the final failed attempt marks the course `failed`. SIGTERM/SIGINT shutdown closes the Fastify app + queue provider. Course-gen holds an atomic DB transaction for the blueprint+module insert; embedding uses raw SQL with a `::vector` cast (Drizzle `.set()` limitation). Evidence: `services/worker/src/processors/*.processor.ts`, `services/worker/src/app.ts`.
 
 #### Infrastructure
 - **Database:** PostgreSQL via Drizzle (writes `courses`, `modules`, `topic_embedding`).
@@ -196,7 +196,7 @@ Containerized deployment to GCP Cloud Run with Terraform IaC and gated GitHub Ac
 - **CI** (`.github/workflows/ci.yml`): on PR + push to master → install → `pnpm lint` → `pnpm typecheck` → `pnpm test`.
 - **Deploy** (`.github/workflows/deploy.yml`): on push to master / manual → lint+typecheck+test gate → OIDC auth to GCP (no static keys) → build & push 3 Docker images to Artifact Registry → run DB migrations (`PROD_DATABASE_URL` secret) → `gcloud run deploy` for `autodidact-api`, `-agent`, `-worker`. Uses GitHub `environment: production` (approval gate available via repo settings — enforcement not verifiable from code).
 - **IaC** (`infra/`): Terraform modules for `artifact-registry`, `cloud-tasks`, `cloud-run-service`; `environments/prod`; GCS remote state (`backend.tf`).
-- **Local dev:** `docker-compose.yml` (Postgres + Redis); per-service `Dockerfile`s; pnpm 9.12.3 + Node ≥20 + Turbo.
+- **Local dev:** `docker-compose.yml` (Postgres); per-service `Dockerfile`s; pnpm 9.12.3 + Node ≥20 + Turbo.
 - **Other workflows:** several Claude-automation workflows (PR review, triage, doc-sync, weekly maintenance, ADR review).
 
 #### Readiness
@@ -257,7 +257,7 @@ After observability + resilience are in place, the likely next constraints, in o
 1. **End-to-end / integration test coverage** — unit tests mock every boundary; nothing exercises the real API→worker→agent→DB flow, so contract drift between services goes undetected.
 2. **Mobile release pipeline** — EAS build, signing, OTA updates, and crash reporting become the gate to getting the app into testers' hands.
 3. **LLM cost, latency, and quality control** — once real usage starts, course-generation cost/latency and blueprint quality (retries, prompt tuning, eval) dominate.
-4. **Data lifecycle & scaling** — pgvector index tuning for similarity at scale, Redis/queue capacity, Cloud Run concurrency and cold-start tuning.
+4. **Data lifecycle & scaling** — pgvector index tuning for similarity at scale, Cloud Tasks queue throughput, Cloud Run concurrency and cold-start tuning.
 5. **Auth/security hardening** — tighten CORS, rate limiting, RLS audit, secret rotation, and the deferred auth-provider reconsideration (Supabase Auth → alternatives).
 
 ---
@@ -296,7 +296,7 @@ The immediate objective appears to be: **get the mobile app building cleanly on 
 
 ### Soon (before production)
 5. Wire **OTEL trace export** and add **error tracking** (Sentry or equivalent) across services and mobile.
-6. Add **integration tests** for the full course-generation and module-chat flows (real or testcontainer DB/Redis).
+6. Add **integration tests** for the full course-generation and module-chat flows (real or testcontainer DB).
 7. Configure **mobile EAS build + crash reporting**; add a Maestro smoke test for the happy path.
 8. Tighten **API CORS** and add **rate limiting**; reconcile Supabase env-var naming.
 9. Define and document a **rollback strategy** for Cloud Run + migrations.

@@ -11,6 +11,7 @@ const mockTxInsert = vi.fn();
 const mockTxInsertValues = vi.fn().mockReturnValue({
   returning: vi.fn().mockResolvedValue([]),
 });
+const mockTxDelete = vi.fn();
 
 const mockUpdate = vi.fn();
 const mockUpdateSet = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
@@ -21,9 +22,11 @@ const mockTransaction = vi.fn().mockImplementation(async (fn: (tx: unknown) => P
   const tx = {
     update: mockTxUpdate,
     insert: mockTxInsert,
+    delete: mockTxDelete,
   };
   mockTxUpdate.mockReturnValue({ set: mockTxUpdateSet });
   mockTxInsert.mockReturnValue({ values: mockTxInsertValues });
+  mockTxDelete.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
   return fn(tx);
 });
 
@@ -109,7 +112,8 @@ describe('processCourseGeneration', () => {
     mockTransaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
       mockTxUpdate.mockReturnValue({ set: mockTxUpdateSet });
       mockTxInsert.mockReturnValue({ values: mockTxInsertValues });
-      return fn({ update: mockTxUpdate, insert: mockTxInsert });
+      mockTxDelete.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
+      return fn({ update: mockTxUpdate, insert: mockTxInsert, delete: mockTxDelete });
     });
   });
 

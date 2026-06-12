@@ -82,6 +82,7 @@ Secrets are stored in **GCP Secret Manager** and injected as environment variabl
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | api, agent, worker | Trace exporter (optional) |
 | `AGENT_SERVICE_URL` | api, worker | Internal URL of Agent service |
 | `WORKER_TASK_BASE_URL` | api, worker | Worker Cloud Run URL targeted by Cloud Tasks (set after the worker's first deploy) |
+| `QUEUE_PROVIDER` | api, worker | Queue provider selector — must be `cloudtasks` in prod (a stale `bullmq` value fails service boot) |
 
 Non-secret Cloud Tasks config (`GCP_PROJECT_ID`, `CLOUD_TASKS_LOCATION`, `CLOUD_TASKS_INVOKER_SA`) is injected as plain env vars from Terraform, not Secret Manager.
 

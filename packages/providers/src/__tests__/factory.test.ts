@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Mock concrete implementations (static imports in factory.ts)
@@ -136,6 +136,14 @@ describe('createEmbeddingProvider()', () => {
 });
 
 describe('createQueueProvider()', () => {
+  // Hermetic: the developer shell / .env.dev may carry real values for these.
+  beforeEach(() => {
+    vi.stubEnv('QUEUE_PROVIDER', undefined);
+    vi.stubEnv('GCP_PROJECT_ID', undefined);
+    vi.stubEnv('WORKER_TASK_BASE_URL', undefined);
+    vi.stubEnv('CLOUD_TASKS_INVOKER_SA', undefined);
+  });
+
   it('defaults to the loopback provider when QUEUE_PROVIDER is not set', () => {
     const provider = createQueueProvider();
     expect(MockLoopbackQueueProvider).toHaveBeenCalledWith({
@@ -167,6 +175,20 @@ describe('createQueueProvider()', () => {
     expect(MockLoopbackQueueProvider).toHaveBeenCalledWith({
       workerBaseUrl: 'http://worker:9999',
     });
+    expect(MockCloudTasksQueueProvider).not.toHaveBeenCalled();
+  });
+
+  it('throws on an unknown QUEUE_PROVIDER value instead of falling back to loopback', () => {
+    vi.stubEnv('QUEUE_PROVIDER', 'bullmq');
+    expect(() => createQueueProvider()).toThrow(/Unknown QUEUE_PROVIDER 'bullmq'/);
+    expect(MockLoopbackQueueProvider).not.toHaveBeenCalled();
+  });
+
+  it('throws when QUEUE_PROVIDER=cloudtasks is missing required config', () => {
+    vi.stubEnv('QUEUE_PROVIDER', 'cloudtasks');
+    expect(() => createQueueProvider()).toThrow(
+      /GCP_PROJECT_ID, WORKER_TASK_BASE_URL, CLOUD_TASKS_INVOKER_SA/,
+    );
     expect(MockCloudTasksQueueProvider).not.toHaveBeenCalled();
   });
 });

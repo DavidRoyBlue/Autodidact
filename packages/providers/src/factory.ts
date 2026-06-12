@@ -59,13 +59,31 @@ export function createEmbeddingProvider(config: ProviderConfig = {}): IEmbedding
 export function createQueueProvider(config: ProviderConfig = {}): IQueueProvider {
   const provider = config.queueProvider ?? process.env['QUEUE_PROVIDER'] ?? 'loopback';
   if (provider === 'cloudtasks') {
+    const projectId = config.gcpProjectId ?? process.env['GCP_PROJECT_ID'] ?? '';
+    const workerBaseUrl = config.workerBaseUrl ?? process.env['WORKER_TASK_BASE_URL'] ?? '';
+    const invokerServiceAccount =
+      config.cloudTasksInvokerSa ?? process.env['CLOUD_TASKS_INVOKER_SA'] ?? '';
+    const missing = [
+      !projectId && 'GCP_PROJECT_ID',
+      !workerBaseUrl && 'WORKER_TASK_BASE_URL',
+      !invokerServiceAccount && 'CLOUD_TASKS_INVOKER_SA',
+    ].filter(Boolean);
+    if (missing.length > 0) {
+      throw new Error(`QUEUE_PROVIDER=cloudtasks requires ${missing.join(', ')}`);
+    }
     return new CloudTasksQueueProvider({
-      projectId: config.gcpProjectId ?? process.env['GCP_PROJECT_ID'] ?? '',
+      projectId,
       location: config.cloudTasksLocation ?? process.env['CLOUD_TASKS_LOCATION'] ?? 'us-central1',
-      workerBaseUrl: config.workerBaseUrl ?? process.env['WORKER_TASK_BASE_URL'] ?? '',
-      invokerServiceAccount:
-        config.cloudTasksInvokerSa ?? process.env['CLOUD_TASKS_INVOKER_SA'] ?? '',
+      workerBaseUrl,
+      invokerServiceAccount,
     });
+  }
+  // Fail fast on anything else (e.g. a stale 'bullmq' secret) — a silent loopback
+  // fallback in production would fire-and-forget unauthenticated POSTs into IAM 403s.
+  if (provider !== 'loopback') {
+    throw new Error(
+      `Unknown QUEUE_PROVIDER '${provider}' — expected 'cloudtasks' or 'loopback'`,
+    );
   }
   return new LoopbackQueueProvider({
     workerBaseUrl:

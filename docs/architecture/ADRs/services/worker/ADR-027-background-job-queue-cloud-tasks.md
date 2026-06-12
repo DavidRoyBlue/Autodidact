@@ -192,7 +192,12 @@ since ADR-007 was written.
 - Alerting on the `failed` course rate and on Cloud Tasks dead-letter behaviour
   — operational, owned by `services/worker/SERVICE_STATE.md` next steps.
 - Cutover ordering: Terraform apply (queues + IAM + secrets) before deploying
-  the new images; worker before api.
+  the new images; worker before api. Two Secret Manager values must be set by
+  hand during cutover: `autodidact-queue-provider` changes from `bullmq` to
+  `cloudtasks` (the factory rejects unknown values at boot), and
+  `autodidact-worker-task-base-url` is created with the worker's Cloud Run URL
+  after its first deploy (same chicken-and-egg pattern as
+  `autodidact-agent-service-url`).
 - Reconsider if: we leave GCP (the queue layer moves with the host decision,
   [ADR-012](../../infra/ADR-012-cloud-hosting-platform.md)), or scheduled /
   prioritised / flow-shaped jobs appear (re-open the Inngest/Trigger.dev

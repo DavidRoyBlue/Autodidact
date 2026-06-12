@@ -1,6 +1,6 @@
 # @autodidact/test-support
 
-Shared Testcontainers harness for real-DB and real-Redis integration tests.
+Shared Testcontainers harness for real-DB integration tests.
 
 > Agent-binding rules: see `CLAUDE.md`. Canonical mocks live in `@autodidact/config/test-utils` — this package provides *real* infrastructure, not mocks.
 

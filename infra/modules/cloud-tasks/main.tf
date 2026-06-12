@@ -1,8 +1,8 @@
 # Cloud Tasks queues for background work (ADR-027). Queue-level retry config
-# replaces the application-level BullMQ retry options (3 attempts, exponential
-# backoff 5 s → 25 s → 125 s). TASK_MAX_ATTEMPTS in the worker env must mirror
-# max_attempts here — the worker uses it to detect the final attempt and mark
-# the course 'failed'.
+# replaces the application-level BullMQ retry options (3 attempts, backoff
+# 5 s minimum, doubling, capped at 125 s). TASK_MAX_ATTEMPTS in the worker env
+# must mirror max_attempts here — the worker uses it to detect the final
+# attempt and mark the course 'failed'.
 #
 # Requires the Cloud Tasks API (cloudtasks.googleapis.com) to be enabled on the
 # project.

@@ -33,9 +33,10 @@ CourseGenerationJobData {
 1. UPDATE courses SET status='generating'             (outside transaction)
 2. agentClient.generateCourse(data) → CourseBlueprint (HTTP POST to Agent /course/generate)
 3. DB transaction:
-     a. UPDATE courses SET title, description, difficulty, estimatedHours,
+     a. DELETE modules WHERE course_id = $courseId    (idempotency — see below)
+     b. UPDATE courses SET title, description, difficulty, estimatedHours,
                            status='ready', blueprint
-     b. INSERT modules (one row per ModuleBlueprint from blueprint.modules)
+     c. INSERT modules (one row per ModuleBlueprint from blueprint.modules)
 4. RAG indexing of module chunks — best-effort, never fails the task (ADR-024)
 5. queueProvider.enqueue(QUEUES.EMBEDDING, JOB_NAMES.GENERATE_EMBEDDING,
                           { courseId, topic })
@@ -61,11 +62,9 @@ generating ──(final attempt fails)──▶ failed
 
 ### Idempotency on retry
 
-Cloud Tasks redelivers the task on any non-2xx response (queue config: 3 attempts, 5 s → 125 s backoff). The processor does NOT delete existing modules before re-inserting.
+Cloud Tasks redelivers the task on any non-2xx response (queue config: 3 attempts, min backoff 5 s doubling to a 125 s cap). A retry can arrive with modules **already committed**: if the previous attempt failed *after* the ready-transaction (e.g. on the follow-up embedding enqueue — a remote API call), the route returned 500 and the whole task re-runs.
 
-Current approach: the transaction is atomic — if `INSERT modules` succeeds, so does `UPDATE courses ... status='ready'`. If the task failed, the course is in `generating` (not `ready`), meaning modules were not committed. Re-running step 3 on a retry is safe.
-
-If idempotency concerns grow (e.g., non-transactional failures mid-task), add a `DELETE FROM modules WHERE course_id = $courseId` before the `INSERT` inside the transaction.
+The transaction therefore deletes the course's existing modules before re-inserting (step 3a). Combined with atomicity (`status='ready'` and the module rows commit together), a re-run always replaces the module set rather than appending a duplicate one.
 
 ### Error handling
 

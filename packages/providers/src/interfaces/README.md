@@ -45,14 +45,13 @@ interface IQueueProvider {
     queueName: string,
     jobName: string,
     data: T,
-    options?: { attempts?: number; backoff?: { type: string; delay: number } }
-  ): Promise<string>;                        // returns jobId
+    options?: EnqueueOptions   // advisory — retries are queue-level (Terraform) under Cloud Tasks
+  ): Promise<string>;          // returns the created task id
 
-  getJobStatus(queueName: string, jobId: string): Promise<JobStatus>;
   close(): Promise<void>;
 }
 ```
-`JobStatus` is `'pending' | 'active' | 'completed' | 'failed' | 'delayed'`.
+There is no per-task status method — generation status is DB-backed (`courses.status`, read by the API service).
 
 ---
 

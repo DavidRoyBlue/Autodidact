@@ -38,7 +38,7 @@ All routes are prefixed with `/v1` (set in `main.ts` via `app.setGlobalPrefix('v
 | GET | `/v1/health` | None | Liveness check — returns db + agent probe results |
 | POST | `/v1/courses` | JWT | Create or reuse a course (similarity-deduplicated) |
 | GET | `/v1/courses` | JWT | List the authenticated user's enrolled courses |
-| GET | `/v1/courses/status/:jobId` | JWT | Poll background generation job status |
+| GET | `/v1/courses/status/:courseId` | JWT | Poll course generation status (DB-backed) |
 | GET | `/v1/courses/:id` | JWT | Course detail with ordered module list |
 | POST | `/v1/courses/:id/enroll` | JWT | Enroll the authenticated user in a course |
 | POST | `/v1/chat/sessions` | JWT | Create a chat session for a module |
@@ -84,7 +84,6 @@ Validation: `topic` 3–200 chars; `difficulty` one of `beginner` | `intermediat
 ```json
 {
   "courseId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "jobId": "550e8400-e29b-41d4-a716-446655440000",
   "status": "pending",
   "reused": false
 }
@@ -99,21 +98,23 @@ Validation: `topic` 3–200 chars; `difficulty` one of `beginner` | `intermediat
 }
 ```
 
-Poll `GET /v1/courses/status/:jobId` while `status === "pending"`.
+Poll `GET /v1/courses/status/:courseId` while the status is `pending` or `active`.
 
 ---
 
-### GET /v1/courses/status/:jobId — poll job status
+### GET /v1/courses/status/:courseId — poll generation status
+
+Reads `courses.status` from the database (the source of truth) and maps it to the polling vocabulary: `pending→pending`, `generating→active`, `ready→completed`, `failed→failed`.
 
 **Response**
 ```json
 {
-  "jobId": "550e8400-e29b-41d4-a716-446655440000",
+  "courseId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   "status": "completed"
 }
 ```
 
-`status` values: `waiting` | `active` | `completed` | `failed` | `unknown`
+`status` values: `pending` | `active` | `completed` | `failed`
 
 ---
 
