@@ -31,14 +31,14 @@
 > or money. They gate Phase 1.5.
 
 ### Decisions to make
-- [ ] Staging environment, or does `master` deploy straight to prod (`deploy.yml`)?
-- [ ] LLM spend ceiling, and how it's enforced
-- [ ] First beta target: iOS, Android, or both — and which distribution channel
-- [ ] BullMQ/Memorystore vs. Cloud Tasks for prod job durability (ADR-007 🚩)
+- [x] Deployment environment: `master` deploys straight to prod via `deploy.yml`; defer staging until beta traffic or release risk justifies a second environment
+- [x] LLM spend ceiling: leave uncapped for initial MVP validation; revisit once real beta usage gives cost data
+- [x] First beta target: Android via Expo/EAS, distributed through Google Play
+- [x]  Cloud Tasks for prod job durability 
 
 ### Credentials & provisioning to do
 - [ ] Populate Secret Manager with real values (see `docs/todo.md` → ENV setup)
-- [ ] Apple Developer / Google Play accounts for store submission
+- [ ] Google Play Developer account for Android beta submission
 - [ ] Run the actual deploy + smoke test against real infra
 
 ## Phase 2 — Polish

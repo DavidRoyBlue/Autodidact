@@ -38,7 +38,7 @@ No production build/release path. There is no EAS or store-submission config and
 
 ## Known Issues
 
-- Tamagui pinned to `2.0.0-rc.41` (release candidate); Renovate auto-bumps disabled for it (dependency risk; ADR-013 🚩).
+- Tamagui pinned to `2.0.0-rc.41` (release candidate); Renovate auto-bumps disabled for it (dependency risk).
 - No PR-gated e2e: Maestro flows run manual/nightly only, so UI regressions can reach a build without a gate catching them.
 - No course-generation progress indicator (polling only; Phase 2).
 - Requires real `supabaseUrl` / `supabasePublishableKey` / `apiBaseUrl` in `app.json` `extra` to run against a live backend.
