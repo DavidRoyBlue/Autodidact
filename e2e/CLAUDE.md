@@ -6,9 +6,10 @@
 ## Purpose of this subtree
 
 `@autodidact/e2e` is the **cross-service** end-to-end layer (ADR-026). It boots
-the real `api`, `agent`, and `worker` services as child processes against
-Testcontainers Postgres + Redis and drives full user journeys over real HTTP /
-SSE / BullMQ. It is the highest-fidelity layer in the test pyramid.
+the real `api`, `agent`, and `worker` services as child processes against a
+Testcontainers Postgres and drives full user journeys over real HTTP / SSE /
+loopback task dispatch (the same `/tasks/:name` contract Cloud Tasks uses in
+production). It is the highest-fidelity layer in the test pyramid.
 
 This package is **test-only**: it has no build output, exports nothing, and is
 never imported by application code.
@@ -19,9 +20,10 @@ never imported by application code.
 
 - **One mock seam: the model (plus auth).** Services run with `LLM_PROVIDER=mock`,
   `EMBEDDING_PROVIDER=mock`, and `AUTH_PROVIDER=mock` (we can't mint Supabase
-  JWTs). Everything else is real — real HTTP between api↔agent, real worker over
-  real Redis, real Postgres, real LangGraph graphs, real SSE. Do not stub api,
-  agent, or worker internals.
+  JWTs). Everything else is real — real HTTP between api↔agent, the real worker
+  receiving task POSTs over the loopback provider (`QUEUE_PROVIDER=loopback`),
+  real Postgres, real LangGraph graphs, real SSE. Do not stub api, agent, or
+  worker internals.
 - **Auth token shape:** the mock auth provider accepts `Bearer test-<userId>`.
   Seed the user row first so its id matches the token and FK columns resolve.
 - **Services must be built first.** The harness spawns `services/<svc>/dist/main.js`.

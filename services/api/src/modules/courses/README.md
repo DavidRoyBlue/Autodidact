@@ -20,7 +20,7 @@ Manages the full course lifecycle: discovery via semantic similarity, creation v
 | `GET` | `/courses` | List enrolled courses for authenticated user |
 | `GET` | `/courses/:id` | Course detail with module list |
 | `POST` | `/courses/:id/enroll` | Enroll in an existing course |
-| `GET` | `/courses/status/:jobId` | Poll background job status |
+| `GET` | `/courses/status/:courseId` | Poll generation status (DB-backed) |
 
 ## createOrReuse Algorithm
 
@@ -47,7 +47,7 @@ This is the central piece of logic. Every `POST /courses` request goes through i
 3b. No row (new topic):
        → INSERT courses { topic, slug, title: topic, status: 'pending', ... }
        → queueProvider.enqueue(COURSE_GENERATION, { courseId, topic, ... })
-       → return { courseId, jobId, status: 'pending', reused: false }
+       → return { courseId, status: 'pending', reused: false }
 ```
 
 **Embedding call happens on every request**, even for reused courses. This is necessary because we need the vector to run the similarity search.
@@ -76,6 +76,6 @@ slug = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 
 Slugs are not unique-constrained at the database level. If two courses have the same topic (possible if similarity < 0.92), they will have the same slug.
 
-## Job Status Polling
+## Generation Status Polling
 
-`GET /courses/status/:jobId` delegates to `IQueueProvider.getJobStatus()`. The mobile app polls this endpoint every 2 seconds (via TanStack Query `refetchInterval`) until status is `completed` or `failed`, then navigates to the course detail screen.
+`GET /courses/status/:courseId` reads `courses.status` from the database (the Worker owns the `generating`/`ready`/`failed` transitions) and maps it to the polling vocabulary: `pending→pending`, `generating→active`, `ready→completed`, `failed→failed`. The mobile app polls this endpoint every 2 seconds (via TanStack Query `refetchInterval`) until status is `completed` or `failed`, then navigates to the course detail screen.

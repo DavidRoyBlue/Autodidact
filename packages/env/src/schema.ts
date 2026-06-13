@@ -29,10 +29,9 @@ const baseSchema = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
 });
 
-/** services/api — NestJS public HTTP. Needs DB, Redis (job enqueue), and Supabase auth. */
+/** services/api — NestJS public HTTP. Needs DB, Supabase auth, and the task queue. */
 export const apiEnvSchema = baseSchema.extend({
   DATABASE_URL: nonEmpty('DATABASE_URL'),
-  REDIS_URL: nonEmpty('REDIS_URL'),
   SUPABASE_URL: z.string().url(),
   SUPABASE_SECRET_KEY: nonEmpty('SUPABASE_SECRET_KEY'),
   AGENT_SERVICE_URL: z.string().url().default('http://localhost:3001'),
@@ -45,15 +44,24 @@ export const apiEnvSchema = baseSchema.extend({
  */
 export const agentEnvSchema = baseSchema
   .extend({
-    OPENAI_API_KEY: nonEmpty('OPENAI_API_KEY'),
+    // Required unless LLM_PROVIDER=mock (enforced in the refinement below).
+    OPENAI_API_KEY: z.string().optional(),
     ANTHROPIC_API_KEY: z.string().optional(),
-    LLM_PROVIDER: z.enum(['openai', 'anthropic']).default('openai'),
+    // 'mock' is used only by the cross-service e2e (@autodidact/e2e).
+    LLM_PROVIDER: z.enum(['openai', 'anthropic', 'mock']).default('openai'),
     CHECKPOINTER: z.enum(['memory', 'postgres']).default('memory'),
     // Required only when CHECKPOINTER=postgres (enforced in the refinement below).
     DATABASE_URL: z.string().optional(),
     AGENT_PORT: Port.default(3001),
   })
   .superRefine((env, ctx) => {
+    if (env.LLM_PROVIDER === 'openai' && !env.OPENAI_API_KEY) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['OPENAI_API_KEY'],
+        message: 'OPENAI_API_KEY is required when LLM_PROVIDER=openai',
+      });
+    }
     if (env.LLM_PROVIDER === 'anthropic' && !env.ANTHROPIC_API_KEY) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -70,11 +78,16 @@ export const agentEnvSchema = baseSchema
     }
   });
 
-/** services/worker — BullMQ jobs. Needs DB (writes), Redis (queue), and the agent URL. */
+/**
+ * services/worker — HTTP task handler (invoked by Cloud Tasks in production,
+ * the loopback queue provider locally). Needs DB (writes) and the agent URL.
+ */
 export const workerEnvSchema = baseSchema.extend({
   DATABASE_URL: nonEmpty('DATABASE_URL'),
-  REDIS_URL: nonEmpty('REDIS_URL'),
   AGENT_SERVICE_URL: z.string().url().default('http://localhost:3001'),
+  WORKER_PORT: Port.default(3002),
+  // Mirrors max_attempts in the Cloud Tasks queue retry_config (infra/modules/cloud-tasks).
+  TASK_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

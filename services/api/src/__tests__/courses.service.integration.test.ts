@@ -229,7 +229,6 @@ describe('CoursesService.createOrReuse() — similarity routing', () => {
     });
 
     expect(result.reused).toBe(false);
-    expect(result.jobId).toBeDefined();
     expect(queue.enqueue).toHaveBeenCalledOnce();
 
     // Real DB check: new course row must exist in pending status

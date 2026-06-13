@@ -3,12 +3,7 @@ import { createServer } from 'node:net';
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  withTestDatabase,
-  withTestRedis,
-  type TestDatabase,
-  type TestRedis,
-} from '@autodidact/test-support';
+import { withTestDatabase, type TestDatabase } from '@autodidact/test-support';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -107,40 +102,43 @@ async function killService(svc: SpawnedService): Promise<void> {
 }
 
 /**
- * Boot Postgres + Redis (Testcontainers) and the real agent/worker/api services
- * as child processes, wired to the containers with the mock LLM/embedding/auth
- * providers. Returns service URLs, a container-backed Drizzle client for
- * assertions, and a `stop()` teardown.
+ * Boot Postgres (Testcontainers) and the real agent/worker/api services as
+ * child processes, wired to the container with the mock LLM/embedding/auth
+ * providers and the loopback queue (enqueue POSTs straight to the worker's
+ * task endpoints — same HTTP contract Cloud Tasks uses in production).
+ * Returns service URLs, a container-backed Drizzle client for assertions,
+ * and a `stop()` teardown.
  */
 export async function startCrossServiceHarness(): Promise<CrossServiceHarness> {
   const database: TestDatabase = await withTestDatabase();
-  const redis: TestRedis = await withTestRedis();
 
   const services: SpawnedService[] = [];
   const stop = async (): Promise<void> => {
     // Reverse boot order, then containers.
     for (const svc of [...services].reverse()) await killService(svc);
-    await redis.close();
     await database.close();
   };
 
   try {
     const apiPort = await freePort();
     const agentPort = await freePort();
+    const workerPort = await freePort();
     const apiUrl = `http://127.0.0.1:${apiPort}`;
     const agentUrl = `http://127.0.0.1:${agentPort}`;
+    const workerUrl = `http://127.0.0.1:${workerPort}`;
     const databaseUrl = database.container.getConnectionUri();
 
     const baseEnv: NodeJS.ProcessEnv = {
       ...process.env,
       NODE_ENV: 'test',
       DATABASE_URL: databaseUrl,
-      REDIS_URL: redis.url,
       AGENT_SERVICE_URL: agentUrl,
       LLM_PROVIDER: 'mock',
       EMBEDDING_PROVIDER: 'mock',
       AUTH_PROVIDER: 'mock',
       CHECKPOINTER: 'memory',
+      QUEUE_PROVIDER: 'loopback',
+      WORKER_TASK_BASE_URL: workerUrl,
       // @autodidact/db builds a Supabase admin client at import; stub the env so
       // the URL validator passes. The mock auth provider means it's never used.
       SUPABASE_URL: 'https://placeholder.supabase.co',
@@ -150,10 +148,11 @@ export async function startCrossServiceHarness(): Promise<CrossServiceHarness> {
 
     // Agent first (api + worker call it), then worker, then api.
     services.push(spawnService('agent', { ...baseEnv, AGENT_PORT: String(agentPort) }));
-    services.push(spawnService('worker', { ...baseEnv }));
+    services.push(spawnService('worker', { ...baseEnv, WORKER_PORT: String(workerPort) }));
     services.push(spawnService('api', { ...baseEnv, API_PORT: String(apiPort) }));
 
     const agent = services[0]!;
+    const worker = services[1]!;
     const api = services[2]!;
 
     await waitForHttp(
@@ -161,6 +160,12 @@ export async function startCrossServiceHarness(): Promise<CrossServiceHarness> {
       (j) => (j as { status?: string }).status === 'ok',
       30_000,
       () => `agent output:\n${agent.output()}`,
+    );
+    await waitForHttp(
+      `${workerUrl}/health`,
+      (j) => (j as { status?: string }).status === 'ok',
+      30_000,
+      () => `worker output:\n${worker.output()}`,
     );
     await waitForHttp(
       `${apiUrl}/v1/health`,

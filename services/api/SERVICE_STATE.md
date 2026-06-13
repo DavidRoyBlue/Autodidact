@@ -18,7 +18,7 @@ Public-facing REST + SSE API. Owns the auth boundary (Supabase JWT), the course 
 - All controllers implemented and guarded: courses, chat, progress, health.
 - Real JWT verification via `IAuthProvider` → Supabase JWKS (`jose`), not a stub.
 - Zod input validation on every route; global `v1` prefix; `AllExceptionsFilter`.
-- Queue enqueue via `QUEUE_PROVIDER_TOKEN` (BullMQ); single `ApiAgentClient` for all agent calls.
+- Queue enqueue via `QUEUE_PROVIDER_TOKEN` (Cloud Tasks in prod, loopback HTTP in dev); single `ApiAgentClient` for all agent calls. Generation-status polling reads `courses.status` from the DB.
 - 6 test files (auth guard, courses/chat/progress integration, slug, validation pipe). Green in CI.
 
 ## Infrastructure
@@ -26,7 +26,7 @@ Public-facing REST + SSE API. Owns the auth boundary (Supabase JWT), the course 
 - API (HTTP): ✅ implemented, Dockerfile + Cloud Run module present
 - Database: ✅ Drizzle/Postgres via `@autodidact/db`
 - Auth: ✅ Supabase JWKS verification (real)
-- Queue: ✅ BullMQ enqueue
+- Queue: ✅ Cloud Tasks / loopback enqueue
 - Storage: ➖ not used
 - Email: ❌ none
 - Analytics: ❌ none
@@ -58,6 +58,6 @@ Never validated end-to-end against provisioned infra. Prod env/secrets are not s
 ## Confidence
 
 - Developers: ✅ — clean module-per-feature structure, tests, docs.
-- Internal testers: ⚠️ — works locally; needs full stack (agent + worker + Redis + DB) running.
+- Internal testers: ⚠️ — works locally; needs full stack (agent + worker + DB) running.
 - Beta users: ⚠️ — needs monitoring + rate limiting + a validated deploy first.
 - Production users: ❌ — secret drift and absent observability block it.

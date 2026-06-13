@@ -46,9 +46,14 @@ export async function registerModuleChatRoute(
     // Cancel in-flight LLM work if the client disconnects mid-stream, so we stop
     // paying for generations no one will receive. The signal is threaded through
     // graph.stream() down to each node's invokeModel() call.
+    //
+    // Listen on reply.raw (the RESPONSE), not request.raw: on a POST the request
+    // readable emits 'close' as soon as the body is consumed — immediately — which
+    // would abort the graph before it streams a single token. The response stream
+    // closes only on genuine client disconnect (socket teardown).
     const abortController = new AbortController();
     const onClose = () => abortController.abort();
-    request.raw.on('close', onClose);
+    reply.raw.on('close', onClose);
 
     try {
       const config = { configurable: { thread_id: body.sessionId } };
@@ -103,7 +108,7 @@ export async function registerModuleChatRoute(
         sendEvent(toErrorEvent(error));
       }
     } finally {
-      request.raw.off('close', onClose);
+      reply.raw.off('close', onClose);
       reply.raw.end();
     }
   });

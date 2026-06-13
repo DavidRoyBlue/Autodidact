@@ -11,4 +11,3 @@ export {
   type SeededEnrollment,
   type SeededModuleProgress,
 } from './seed.js';
-export { withTestRedis, type TestRedis } from './redis.js';

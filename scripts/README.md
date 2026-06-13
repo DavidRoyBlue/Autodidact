@@ -32,7 +32,7 @@ Does **not** start the dev servers — run `pnpm dev` after completing `.env.dev
 ### `pnpm dev`
 **Start the full local backend stack.** The main command you'll use every day.
 
-Loads `.env.dev` via `dotenv-cli`, verifies required env vars and Docker, starts Postgres + Redis via `docker compose up -d`, waits for Postgres readiness, builds all packages (API and Worker require compiled output), runs pending migrations, then launches all backend services (API on `:3000`, Agent on `:3001`, Worker in background).
+Loads `.env.dev` via `dotenv-cli`, verifies required env vars and Docker, starts Postgres via `docker compose up -d`, waits for Postgres readiness, builds all packages (API and Worker require compiled output), runs pending migrations, then launches all backend services (API on `:3000`, Agent on `:3001`, Worker on `:3002`).
 
 Press `Ctrl+C` to stop all services. Start mobile separately with `mobile.sh`.
 
@@ -67,7 +67,7 @@ separately for working auth/API.
 ---
 
 ### `stop.sh`
-**Stop local Docker infrastructure** (Postgres + Redis).
+**Stop local Docker infrastructure** (Postgres).
 
 Backend service processes (started by `pnpm dev`) are stopped with `Ctrl+C` in that terminal. Data volumes are preserved between stops. To also wipe all local data: `docker compose down -v`.
 

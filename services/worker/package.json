@@ -18,9 +18,9 @@
     "@autodidact/env": "workspace:*",
     "@autodidact/observability": "workspace:*",
     "@autodidact/providers": "workspace:*",
+    "@autodidact/schemas": "workspace:*",
     "@autodidact/types": "workspace:*",
-    "bullmq": "^5.0.0",
-    "ioredis": "^5.4.0"
+    "fastify": "^4.27.0"
   },
   "devDependencies": {
     "@autodidact/config": "workspace:*",

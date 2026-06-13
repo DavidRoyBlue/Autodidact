@@ -8,15 +8,15 @@ second runner) and ADR-026 (e2e strategy) for the durable decisions.
 | Layer | Runner | Infra | LLM | Where |
 |-------|--------|-------|-----|-------|
 | Unit | Vitest | none | mocked | every package/service `src/__tests__/*.test.ts` |
-| Integration | Vitest | real PG + Redis (Testcontainers) | mocked | `*.integration.test.ts`, `@autodidact/test-support` harness |
+| Integration | Vitest | real PG (Testcontainers) | mocked | `*.integration.test.ts`, `@autodidact/test-support` harness |
 | API-level e2e | Vitest + supertest | real PG | mocked (auth + LLM) | `services/api/src/__tests__/e2e/` |
-| Cross-service e2e | Vitest + child-process services | real PG + Redis + all 3 services | **mock provider** (`*_PROVIDER=mock`) | `@autodidact/e2e` |
+| Cross-service e2e | Vitest + child-process services | real PG + all 3 services (loopback queue) | **mock provider** (`*_PROVIDER=mock`) | `@autodidact/e2e` |
 | Mobile unit/component | jest-expo + RNTL | none | n/a | `apps/mobile/src/**/__tests__/` |
 | Mobile e2e | Maestro | device + backend | mock provider | `apps/mobile/.maestro/` (manual/nightly) |
 | Live smoke | Vitest (gated) | real OpenAI | **real** | `packages/providers` (`LIVE_SMOKE=1`, nightly) |
 
-The single shared harness for real Postgres/Redis is `@autodidact/test-support`
-(`withTestDatabase`, `withTestRedis`, seed factories). The mock LLM/embedding/auth
+The single shared harness for real Postgres is `@autodidact/test-support`
+(`withTestDatabase`, seed factories). The mock LLM/embedding/auth
 providers live in `@autodidact/providers` (`LLM_PROVIDER=mock`, etc.).
 
 ## Commands

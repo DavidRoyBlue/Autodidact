@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { getDb, courses, modules, enrollments, moduleProgress, eq, sql } from '@autodidact/db';
 import type { IQueueProvider } from '@autodidact/providers';
 import type { CreateCourseRequest } from '@autodidact/schemas';
+import type { JobStatus } from '@autodidact/types';
 import { ApiAgentClient } from '../../services/agent.client.js';
 import { QUEUES, JOB_NAMES } from '../../queues/definitions.js';
 
@@ -60,20 +61,16 @@ export class CoursesService {
 
     if (!course) throw new Error('Failed to create course');
 
-    const jobId = await this.queueProvider.enqueue(
-      QUEUES.COURSE_GENERATION,
-      JOB_NAMES.GENERATE_COURSE,
-      {
-        courseId: course.id,
-        userId,
-        topic: dto.topic,
-        difficulty: dto.difficulty,
-        moduleCount: dto.moduleCount,
-      },
-      { attempts: 3, backoff: { type: 'exponential', delay: 5000 } },
-    );
+    // Retry/backoff is owned by the Cloud Tasks queue config (infra/modules/cloud-tasks).
+    await this.queueProvider.enqueue(QUEUES.COURSE_GENERATION, JOB_NAMES.GENERATE_COURSE, {
+      courseId: course.id,
+      userId,
+      topic: dto.topic,
+      difficulty: dto.difficulty,
+      moduleCount: dto.moduleCount,
+    });
 
-    return { courseId: course.id, jobId, status: 'pending', reused: false };
+    return { courseId: course.id, status: 'pending', reused: false };
   }
 
   async enrollUser(userId: string, courseId: string) {
@@ -148,8 +145,19 @@ export class CoursesService {
       .orderBy(enrollments.lastAccessedAt);
   }
 
-  async getJobStatus(jobId: string) {
-    const status = await this.queueProvider.getJobStatus(QUEUES.COURSE_GENERATION, jobId);
-    return { jobId, status };
+  /**
+   * Generation status, read from the DB — `courses.status` is the source of
+   * truth (the Worker writes 'generating'/'ready'/'failed'). Mapped to the
+   * job-status vocabulary the mobile client polls on.
+   */
+  async getGenerationStatus(courseId: string) {
+    const course = await this.getCourse(courseId);
+    const map: Record<string, JobStatus> = {
+      pending: 'pending',
+      generating: 'active',
+      ready: 'completed',
+      failed: 'failed',
+    };
+    return { courseId, status: map[course.status] ?? 'pending' };
   }
 }

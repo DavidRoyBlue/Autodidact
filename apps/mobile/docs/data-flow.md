@@ -39,4 +39,4 @@ The chat screen renders `streamingContent` from the store as a live-updating bub
 
 ## Course generation polling
 
-`src/hooks/useCourseGeneration.ts` wraps `useJobStatus` (polling React Query hook) and watches for a `completed` status to navigate the user to the new course. The hook returns `{ isGenerating, failed, status }` for the UI to render a progress state.
+`src/hooks/useCourseGeneration.ts` wraps `useGenerationStatus` (polling React Query hook keyed by courseId; the API reads `courses.status` from the DB) and watches for a `completed` status to navigate the user to the new course. The hook returns `{ isGenerating, failed, status }` for the UI to render a progress state.

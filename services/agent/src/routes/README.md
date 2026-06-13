@@ -34,7 +34,7 @@ Runs the `CourseGenerationGraph` and returns the blueprint.
 }
 ```
 
-**Error** (500): If the graph fails all 3 retries, the route throws and BullMQ retries the job.
+**Error** (500): If the graph fails all 3 retries, the route throws; the worker surfaces the failure and Cloud Tasks retries the task.
 
 ---
 

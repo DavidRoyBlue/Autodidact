@@ -1,6 +1,6 @@
 # @autodidact/test-support
 
-Shared Testcontainers harness for real-DB and real-Redis integration tests.
+Shared Testcontainers harness for real-DB integration tests.
 
 > Agent-binding rules: see `CLAUDE.md`. Canonical mocks live in `@autodidact/config/test-utils` — this package provides *real* infrastructure, not mocks.
 
@@ -8,7 +8,6 @@ Shared Testcontainers harness for real-DB and real-Redis integration tests.
 
 - `withTestDatabase()` — boots a `pgvector/pgvector:pg16` container, applies `docker/dev-db-init.sql` (extensions + Supabase `auth.*` stubs) then every migration (`0001`→`0004`), and returns `{ db, pool, container, truncate, close }`.
 - `seedUser` / `seedCourse` / `seedModules` / `seedEnrollment` / `seedModuleProgress` — typed row builders that take the `db` from the harness.
-- `withTestRedis()` — boots a Redis container and returns `{ url, container, close }` for BullMQ tests.
 
 ## Usage
 

@@ -33,7 +33,7 @@ export function useCreateCourse() {
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error('Failed to create course');
-      return res.json() as Promise<{ courseId: string; jobId?: string; status: string; reused: boolean }>;
+      return res.json() as Promise<{ courseId: string; status: string; reused: boolean }>;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['courses'] });
@@ -41,15 +41,15 @@ export function useCreateCourse() {
   });
 }
 
-export function useJobStatus(jobId: string | null) {
+export function useGenerationStatus(courseId: string | null) {
   return useQuery({
-    queryKey: ['job', jobId],
+    queryKey: ['generation', courseId],
     queryFn: async () => {
-      const res = await apiFetch(`/courses/status/${jobId}`);
-      if (!res.ok) throw new Error('Failed to fetch job status');
-      return res.json() as Promise<{ jobId: string; status: string }>;
+      const res = await apiFetch(`/courses/status/${courseId}`);
+      if (!res.ok) throw new Error('Failed to fetch generation status');
+      return res.json() as Promise<{ courseId: string; status: string }>;
     },
-    enabled: !!jobId,
+    enabled: !!courseId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
       if (status === 'completed' || status === 'failed') return false;

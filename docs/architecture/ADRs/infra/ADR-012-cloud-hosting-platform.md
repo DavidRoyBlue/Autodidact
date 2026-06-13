@@ -11,7 +11,7 @@ Three backend services run as containers: `services/api` (public-facing,
 ~5–10 endpoints, traffic spiky during user activity), `services/agent`
 (internal, called by api/worker, usage drives LLM cost so we want
 scale-to-zero when idle), `services/worker` (always-on background poller
-for BullMQ — cannot scale to zero by design, see [ADR-007](./../services/worker/ADR-007-background-job-queue.md)).
+for BullMQ — cannot scale to zero by design, see [ADR-007](./../_superseded/ADR-007-background-job-queue.md)).
 
 The hosting platform decision determines: how containers are deployed,
 how they scale, how they expose health checks, what the public-vs-internal
@@ -19,7 +19,7 @@ boundary looks like, and how IAM/secrets are managed.
 
 This decision is independent of the database ([ADR-002](../cross-cutting/ADR-002-database-platform.md);
 Supabase is consumed via its public hostname — works on any cloud) and
-the queue ([ADR-007](./../services/worker/ADR-007-background-job-queue.md);
+the queue ([ADR-007](./../_superseded/ADR-007-background-job-queue.md);
 BullMQ on Memorystore Redis is GCP-specific in our current setup, but
 Redis-on-anywhere works on any cloud).
 
@@ -55,17 +55,17 @@ which is hosting-agnostic.
 - Scale-to-zero is the default. Idle services cost nothing.
 - Internal-only services via "ingress: internal" — `services/agent` is not reachable from the public internet.
 - IAM-based service-to-service auth is native (Cloud Run identity tokens).
-- Tight integration with the rest of GCP we already use (Memorystore for [ADR-007](./../services/worker/ADR-007-background-job-queue.md)).
+- Tight integration with the rest of GCP we already use (Memorystore for [ADR-007](./../_superseded/ADR-007-background-job-queue.md)).
 - Secret Manager for env-var-style secrets without checking them into code.
 - Cold start is acceptable (typically 200–700 ms for our service shapes); min-instances option exists if we need warmer start.
-- Up to 60-min request timeout (relevant for [ADR-007](./../services/worker/ADR-007-background-job-queue.md)'s long course-generation jobs and [ADR-011](./../services/agent/ADR-011-realtime-streaming-transport.md)'s SSE streams).
+- Up to 60-min request timeout (relevant for [ADR-007](./../_superseded/ADR-007-background-job-queue.md)'s long course-generation jobs and [ADR-011](./../services/agent/ADR-011-realtime-streaming-transport.md)'s SSE streams).
 - Pay-per-use pricing predictable at low scale.
 - Egress is reasonably priced; same-region GCP services have free egress.
 
 **Cons**
 - GCP-specific: vendor lock-in to Google. Migrating involves redoing IAM, networking, and container deployment configs.
 - Cold-start latency on the chat critical path occasionally hits the user. 200–700 ms isn't bad but is real.
-- Memorystore (managed Redis) is more expensive than running Redis on a small VM ($50+/mo minimum, see [ADR-007](./../services/worker/ADR-007-background-job-queue.md)'s flag).
+- Memorystore (managed Redis) is more expensive than running Redis on a small VM ($50+/mo minimum, see [ADR-007](./../_superseded/ADR-007-background-job-queue.md)'s flag).
 - VPC connector cost when services reach Memorystore privately (~$10/mo per connector).
 - GCP's pricing model has many SKUs (CPU-second, request, egress, idle) — easy to misforecast.
 
@@ -197,7 +197,7 @@ desirable, MVP cost-sensitive, IaC required, no need for global multi-region).
 - api and agent services cost nothing when idle. Worker is the only always-on container.
 - IAM-based service-to-service auth removes the need for shared secrets between services.
 - Secret Manager + Memorystore + Cloud Run all live in one cloud; configuration is one Terraform plan.
-- 60-min request timeout supports our long-running flows ([ADR-007](./../services/worker/ADR-007-background-job-queue.md), [ADR-011](./../services/agent/ADR-011-realtime-streaming-transport.md)).
+- 60-min request timeout supports our long-running flows ([ADR-007](./../_superseded/ADR-007-background-job-queue.md), [ADR-011](./../services/agent/ADR-011-realtime-streaming-transport.md)).
 - Workload Identity Federation for GitHub Actions ([ADR-022](./ADR-022-cicd-platform.md)) means we don't ship long-lived service account keys.
 
 ### Negative
@@ -211,3 +211,13 @@ desirable, MVP cost-sensitive, IaC required, no need for global multi-region).
 - CI/CD pipeline — see [ADR-022](./ADR-022-cicd-platform.md).
 - Per-service min-instances, scaling configuration, concurrency — operational, owned by `infra/CLAUDE.md`.
 - Reconsider this ADR if: traffic spans multiple continents (Fly.io's multi-region story would matter), GCP costs scale unpredictably, or a non-GCP managed service becomes critical to the architecture (forcing the rest to move).
+
+## Update
+
+**2026-06-11** — [ADR-027](../services/worker/ADR-027-background-job-queue-cloud-tasks.md)
+executed ADR-007's flagged migration: the queue moved from BullMQ + Memorystore
+Redis to GCP Cloud Tasks. Consequences for this ADR's context: the Memorystore
+instance no longer exists, and the worker is no longer an always-on poller — it
+is an internal, IAM-invoked HTTP service with `min_instances = 0`
+(scale-to-zero now applies to all three services). The decision recorded here
+is unchanged.

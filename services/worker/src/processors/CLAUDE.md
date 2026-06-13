@@ -4,18 +4,18 @@
 
 ## Purpose of this subtree
 
-BullMQ processor factory functions. Each file exports a `create*Worker()` function that instantiates a `Worker` for one queue. Both are registered in `main.ts` at startup.
+Pure task-processing functions. Each file exports a `process*(data, deps)` function with no transport coupling — the Fastify routes in `../app.ts` own HTTP, validation, and retry semantics, and call these per task delivery.
 
-| File | Queue | Job name | Concurrency |
-|------|-------|----------|-------------|
-| `course-generation.processor.ts` | `course-generation` | `generate-course` | 3 |
-| `embedding.processor.ts` | `embedding` | `generate-embedding` | 5 |
+| File | Function | Task endpoint |
+|------|----------|---------------|
+| `course-generation.processor.ts` | `processCourseGeneration` | `POST /tasks/generate-course` |
+| `embedding.processor.ts` | `processEmbedding` | `POST /tasks/generate-embedding` |
 
 ---
 
 ## Course generation processor
 
-### Job payload
+### Task payload
 
 ```typescript
 CourseGenerationJobData {
@@ -33,48 +33,52 @@ CourseGenerationJobData {
 1. UPDATE courses SET status='generating'             (outside transaction)
 2. agentClient.generateCourse(data) → CourseBlueprint (HTTP POST to Agent /course/generate)
 3. DB transaction:
-     a. UPDATE courses SET title, description, difficulty, estimatedHours,
+     a. DELETE modules WHERE course_id = $courseId    (idempotency — see below)
+     b. UPDATE courses SET title, description, difficulty, estimatedHours,
                            status='ready', blueprint
-     b. INSERT modules (one row per ModuleBlueprint from blueprint.modules)
-4. queueProvider.enqueue(QUEUES.EMBEDDING, JOB_NAMES.GENERATE_EMBEDDING,
-                          { courseId, topic },
-                          { attempts: 3, backoff: { type: 'exponential', delay: 5000 } })
+     c. INSERT modules (one row per ModuleBlueprint from blueprint.modules)
+4. RAG indexing of module chunks — best-effort, never fails the task (ADR-024)
+5. queueProvider.enqueue(QUEUES.EMBEDDING, JOB_NAMES.GENERATE_EMBEDDING,
+                          { courseId, topic })
 ```
 
 ### Status lifecycle
 
 ```
 pending     (API inserted the course row)
-  │ job picked up
+  │ task delivered
   ▼
-generating  (step 1 — Worker marks it in-flight)
+generating  (step 1 — marks it in-flight)
   │ steps 2–3 succeed
   ▼
 ready       (step 3a — set inside the DB transaction)
-  │ step 4 enqueues embedding job
+  │ step 5 enqueues embedding task
   ▼
-  [topic_embedding populated by EmbeddingProcessor]
+  [topic_embedding populated by processEmbedding]
+
+generating ──(final attempt fails)──▶ failed
+  (set by ../app.ts markCourseFailed, guarded with status IN ('pending','generating'))
 ```
 
 ### Idempotency on retry
 
-BullMQ retries the job on any thrown error (up to 3 times, exponential backoff: 5 s → 25 s → 125 s). The processor does NOT delete existing modules before re-inserting. If a retry is triggered after step 3b has partially committed (unlikely given transaction semantics, but possible if the connection drops between steps), duplicate module rows can result.
+Cloud Tasks redelivers the task on any non-2xx response (queue config: 3 attempts, min backoff 5 s doubling to a 125 s cap). A retry can arrive with modules **already committed**: if the previous attempt failed *after* the ready-transaction (e.g. on the follow-up embedding enqueue — a remote API call), the route returned 500 and the whole task re-runs.
 
-Current approach: the transaction is atomic — if `INSERT modules` succeeds, so does `UPDATE courses ... status='ready'`. If BullMQ sees the job as failed, the course is in `generating` (not `ready`), meaning modules were not committed. Re-running step 3 on retry is safe.
-
-If idempotency concerns grow (e.g., non-transactional failures mid-job), add a `DELETE FROM modules WHERE course_id = $courseId` before the `INSERT` inside the transaction.
+The transaction therefore deletes the course's existing modules before re-inserting (step 3a). Combined with atomicity (`status='ready'` and the module rows commit together), a re-run always replaces the module set rather than appending a duplicate one.
 
 ### Error handling
 
-Any throw propagates to BullMQ, which retries up to 3 times. After 3 failures the job moves to the Redis `failed` set. The course row is left in `generating` status — there is no automatic reset to `pending` or `failed`. A future cleanup job should handle this.
+Any throw propagates to the route handler in `../app.ts`:
+- **Non-final attempt** → `500`, Cloud Tasks retries.
+- **Final attempt** (`X-CloudTasks-TaskRetryCount >= TASK_MAX_ATTEMPTS - 1`, or no header — loopback) → course marked `failed`, task acknowledged with `200`. No course is ever left stuck in `generating`.
 
-The `failed` event handler in `main.ts` logs the error at `logger.error` level.
+Do not catch-and-swallow errors inside the processor — the status-code contract in `../app.ts` is how the queue knows to retry.
 
 ---
 
 ## Embedding processor
 
-### Job payload
+### Task payload
 
 ```typescript
 EmbeddingJobData {
@@ -102,15 +106,12 @@ Drizzle's `.update().set()` does not cleanly handle the `::vector` cast for para
 
 ### Invariants
 
-- The `courses` row must already exist with `status = 'ready'` before this runs (guaranteed by job chaining: embedding is only enqueued after the course generation transaction commits).
+- The `courses` row must already exist with `status = 'ready'` before this runs (guaranteed by task chaining: embedding is only enqueued after the course generation transaction commits).
 - Do not write any other course columns from this processor — it sets only `topic_embedding` and `updated_at`.
+- Embedding failure never changes course status — on the final attempt the route just acknowledges; the course stays `ready` with similarity reuse degraded.
 
 ---
 
-## Retry configuration (both processors)
+## Retry configuration (both task types)
 
-```typescript
-{ attempts: 3, backoff: { type: 'exponential', delay: 5000 } }
-```
-
-BullMQ delays: 5 s → 25 s → 125 s. After 3 failures the job moves to the `failed` set in Redis. No further retries occur automatically.
+Owned by the Cloud Tasks queue config in `infra/modules/cloud-tasks/main.tf` (`max_attempts = 3`, backoff 5 s → 125 s) — not application code. `TASK_MAX_ATTEMPTS` in the worker env must mirror `max_attempts`. The loopback dev provider performs a single attempt, treated as final.

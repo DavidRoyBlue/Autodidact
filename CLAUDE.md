@@ -12,7 +12,7 @@ AI-powered learning platform. Three backend services plus an Expo mobile app in 
 |-------|---------|------|
 | Public HTTP | `services/api` | NestJS — auth, courses, chat proxy, progress |
 | AI runtime | `services/agent` | Fastify + LangGraph — all LLM and embedding calls (internal only, port 3001) |
-| Background | `services/worker` | BullMQ — course generation and embedding jobs (no HTTP) |
+| Background | `services/worker` | Fastify task handler — course generation and embedding tasks, invoked per-task by Cloud Tasks (prod) / loopback (dev) |
 | Client | `apps/mobile` | Expo React Native — the only UI |
 
 Shared packages: `packages/db` (Drizzle + pgvector), `packages/types`, `packages/schemas` (Zod), `packages/providers` (LLM/queue/auth abstractions), `packages/prompts`, `packages/observability` (pino + OTEL), `packages/config` (tsconfig, eslint, vitest bases).
@@ -25,7 +25,7 @@ Shared packages: `packages/db` (Drizzle + pgvector), `packages/types`, `packages
 pnpm setup              # first-time: checks prereqs → installs deps → copies .env.example → .env.dev → starts Docker → migrates → builds
 pnpm dev                # full backend stack: starts Docker → builds → migrates → all services (reads .env.dev)
 pnpm mobile             # Expo dev server — run in a separate terminal while dev is running
-pnpm stop               # stops Docker infra (Postgres + Redis) only; Node services stop via Ctrl+C in their terminal
+pnpm stop               # stops Docker infra (Postgres) only; Node services stop via Ctrl+C in their terminal
 
 pnpm build              # turbo build all packages and services
 pnpm typecheck          # type-check all packages (triggers a build first)
@@ -50,7 +50,6 @@ Copy `.env.example` → `.env.dev` (`pnpm setup` does this). Minimum required to
 | Var | Used by | Note |
 |-----|---------|------|
 | `DATABASE_URL` | api, agent, worker | WSL2: must be transaction pooler URL (port 6543) |
-| `REDIS_URL` | api, worker | BullMQ backend |
 | `SUPABASE_URL` | api | Supabase project URL |
 | `SUPABASE_PUBLISHABLE_KEY` | mobile | Also set in `apps/mobile/app.json` → `extra` |
 | `SUPABASE_SECRET_KEY` | packages/db | Admin client — never expose to clients |

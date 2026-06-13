@@ -9,7 +9,6 @@ import {
 describe('apiEnvSchema', () => {
   const valid = {
     DATABASE_URL: 'postgresql://localhost:5432/app',
-    REDIS_URL: 'redis://localhost:6379',
     SUPABASE_URL: 'https://ref.supabase.co',
     SUPABASE_SECRET_KEY: 'secret',
   };
@@ -32,12 +31,7 @@ describe('apiEnvSchema', () => {
     if (!result.success) {
       const fields = result.error.issues.map((i) => i.path.join('.'));
       expect(fields).toEqual(
-        expect.arrayContaining([
-          'DATABASE_URL',
-          'REDIS_URL',
-          'SUPABASE_URL',
-          'SUPABASE_SECRET_KEY',
-        ]),
+        expect.arrayContaining(['DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_SECRET_KEY']),
       );
     }
   });
@@ -75,16 +69,42 @@ describe('agentEnvSchema', () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it('requires OPENAI_API_KEY when LLM_PROVIDER=openai (the default)', () => {
+    const result = agentEnvSchema.safeParse({});
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.path.includes('OPENAI_API_KEY'))).toBe(true);
+    }
+  });
+
+  it('accepts LLM_PROVIDER=mock without any API key (e2e only)', () => {
+    expect(agentEnvSchema.safeParse({ LLM_PROVIDER: 'mock' }).success).toBe(true);
+  });
 });
 
 describe('workerEnvSchema', () => {
-  it('requires DATABASE_URL and REDIS_URL', () => {
+  it('requires DATABASE_URL', () => {
     const result = workerEnvSchema.safeParse({});
     expect(result.success).toBe(false);
     if (!result.success) {
       const fields = result.error.issues.map((i) => i.path.join('.'));
-      expect(fields).toEqual(expect.arrayContaining(['DATABASE_URL', 'REDIS_URL']));
+      expect(fields).toEqual(expect.arrayContaining(['DATABASE_URL']));
     }
+  });
+
+  it('applies WORKER_PORT and TASK_MAX_ATTEMPTS defaults', () => {
+    const env = workerEnvSchema.parse({ DATABASE_URL: 'postgresql://localhost:5432/app' });
+    expect(env.WORKER_PORT).toBe(3002);
+    expect(env.TASK_MAX_ATTEMPTS).toBe(3);
+  });
+
+  it('coerces TASK_MAX_ATTEMPTS from a string', () => {
+    const env = workerEnvSchema.parse({
+      DATABASE_URL: 'postgresql://localhost:5432/app',
+      TASK_MAX_ATTEMPTS: '5',
+    });
+    expect(env.TASK_MAX_ATTEMPTS).toBe(5);
   });
 });
 

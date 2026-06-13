@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop local Docker infrastructure (Postgres + Redis).
+# Stop local Docker infrastructure (Postgres).
 # Backend services (started by dev.sh) are stopped with Ctrl+C in that terminal.
 set -euo pipefail
 
@@ -14,7 +14,7 @@ ok()   { echo -e "${GREEN}✓ $*${NC}"; }
 
 step "Stopping Docker services"
 docker compose down
-ok "Postgres and Redis stopped"
+ok "Postgres stopped"
 
 echo
 echo -e "${YELLOW}Note: data volumes are preserved. To wipe all local data:${NC}"

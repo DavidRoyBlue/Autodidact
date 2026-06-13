@@ -1,38 +1,39 @@
 # Processors
 
-BullMQ worker processors. Each processor is a factory function that creates a `Worker` instance for one queue. Both are registered in `main.ts` at startup.
+Pure task-processing functions, free of any transport concern. Each exports a `process*` function taking `(data, deps)`; the Fastify routes in `src/app.ts` validate the payload and call them per task delivery.
 
 ## Files
 
-| File | Queue | Job name | Concurrency |
-|------|-------|----------|-------------|
-| `course-generation.processor.ts` | `course-generation` | `GENERATE_COURSE` | 3 |
-| `embedding.processor.ts` | `embedding` | `GENERATE_EMBEDDING` | 5 |
+| File | Function | Task endpoint |
+|------|----------|---------------|
+| `course-generation.processor.ts` | `processCourseGeneration` | `POST /tasks/generate-course` |
+| `embedding.processor.ts` | `processEmbedding` | `POST /tasks/generate-embedding` |
 
 ---
 
 ## Course Generation Processor
 
-**Queue**: `course-generation`  
-**Job payload**: `CourseGenerationJobData { courseId, userId, topic, difficulty, moduleCount }`
+**Payload**: `CourseGenerationJobData { courseId, userId, topic, difficulty, moduleCount }`
 
 ### Status lifecycle
 
 ```
 courses.status transitions:
   pending
-    │ (job picked up)
+    │ (task delivered)
     ▼
   generating
     │ (Agent call + DB write succeed)
     ▼
   ready
-    │ (embedding job enqueued automatically)
+    │ (embedding task enqueued automatically)
     ▼
   [topic_embedding set by embedding processor]
+
+  generating ──(final attempt fails)──▶ failed   (set by src/app.ts, not the processor)
 ```
 
-If the Agent call throws, BullMQ retries (up to 3×, exponential backoff). The course remains in `generating` status. There is currently no automatic reset to `pending` on final failure — a stale `generating` course must be cleaned up manually.
+A throw propagates to the route handler in `src/app.ts`: non-final attempts return `500` so Cloud Tasks retries; the final attempt marks the course `failed` (guarded with `status IN ('pending','generating')` so a committed `ready` course is never flipped back) and acknowledges the task.
 
 ### DB transaction
 
@@ -49,22 +50,23 @@ await db.transaction(async (tx) => {
 });
 ```
 
-If either operation fails, neither is committed and the transaction rolls back.
+If either operation fails, neither is committed and the transaction rolls back. Re-running the processor on a retried task is safe: if the task failed, the transaction did not commit, so the course is still `generating` with no module rows.
 
-### Job chaining
+### Task chaining
 
-After a successful transaction, the processor enqueues an `EMBEDDING` job:
+After a successful transaction, the processor enqueues an embedding task:
 
 ```typescript
-await queueProvider.enqueue(QUEUES.EMBEDDING, JOB_NAMES.GENERATE_EMBEDDING, { courseId, topic }, { attempts: 3, backoff: { type: 'exponential', delay: 5000 } });
+await queueProvider.enqueue(QUEUES.EMBEDDING, JOB_NAMES.GENERATE_EMBEDDING, { courseId, topic });
 ```
+
+Retry/backoff for that task is owned by the Cloud Tasks queue config, not enqueue options.
 
 ---
 
 ## Embedding Processor
 
-**Queue**: `embedding`  
-**Job payload**: `EmbeddingJobData { courseId, topic }`
+**Payload**: `EmbeddingJobData { courseId, topic }`
 
 ### What it does
 
@@ -79,19 +81,27 @@ await queueProvider.enqueue(QUEUES.EMBEDDING, JOB_NAMES.GENERATE_EMBEDDING, { co
    `)
 ```
 
+Idempotent — safe to retry any number of times. A failed embedding never changes course status; the course stays `ready` and only similarity reuse is degraded.
+
 ### Why raw SQL
 
 Drizzle's `.update().set()` does not cleanly handle the `::vector` cast on parameterised values. The `sql` tagged template literal with `db.execute()` bypasses this limitation by passing the vector as a literal string.
 
-The `courses` row must already exist and have `status = 'ready'` before this runs (guaranteed by job chaining order).
+The `courses` row must already exist and have `status = 'ready'` before this runs (guaranteed by task chaining order).
 
 ---
 
 ## Retry Configuration
 
-Both processors use:
-```typescript
-{ attempts: 3, backoff: { type: 'exponential', delay: 5000 } }
+Queue-level, in Terraform (`infra/modules/cloud-tasks/main.tf`):
+
+```hcl
+retry_config {
+  max_attempts  = 3
+  min_backoff   = "5s"
+  max_backoff   = "125s"
+  max_doublings = 5
+}
 ```
 
-BullMQ delays: 5 s → 25 s → 125 s. After 3 failures the job moves to the `failed` set in Redis and no further retries occur.
+The worker mirrors `max_attempts` via `TASK_MAX_ATTEMPTS` to detect the final attempt (`X-CloudTasks-TaskRetryCount` header). The loopback dev provider sends no header — every dispatch counts as the single, final attempt.

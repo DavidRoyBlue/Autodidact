@@ -2,10 +2,13 @@
 
 ## Status
 
-🚩 Accepted with reconsideration flag
-Date: 2026-05-10
+Superseded by [ADR-027](../services/worker/ADR-027-background-job-queue-cloud-tasks.md)
+Date: 2026-05-10 (superseded 2026-06-11)
 
-🚩 Reconsideration flag: GCP Cloud Tasks would let us drop the Memorystore Redis instance and the standalone worker service, simplifying infra and lowering monthly cost. Staying with BullMQ because the worker code, retry semantics, and local-dev story are already in place. Migration trigger: an explicit infra-simplification sprint, or when Memorystore costs become noticeable on the monthly GCP bill.
+The 🚩 reconsideration flag below fired: the migration to GCP Cloud Tasks was
+executed during an infra-simplification sprint. See ADR-027 for the decision.
+
+🚩 Reconsideration flag (historical): GCP Cloud Tasks would let us drop the Memorystore Redis instance and the standalone worker service, simplifying infra and lowering monthly cost. Staying with BullMQ because the worker code, retry semantics, and local-dev story are already in place. Migration trigger: an explicit infra-simplification sprint, or when Memorystore costs become noticeable on the monthly GCP bill.
 
 ## Context
 
@@ -20,9 +23,9 @@ We need a way to decouple "request received" from "work done": the API
 accepts the request, returns a job id, and the client polls for status. A
 worker processes jobs in the background with retries. After course
 generation succeeds, a follow-up embedding job stores the topic vector
-([ADR-010](../../packages/db/ADR-010-vector-search-strategy.md)).
+([ADR-010](../packages/db/ADR-010-vector-search-strategy.md)).
 
-This ADR sits inside our [Cloud Run hosting](../../infra/ADR-012-cloud-hosting-platform.md)
+This ADR sits inside our [Cloud Run hosting](../infra/ADR-012-cloud-hosting-platform.md)
 context — that constrains some choices (no always-on VMs we manage; the
 worker either polls a queue from a long-running container, or is invoked
 by HTTP from a queue service).
@@ -30,9 +33,9 @@ by HTTP from a queue service).
 ## Non-goals
 
 - Job retry semantics, idempotency rules, dead-letter handling — implementation details, owned by `services/worker/CLAUDE.md` and `services/worker/src/processors/CLAUDE.md`.
-- The generation graph itself — that's [ADR-006](../agent/ADR-006-ai-orchestration-framework.md).
-- Hosting platform — see [ADR-012](../../infra/ADR-012-cloud-hosting-platform.md).
-- Provider abstraction for the queue — see [ADR-009](../../packages/providers/ADR-009-external-vendor-abstraction.md). The queue lives behind `IQueueProvider`.
+- The generation graph itself — that's [ADR-006](../services/agent/ADR-006-ai-orchestration-framework.md).
+- Hosting platform — see [ADR-012](../infra/ADR-012-cloud-hosting-platform.md).
+- Provider abstraction for the queue — see [ADR-009](../packages/providers/ADR-009-external-vendor-abstraction.md). The queue lives behind `IQueueProvider`.
 
 ## Decision Drivers
 
@@ -208,4 +211,4 @@ This is **expedience-over-merit**. The reconsideration flag is real.
 
 ### Follow-up decisions
 - Cleanup pattern for stale `generating` courses (older than N hours stuck) — owned by `services/worker/CLAUDE.md`, not this ADR.
-- Reconsider this ADR when: doing an explicit infra-simplification pass, dropping or replacing [ADR-012](../../infra/ADR-012-cloud-hosting-platform.md) (different host might reframe the calculus), or considering an LLM observability/durable-workflow tool that overlaps Inngest/Trigger.dev — at which point comparing those to a fresh start is honest.
+- Reconsider this ADR when: doing an explicit infra-simplification pass, dropping or replacing [ADR-012](../infra/ADR-012-cloud-hosting-platform.md) (different host might reframe the calculus), or considering an LLM observability/durable-workflow tool that overlaps Inngest/Trigger.dev — at which point comparing those to a fresh start is honest.
