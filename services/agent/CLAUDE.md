@@ -50,7 +50,7 @@ Internal AI runtime. Runs all LangGraph graphs. Handles all LLM and embedding in
 
 ## Key patterns to follow
 
-- **SSE streaming:** set `Content-Type: text/event-stream` and all required headers, then use `reply.raw.write()` for each event. Always call `reply.raw.end()` in the `finally` block — on completion and on error.
+- **SSE streaming:** set `Content-Type: text/event-stream` and all required headers, then use `reply.raw.write()` for each event. Always call `reply.raw.end()` in the `finally` block — on completion and on error. Detect client disconnect (to cancel in-flight LLM work) on **`reply.raw.on('close')`**, never `request.raw` — on a POST route, `request.raw` ('close') fires the instant the request body is read, which would abort the stream before the first token.
 - **Graph invocation for module chat:** always pass `{ configurable: { thread_id: sessionId } }` so LangGraph can load and persist the correct conversation checkpoint.
 - **Request validation:** use Zod `parse()` or `safeParse()` in routes and return a structured 400 before the graph is invoked on invalid input.
 - **Completion detection:** after streaming ends, call `graph.getState(config)` to read `completionSignaled` and emit a `module_complete` SSE event if true.
