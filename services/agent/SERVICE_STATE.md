@@ -15,15 +15,17 @@ Runs all LLM and embedding calls. Two LangGraph graphs: course-generation (bluep
 
 ## Current State
 
-- Three routes implemented: `POST /course/generate`, `POST /module-chat/stream` (SSE), `POST /embeddings/text`, plus `/health`.
+- Five routes implemented: `POST /course/generate`, `POST /module-chat/stream` (SSE), `POST /embeddings/text`, `GET /health` (liveness), `GET /ready` (readiness — pings the checkpoint store).
 - LLM access through `ILLMProvider.getModel()` — OpenAI (default) and Anthropic both implemented and switchable via `LLM_PROVIDER`.
+- All node LLM calls go through `invokeModel()` (`src/llm/resilient-invoke.ts`): per-attempt timeout, bounded backoff retry on 429/5xx/network errors, caller cancellation via `AbortSignal`, and token-usage span attributes.
+- RAG grounding (ADR-024, gated by `RAG_ENABLED`): the teacher node retrieves top-k `module_content_chunks` via `PgVectorContentRetriever` (`src/rag/retriever.ts`) and grounds its prompt — best-effort, falls back to the un-grounded prompt on failure.
 - Completion detection: teacher emits `[MODULE_COMPLETE:score=N]`, stripped before reaching the client, routes to evaluator.
-- 4 test files (course-gen nodes, module-chat nodes, both routes). Green in CI.
+- 12 test files (course-gen/module-chat nodes + graph, all routes incl. health, RAG teacher, resilient-invoke, eval-scorers, instrumentation, errors). Green in CI.
 
 ## Infrastructure
 
 - API (HTTP): ✅ Fastify, Dockerfile + Cloud Run module (internal, `allow_public=false`)
-- Database: ⚠️ used only by the Postgres checkpointer (prod); not active in dev default
+- Database: ⚠️ Postgres checkpointer (prod) + RAG retriever reads `module_content_chunks` when `RAG_ENABLED`; otherwise not active in dev default
 - Auth: ➖ none (internal service; relies on network isolation)
 - LLM: ✅ OpenAI + Anthropic implemented
 - Embeddings: ⚠️ OpenAI implemented; Cohere provider exists but is an explicit stub
@@ -37,16 +39,14 @@ Runs all LLM and embedding calls. Two LangGraph graphs: course-generation (bluep
 ## Known Issues
 
 - In-memory checkpointer in any multi-instance or restart scenario silently drops chat history.
-- No cost controls / token budgets on LLM calls — unbounded spend risk under load.
+- No token/cost *budget* enforcement on LLM calls. Per-attempt timeouts and retry caps exist (via `invokeModel()`), but nothing caps cumulative spend, so cost is unbounded under sustained load.
 - Internal-only guarantee depends entirely on Cloud Run ingress config (`allow_public=false`); no app-level auth as a backstop.
-- Doc drift: agent `README.md` / API `README.md` say `/generate-course`; the real route is `/course/generate`.
 
 ## Next Steps
 
 1. Verify `CHECKPOINTER=postgres` end-to-end (migrations, connection, multi-turn replay).
-2. Add per-request LLM token/cost limits and timeouts.
+2. Add per-request LLM token/cost budget limits (per-attempt timeouts already exist via `invokeModel()`).
 3. Wire error tracking (OTEL endpoint or equivalent) for failed graph runs.
-4. Fix the route-name drift in the READMEs.
 
 ## Open Questions
 

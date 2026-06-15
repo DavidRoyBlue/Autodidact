@@ -15,11 +15,12 @@ The user-facing app: sign-in/up, home dashboard, course list, course detail with
 
 ## Current State
 
-- All MVP screens implemented: auth (sign-in/sign-up), home, courses index, course detail, module chat.
+- All MVP screens implemented: auth (sign-in/sign-up), home, courses index, course detail, module chat, profile.
 - `useSSE` streaming hook, `useCourseGeneration` polling hook, `apiFetch` wrapper with auto 401 refresh.
 - Design system in place (tokens → themes → typography → config); shared component library.
+- App-level resilience UI: `ErrorBoundary` (catches render errors) and a `ToastProvider` + `toast.store` (module-complete notifications).
 - Auth tokens persisted via `expo-secure-store`; `supabase` client used for auth only.
-- Only 1 test file (markdown smoke test) — no component or E2E coverage.
+- 7 test files (stores, hooks, `apiFetch`, `ChatBubble` component, markdown) plus 3 Maestro e2e flows (`.maestro/`, manual/nightly — not the PR gate). Green in CI.
 
 ## Infrastructure
 
@@ -33,12 +34,12 @@ The user-facing app: sign-in/up, home dashboard, course list, course detail with
 
 ## Current Bottleneck
 
-No production build/release path. There is no EAS or store-submission config, no real `app.json` `extra` values wired for a hosted API, and effectively no automated test coverage — so the app cannot be shipped to testers' devices in a repeatable way yet.
+No production build/release path. There is no EAS or store-submission config and no real `app.json` `extra` values wired for a hosted API — so the app cannot be shipped to testers' devices in a repeatable way yet. (Unit + Maestro tests exist, but the missing build pipeline is the blocker, not coverage.)
 
 ## Known Issues
 
-- Tamagui pinned to `2.0.0-rc.41` (release candidate); Renovate auto-bumps disabled for it (dependency risk; ADR-013 🚩).
-- Near-zero test coverage (1 smoke test) — regressions are easy to miss.
+- Tamagui pinned to `2.0.0-rc.41` (release candidate); Renovate auto-bumps disabled for it (dependency risk).
+- No PR-gated e2e: Maestro flows run manual/nightly only, so UI regressions can reach a build without a gate catching them.
 - No course-generation progress indicator (polling only; Phase 2).
 - Requires real `supabaseUrl` / `supabasePublishableKey` / `apiBaseUrl` in `app.json` `extra` to run against a live backend.
 

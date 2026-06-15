@@ -27,10 +27,11 @@ The Agent service is a stateless HTTP server with one stateful concern: LangGrap
 
 | Method | Path | Caller | Description |
 |--------|------|--------|-------------|
-| POST | `/generate-course` | Worker | Run course generation graph, return blueprint JSON |
+| POST | `/course/generate` | Worker | Run course generation graph, return blueprint JSON |
 | POST | `/module-chat/stream` | API | Run module chat graph, stream SSE response |
 | POST | `/embeddings/text` | API, Worker | Generate embedding vector for a text string |
 | GET | `/health` | Infra | Liveness check |
+| GET | `/ready` | Infra | Readiness check — 200 once providers init and the checkpoint store answers `ping()`, else 503 |
 
 **SSE event protocol** (`/module-chat/stream`)
 
@@ -43,7 +44,7 @@ The Agent service is a stateless HTTP server with one stateful concern: LangGrap
 
 **LLM calls**
 
-Every request to `/generate-course` and `/module-chat/stream` triggers at least one LLM call. The number of calls per chat turn:
+Every request to `/course/generate` and `/module-chat/stream` triggers at least one LLM call. The number of calls per chat turn:
 - Normal turn: 1 (teacher node)
 - Completion turn: 2 (teacher node + evaluator node)
 
@@ -62,7 +63,7 @@ Every request to `/generate-course` and `/module-chat/stream` triggers at least 
 ### Course generation
 
 ```
-POST /generate-course { courseId, userId, topic, difficulty, moduleCount }
+POST /course/generate { courseId, userId, topic, difficulty, moduleCount }
   1. Build CourseGenerationGraph (llmProvider injected)
   2. Invoke graph.invoke({ topic, difficulty, moduleCount, retryCount: 0 })
   3. generateBlueprint node:

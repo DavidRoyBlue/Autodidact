@@ -6,13 +6,13 @@ HTTP route handlers for the Agent service. All routes are registered in `main.ts
 
 | File | Route | Caller |
 |------|-------|--------|
-| `generate-course.ts` | `POST /generate-course` | Worker service |
+| `generate-course.ts` | `POST /course/generate` | Worker service |
 | `module-chat.ts` | `POST /module-chat/stream` | API service |
 | `embeddings.ts` | `POST /embeddings/text` | API service, Worker service |
 
 ---
 
-## POST /generate-course
+## POST /course/generate
 
 Runs the `CourseGenerationGraph` and returns the blueprint.
 

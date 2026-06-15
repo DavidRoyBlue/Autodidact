@@ -4,7 +4,12 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '@autodidact/db';
 import type { DB } from '@autodidact/db';
 import { readFileSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM has no __dirname; reconstruct it from this module's URL so the paths below
+// resolve from this file's directory in both vitest (src/) and built (dist/) contexts.
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // dev-db-init.sql creates the vector/uuid extensions and the Supabase auth.* stubs
 // that the RLS migrations (0003/0004) reference. Without it, those migrations fail

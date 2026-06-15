@@ -8,7 +8,7 @@ Each row links to the ADR documenting the choice (drivers, alternatives, rationa
 ## Mobile
 - **Expo + React Native** — cross-platform mobile from one TS codebase. → [ADR-003](architecture/ADRs/apps/mobile/ADR-003-mobile-application-platform.md)
 - **Expo Router** — file-based navigation. → [ADR-014](architecture/ADRs/apps/mobile/ADR-014-mobile-navigation.md)
-- **Tamagui** 🚩 — UI components and styling. → [ADR-013](architecture/ADRs/apps/mobile/ADR-013-mobile-ui-system.md)
+- **Tamagui** — UI components and styling. → [ADR-013](architecture/ADRs/apps/mobile/ADR-013-mobile-ui-system.md)
 - **TanStack Query v5 + Zustand v5** — server + client state. → [ADR-015](architecture/ADRs/apps/mobile/ADR-015-mobile-state-management.md)
 
 ## API

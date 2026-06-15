@@ -20,7 +20,8 @@ Handles task POSTs on two endpoints. `/tasks/generate-course`: calls the Agent f
 - Course write is transactional; module rows roll back with the status update.
 - Task chaining (course → embedding) implemented; graceful SIGTERM/SIGINT shutdown (Fastify close + provider close).
 - All AI calls go through `AgentClient` (`/course/generate`, `/embeddings/text`); no direct LLM SDKs.
-- Tests: app route semantics (validation, retry signalling, terminal failure), both processors (unit), both task endpoints against real Postgres (integration). Green locally.
+- After a course is written, `indexModuleChunks()` (`src/rag/index-chunks.ts`) chunks each module's content into `module_content_chunks` with embeddings (ADR-024), making the course eligible for RAG-grounded chat.
+- 7 test files (agent client, both processors, both integration suites, chunking, shutdown): app route semantics (validation, retry signalling, terminal failure), both processors (unit), and both task endpoints against real Postgres (integration). Green in CI.
 
 ## Infrastructure
 

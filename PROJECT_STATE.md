@@ -1,26 +1,30 @@
 # Project State
 
-> Save file for Autodidact. Per-service detail lives in each `SERVICE_STATE.md`
-> (linked below). For *why* things are built this way, see `docs/` and the ADRs.
+> Each thing that must work for the app to run, with its state; one line under it.
+> Detail per service in each `SERVICE_STATE.md`; *why* in `docs/` + ADRs.
 
-## Vision
+**Legend:** 🔵 prod-ready · 🟢 runs in dev · 🔴 non-functional
 
-An AI-native learning platform: generate a structured course from any topic, then learn it one module at a time through a guided AI-tutor chat, with completion tracking and semantic reuse of previously generated courses. Mobile-first, provider-agnostic backend.
+🟢 **📱 Mobile** — Expo app, the only UI · [detail](apps/mobile/SERVICE_STATE.md)
+Runs on the emulator; no build/release pipeline yet.
 
-## Current State
+🟢 **🌐 API** — NestJS public HTTP: auth, courses, chat proxy · [detail](services/api/SERVICE_STATE.md)
+Dev-green; infra secret-name drift and no monitoring remain.
 
-MVP is **code-complete and CI-green** — three backend services, a mobile app, and eight shared packages are all really implemented (not scaffolding), with lint + typecheck + tests running on every PR and before deploy. What it is **not** yet is *operated*: there is no evidence the stack has run end-to-end against provisioned cloud infrastructure. Environment/secret setup is still open (`docs/todo.md`), Terraform provisions secret names the code does not read, the agent's conversation checkpointer still defaults to in-memory, and no observability or error-tracking backend is wired. The gap is squarely between "builds and passes tests" and "deployable and operable."
+🟢 **🧠 Agent** — Fastify + LangGraph, all LLM/embedding calls · [detail](services/agent/SERVICE_STATE.md)
+Dev-green; checkpointer defaults to in-memory, no cost cap.
 
-## Services
+🟢 **⚙️ Worker** — BullMQ course-generation + embedding jobs · [detail](services/worker/SERVICE_STATE.md)
+Dev-green; no stuck-job recovery.
 
-| Service | Dev | Beta | Prod | Main Bottleneck |
-|---------|-----|------|------|-----------------|
-| [Mobile](apps/mobile/SERVICE_STATE.md) | ✅ | ⚠️ | ❌ | No build/release pipeline; ~no tests |
-| [API](services/api/SERVICE_STATE.md) | ✅ | ⚠️ | ❌ | Infra secret-name drift; no monitoring |
-| [Agent](services/agent/SERVICE_STATE.md) | ✅ | ⚠️ | ❌ | Checkpointer defaults to memory; no cost controls |
-| [Worker](services/worker/SERVICE_STATE.md) | ✅ | ⚠️ | ❌ | No failed-job recovery (stuck courses) |
+🟢 **🗄️ Postgres + pgvector** — data store & RAG index (`packages/db`)
+Working; schema, migrations, and pgvector all verified.
 
-Provider wiring today: only `LLM_PROVIDER` (openai/anthropic) and `CHECKPOINTER` (memory/postgres) are live. `EMBEDDING_PROVIDER`, `QUEUE_PROVIDER`, `AUTH_PROVIDER` are reserved names; factories hardcode the single implemented option. The Cohere embedding provider is an explicit stub.
+🟢 **🧰 Redis** — BullMQ queue / cache backend
+Working (local Docker).
+
+🔴 **📊 Observability** — pino + OTEL (`packages/observability`)
+Wired but inactive; no OTEL endpoint/collector configured.
 
 ## Current Bottleneck
 
