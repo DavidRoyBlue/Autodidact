@@ -33,8 +33,8 @@
 > `PROJECT_STATE.md` for the full rationale.
 
 ### 1. Provision + reconcile environment (current bottleneck)
-- [ ] Fix Terraform/code secret-name drift — `infra/environments/prod/main.tf` provisions `SUPABASE_JWT_SECRET` / `SUPABASE_SERVICE_ROLE_KEY`, but code reads JWKS via `SUPABASE_URL` + `SUPABASE_SECRET_KEY`
-- [ ] Set Secret Manager values (see ENV variable setup above)
+- [x] Fix Terraform/code secret-name drift — `main.tf` now injects `SUPABASE_SECRET_KEY` (matching `packages/env/src/schema.ts`); dropped the unread `SUPABASE_JWT_SECRET` / `SUPABASE_SERVICE_ROLE_KEY`
+- [ ] Set Secret Manager values — fill `infra/secrets.env` and run `scripts/gcp-bootstrap.sh`
 - [ ] Run one full deploy + smoke test against staging/prod
 
 ### 2. Make it durable for real sessions

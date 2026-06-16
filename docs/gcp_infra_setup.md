@@ -4,10 +4,15 @@ A step-by-step guide for standing up Autodidact's production infrastructure on
 Google Cloud, from an empty GCP project to a working deployment.
 
 This reflects the **post-ADR-027 architecture** (background jobs on Cloud Tasks,
-no Redis). The Terraform that this guide drives lives on the
-`worktree-adr-007-cloud-tasks-migration` branch / PR #29 — merge that to `master`
-before the CI/CD deploy step works end-to-end. Everything else (project
-bootstrap, secrets, IAM) you can do today.
+no Redis), which is now on `master` — the Terraform in `infra/` and the CI/CD
+pipeline are ready to run.
+
+> **Shortcut:** Steps 2, 3, and 5.1 below (enable APIs, service account, state
+> bucket, all Secret Manager secrets, Workload Identity Federation, and a
+> generated `terraform.tfvars`) are automated by **`scripts/gcp-bootstrap.sh`**.
+> Fill in `infra/secrets.env` (copy from `infra/secrets.env.example`), run the
+> script, then jump to Step 4 (`terraform apply`). The manual steps below remain
+> as the explanation of what the script does.
 
 > **Source of truth:** the actual resource definitions are in `infra/`. If this
 > guide and the Terraform ever disagree, the Terraform wins — tell me and I'll
@@ -201,8 +206,7 @@ create_secret () {  # usage: create_secret <secret-name> <value>
 | Secret name | Env var | Where the value comes from |
 |---|---|---|
 | `autodidact-database-url` | `DATABASE_URL` | Supabase → Project Settings → **Database** → Connection string → **Transaction pooler (port 6543)**. Used by api, agent, worker. |
-| `autodidact-supabase-jwt-secret` | `SUPABASE_JWT_SECRET` | Supabase → Project Settings → **API** → JWT Settings → **JWT Secret** (used by the api to verify HS256 tokens locally) |
-| `autodidact-supabase-service-role-key` | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → **API** → **`service_role` secret key**. Admin key — never ships to the mobile app. |
+| `autodidact-supabase-secret-key` | `SUPABASE_SECRET_KEY` | Supabase → Project Settings → **API** → **secret key** (admin). Server-side DB/admin access; tokens are verified via JWKS from `SUPABASE_URL`. Never ships to the mobile app. |
 | `autodidact-openai-api-key` | `OPENAI_API_KEY` | OpenAI platform → **API keys**. Used by the agent. |
 
 **Config-stored-as-secret — not sensitive, but the module still reads them from Secret Manager:**
@@ -230,10 +234,9 @@ create_secret () {  # usage: create_secret <secret-name> <value>
 
 ```bash
 # Real secrets — replace the right-hand values
-create_secret autodidact-database-url              'postgresql://...pooler...:6543/postgres'
-create_secret autodidact-supabase-jwt-secret       'your-supabase-jwt-secret'
-create_secret autodidact-supabase-service-role-key 'your-supabase-service-role-key'
-create_secret autodidact-openai-api-key            'sk-...'
+create_secret autodidact-database-url        'postgresql://...pooler...:6543/postgres'
+create_secret autodidact-supabase-secret-key 'your-supabase-secret-key'
+create_secret autodidact-openai-api-key      'sk-...'
 
 # Config
 create_secret autodidact-supabase-url        'https://YOURREF.supabase.co'
@@ -440,7 +443,7 @@ api/worker Cloud Run logs for that error first.
 | Create / update keys & config | **Secret Manager** via gcloud (Step 3) |
 | Provision queues, registry, Cloud Run | **Terraform** in `infra/environments/prod/` (Step 4) |
 | Build images & deploy | **GitHub Actions** `deploy.yml`, push to `master` (Step 5) |
-| Get the DB URL, JWT secret, service-role key, Supabase URL | **Supabase dashboard** → Project Settings |
+| Get the DB URL, secret key, Supabase URL | **Supabase dashboard** → Project Settings |
 | Get the LLM key | **OpenAI dashboard** → API keys |
 | See queue retry/backoff config | `infra/modules/cloud-tasks/main.tf` |
 | See exactly which secrets each service reads | `infra/environments/prod/main.tf` |

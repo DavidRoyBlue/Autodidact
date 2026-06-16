@@ -16,7 +16,7 @@
 > Bridge from "code-complete + CI-green" to "deployable + operable". The stack
 > has never run end-to-end against real infra. See `PROJECT_STATE.md`.
 
-- [ ] Fix Terraform/code secret-name drift — `infra/environments/prod/main.tf` provisions `SUPABASE_JWT_SECRET` / `SUPABASE_SERVICE_ROLE_KEY`, but code reads JWKS via `SUPABASE_URL` + `SUPABASE_SECRET_KEY`
+- [x] Fix Terraform/code secret-name drift — `main.tf` now injects `SUPABASE_SECRET_KEY` (matching the code); dropped the unread `SUPABASE_JWT_SECRET` / `SUPABASE_SERVICE_ROLE_KEY`
 - [ ] Flip `CHECKPOINTER=postgres` (currently in-memory default) and verify
 - [ ] Worker failed-job recovery so stuck courses aren't unrecoverable
 - [ ] Wire error tracking / OTEL backend

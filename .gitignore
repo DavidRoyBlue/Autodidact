@@ -63,6 +63,9 @@ infra/**/*.tfstate.backup
 infra/**/.terraform.lock.hcl
 infra/**/terraform.tfvars
 
+# GCP bootstrap inputs — real secret values (see infra/secrets.env.example)
+infra/secrets.env
+
 # Git worktrees
 .worktrees/
 

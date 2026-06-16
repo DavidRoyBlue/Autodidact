@@ -17,12 +17,14 @@ locals {
   sa_email = "${var.service_account_name}@${var.project_id}.iam.gserviceaccount.com"
 
   # Secrets stored in Secret Manager — referenced by name, not value
+  # Names must match the env vars the services actually read (packages/env/src/schema.ts):
+  # the api validates SUPABASE_URL + SUPABASE_SECRET_KEY. SUPABASE_JWT_SECRET and
+  # SUPABASE_SERVICE_ROLE_KEY are read by nobody — do not reintroduce them.
   common_secrets = {
-    DATABASE_URL             = "autodidact-database-url"
-    SUPABASE_URL             = "autodidact-supabase-url"
-    SUPABASE_JWT_SECRET      = "autodidact-supabase-jwt-secret"
-    SUPABASE_SERVICE_ROLE_KEY = "autodidact-supabase-service-role-key"
-    OPENAI_API_KEY           = "autodidact-openai-api-key"
+    DATABASE_URL                = "autodidact-database-url"
+    SUPABASE_URL                = "autodidact-supabase-url"
+    SUPABASE_SECRET_KEY         = "autodidact-supabase-secret-key"
+    OPENAI_API_KEY              = "autodidact-openai-api-key"
     OTEL_EXPORTER_OTLP_ENDPOINT = "autodidact-otel-endpoint"
   }
 
