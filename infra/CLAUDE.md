@@ -36,8 +36,8 @@ Terraform infrastructure as code for the Autodidact production environment on GC
 
 - Production service configurations: `infra/environments/prod/main.tf`
 - Reusable modules: `infra/modules/`
-- GCP project and default region: `infra/environments/prod/variables.tf` (default region: `us-central1`)
-- Remote state backend: `infra/backend.tf` (bucket: `autodidact-terraform-state`)
+- GCP project and default region: `infra/environments/prod/variables.tf` (default region: `northamerica-northeast1`)
+- Provider, Terraform settings, and remote state backend: `infra/environments/prod/providers.tf` (GCS bucket: `autodidact-terraform-state`). These must live in the environment dir Terraform runs from — files at the `infra/` root are not loaded.
 
 ---
 
