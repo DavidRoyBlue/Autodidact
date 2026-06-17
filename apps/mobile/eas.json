@@ -1,0 +1,36 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "AUTODIDACT_API_BASE_URL": "http://localhost:3000/v1"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "AUTODIDACT_API_BASE_URL": "https://autodidact-api-3tynnutnpq-nn.a.run.app/v1"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "AUTODIDACT_API_BASE_URL": "https://autodidact-api-3tynnutnpq-nn.a.run.app/v1"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

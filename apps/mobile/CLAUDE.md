@@ -24,7 +24,7 @@ This subtree does NOT own:
 ### Networking
 - Only call `services/api` — never directly contact `services/agent` or `services/worker`
 - No direct `fetch()` in components — use TanStack Query hooks or `apiFetch`
-- `API_BASE_URL` sourced from `app.json` `extra.apiBaseUrl` via `expo-constants` — never hardcode
+- `API_BASE_URL` read via `expo-constants` from `extra.apiBaseUrl`, which `app.config.ts` resolves from the `AUTODIDACT_API_BASE_URL` build env (set per EAS profile in `eas.json`), falling back to the `app.json` dev default (`http://localhost:3000/v1`) — never hardcode a URL in code. Production/preview builds point at Cloud Run; local `expo start` uses the dev default.
 
 ### State
 - Server state → TanStack Query only (`src/api/`) — do not cache server data in Zustand
@@ -199,6 +199,21 @@ pnpm --filter @autodidact/mobile test       # Jest unit/component tests (jest-ex
 pnpm emulator      # boot the AVD on Windows, make it visible to WSL adb / mobile-mcp
 pnpm mobile:run    # boot emulator + start Metro + open the app in Expo Go
 ```
+
+### Build & release (EAS → Google Play)
+
+Build profiles and the per-profile API URL live in [`eas.json`](./eas.json); `app.config.ts` injects `extra.apiBaseUrl` from each profile's `AUTODIDACT_API_BASE_URL`. The agent/api backend is on Cloud Run (see `docs/gcp_infra_setup.md`); distribution is Expo/EAS → Google Play (ADR-003).
+
+```bash
+cd apps/mobile
+eas login                                    # one-time; needs an Expo account
+eas init                                     # one-time; writes extra.eas.projectId into app.json
+eas build --profile production --platform android   # signed .aab for the Play Console
+eas build --profile preview    --platform android   # internal-distribution .apk pointing at prod
+eas submit --profile production --platform android   # upload to Google Play (needs a Play service-account key)
+```
+
+> Production builds use `appVersionSource: "remote"` + `autoIncrement` — EAS bumps the Android `versionCode` each build, so Play never rejects a duplicate.
 
 > **WSL2 adb invariant:** the **Windows** adb server must own port `5037`; start it
 > (`scripts/emulator.sh` does, via `adb.exe start-server`) **before any Linux adb
