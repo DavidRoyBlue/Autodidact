@@ -21,6 +21,7 @@
     "@langchain/langgraph-checkpoint-postgres": "^0.0.4",
     "@langchain/openai": "^0.3.0",
     "@supabase/supabase-js": "^2.46.0",
+    "google-auth-library": "^9.15.1",
     "jose": "^6.2.3"
   },
   "devDependencies": {

@@ -77,6 +77,9 @@ module "agent" {
     EMBEDDING_PROVIDER = "autodidact-embedding-provider"
     CHECKPOINTER      = "autodidact-checkpointer"
   })
+  # Internal callers (api, worker) run as this SA and invoke the agent with an
+  # OIDC ID token; the agent stays private (allow_public = false).
+  invoker_members       = ["serviceAccount:${local.sa_email}"]
 }
 
 module "worker" {

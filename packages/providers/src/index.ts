@@ -11,3 +11,4 @@ export {
   createCheckpointer,
 } from './factory.js';
 export type { ProviderConfig } from './factory.js';
+export { cloudRunAuthHeaders } from './implementations/auth/cloud-run-id-token.js';

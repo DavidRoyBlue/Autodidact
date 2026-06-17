@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { cloudRunAuthHeaders } from '@autodidact/providers';
 import type { CourseGenerationJobData } from '@autodidact/types';
 
 @Injectable()
@@ -10,9 +11,10 @@ export class ApiAgentClient {
   }
 
   async generateEmbedding(text: string): Promise<number[]> {
+    const authHeaders = await cloudRunAuthHeaders(this.baseUrl);
     const res = await fetch(`${this.baseUrl}/embeddings/text`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ text }),
     });
     if (!res.ok) throw new Error(`Embedding request failed: ${res.status}`);

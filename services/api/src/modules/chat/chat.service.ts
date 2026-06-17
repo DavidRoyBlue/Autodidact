@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Observable, Subject } from 'rxjs';
 import type { MessageEvent } from '@nestjs/common';
 import { getDb, chatSessions, courses, modules, moduleProgress, eq, and } from '@autodidact/db';
+import { cloudRunAuthHeaders } from '@autodidact/providers';
 import { ProgressService } from '../progress/progress.service.js';
 import type { ChatMessage } from '@autodidact/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -98,10 +99,11 @@ export class ChatService {
         totalModuleCount: allModules.length,
       };
 
-      // Proxy SSE stream from agent service
+      // Proxy SSE stream from agent service (private Cloud Run → needs OIDC token)
+      const authHeaders = await cloudRunAuthHeaders(agentServiceUrl);
       const res = await fetch(`${agentServiceUrl}/module-chat/stream`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
           sessionId: session.threadId,
           userId,

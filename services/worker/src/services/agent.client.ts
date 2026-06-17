@@ -1,3 +1,4 @@
+import { cloudRunAuthHeaders } from '@autodidact/providers';
 import type { CourseBlueprint, CourseGenerationJobData } from '@autodidact/types';
 
 export class AgentClient {
@@ -8,9 +9,10 @@ export class AgentClient {
   }
 
   async generateCourse(payload: CourseGenerationJobData): Promise<CourseBlueprint> {
+    const authHeaders = await cloudRunAuthHeaders(this.baseUrl);
     const res = await fetch(`${this.baseUrl}/course/generate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
@@ -22,9 +24,10 @@ export class AgentClient {
   }
 
   async generateEmbedding(text: string): Promise<number[]> {
+    const authHeaders = await cloudRunAuthHeaders(this.baseUrl);
     const res = await fetch(`${this.baseUrl}/embeddings/text`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ text }),
     });
     if (!res.ok) {
