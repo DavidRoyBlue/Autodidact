@@ -25,7 +25,9 @@ Provider interfaces, factory functions, and concrete implementations for all ext
 ## Library / tooling rules
 
 - Use: LangChain/LangGraph types (`BaseChatModel`, `Embeddings`, `BaseCheckpointSaver`) as the return types in interfaces — this keeps the abstraction LangChain-compatible without coupling to specific SDKs.
-- Do not use: vendor SDKs (openai, anthropic, @supabase/supabase-js, @google-cloud/tasks) outside of `src/implementations/`.
+- Do not use: vendor SDKs (openai, anthropic, @supabase/supabase-js, @google-cloud/tasks, google-auth-library) outside of `src/implementations/`.
+
+> **Exception — transport auth helpers.** `cloudRunAuthHeaders` (`src/implementations/auth/cloud-run-id-token.ts`) is exported as a plain function, **not** a factory-selected provider. Outbound Cloud Run service-to-service OIDC (minting an ID token to call a private peer) is a cross-cutting transport concern — it is neither one of the five provider interfaces nor an `IAuthProvider` method (`IAuthProvider` verifies *inbound* JWTs). It still lives under `src/implementations/` so the `google-auth-library` SDK stays out of service code. Keep such helpers rare and SDK-isolated; do not turn this into a general "export raw functions" loophole.
 
 ---
 
