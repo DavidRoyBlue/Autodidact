@@ -313,6 +313,9 @@ importers:
       '@langchain/langgraph':
         specifier: ^0.2.0
         version: 0.2.74(@langchain/core@0.3.80(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.55.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0)(zod@3.25.76)))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(zod-to-json-schema@3.25.2(zod@3.25.76))
+      '@langchain/langgraph-checkpoint-postgres':
+        specifier: ^0.0.4
+        version: 0.0.4(@langchain/core@0.3.80(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.55.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0)(zod@3.25.76)))(@langchain/langgraph-checkpoint@0.0.18(@langchain/core@0.3.80(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.55.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0)(zod@3.25.76))))
       '@langchain/openai':
         specifier: ^0.3.0
         version: 0.3.17(@langchain/core@0.3.80(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.55.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0)(zod@3.25.76)))(ws@8.20.0)
@@ -1998,7 +2001,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {'0': node >=0.10.0}
+    engines: {node: '>=0.10.0'}
 
   '@expo/cli@0.22.28':
     resolution: {integrity: sha512-lvt72KNitGuixYD2l3SZmRKVu2G4zJpmg5V7WfUBNpmUU5oODBw/6qmiJ6kSLAlfDozscUk+BBGknBBzxUrwrA==}
@@ -2314,6 +2317,13 @@ packages:
   '@langchain/core@0.3.80':
     resolution: {integrity: sha512-vcJDV2vk1AlCwSh3aBm/urQ1ZrlXFFBocv11bz/NBUfLWD5/UDNMzwPdaAd2dKvNmTWa9FM2lirLU3+JCf4cRA==}
     engines: {node: '>=18'}
+
+  '@langchain/langgraph-checkpoint-postgres@0.0.4':
+    resolution: {integrity: sha512-KLiST5yBUO5pGgcTMrpPUBgijM3E8+7SKmBiD9ddJGNzhCLaFcgbpvgjySvdDAoEAxDn1wJDE72U4yh5rFS/OA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@langchain/core': '>=0.2.31 <0.4.0'
+      '@langchain/langgraph-checkpoint': ~0.0.15
 
   '@langchain/langgraph-checkpoint@0.0.18':
     resolution: {integrity: sha512-IS7zJj36VgY+4pf8ZjsVuUWef7oTwt1y9ylvwu0aLuOn1d0fg05Om9DLm3v2GZ2Df6bhLV1kfWAM0IAl9O5rQQ==}
@@ -10677,6 +10687,14 @@ snapshots:
       - '@opentelemetry/exporter-trace-otlp-proto'
       - '@opentelemetry/sdk-trace-base'
       - openai
+
+  '@langchain/langgraph-checkpoint-postgres@0.0.4(@langchain/core@0.3.80(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.55.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0)(zod@3.25.76)))(@langchain/langgraph-checkpoint@0.0.18(@langchain/core@0.3.80(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.55.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0)(zod@3.25.76))))':
+    dependencies:
+      '@langchain/core': 0.3.80(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.55.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0)(zod@3.25.76))
+      '@langchain/langgraph-checkpoint': 0.0.18(@langchain/core@0.3.80(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.55.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0)(zod@3.25.76)))
+      pg: 8.20.0
+    transitivePeerDependencies:
+      - pg-native
 
   '@langchain/langgraph-checkpoint@0.0.18(@langchain/core@0.3.80(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.55.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.1))(openai@4.104.0(ws@8.20.0)(zod@3.25.76)))':
     dependencies:
