@@ -49,6 +49,11 @@ module "api" {
   allow_public          = true
   env_vars              = merge(local.common_secrets, {
     AGENT_SERVICE_URL    = "autodidact-agent-service-url"
+    # The api/agent port secrets (autodidact-api-port / autodidact-agent-port)
+    # MUST resolve to 8080: Cloud Run routes traffic to $PORT=8080 and the
+    # services bind API_PORT/AGENT_PORT, so any other value fails the readiness
+    # probe. (The worker uses a plain WORKER_PORT="8080" below for the same
+    # reason.)
     API_PORT             = "autodidact-api-port"
     LLM_PROVIDER         = "autodidact-llm-provider"
     AUTH_PROVIDER        = "autodidact-auth-provider"

@@ -6,11 +6,12 @@ import { QueueModule } from './modules/queue/queue.module.js';
 import { CoursesModule } from './modules/courses/courses.module.js';
 import { ChatModule } from './modules/chat/chat.module.js';
 import { ProgressModule } from './modules/progress/progress.module.js';
+import { AgentModule } from './modules/agent/agent.module.js';
 import { HealthController } from './modules/health/health.controller.js';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter.js';
 
 @Module({
-  imports: [AuthModule, QueueModule, CoursesModule, ChatModule, ProgressModule],
+  imports: [AuthModule, QueueModule, CoursesModule, ChatModule, ProgressModule, AgentModule],
   controllers: [HealthController],
   providers: [
     {

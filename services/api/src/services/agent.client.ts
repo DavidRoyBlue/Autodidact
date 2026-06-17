@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { cloudRunAuthHeaders } from '@autodidact/providers';
-import type { CourseGenerationJobData } from '@autodidact/types';
 
 @Injectable()
 export class ApiAgentClient {
@@ -21,5 +20,21 @@ export class ApiAgentClient {
     // Agent /embeddings/text returns { embedding } (see agent embeddings route).
     const data = (await res.json()) as { embedding: number[] };
     return data.embedding;
+  }
+
+  /**
+   * Liveness probe for the (private) Agent service, used by the health endpoint.
+   * Returns false on any failure — unreachable, non-2xx, or token-mint error — so
+   * callers report degraded health without throwing.
+   */
+  async isAgentHealthy(): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/health`, {
+        headers: await cloudRunAuthHeaders(this.baseUrl),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
   }
 }

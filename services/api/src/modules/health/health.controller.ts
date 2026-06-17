@@ -1,9 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
 import { getPool } from '@autodidact/db';
-import { cloudRunAuthHeaders } from '@autodidact/providers';
+import { ApiAgentClient } from '../../services/agent.client.js';
 
 @Controller('health')
 export class HealthController {
+  constructor(private readonly agent: ApiAgentClient) {}
+
   @Get()
   async check() {
     const checks: Record<string, 'ok' | 'error'> = {};
@@ -15,14 +17,10 @@ export class HealthController {
       checks['db'] = 'error';
     }
 
-    const agentUrl = process.env['AGENT_SERVICE_URL'] ?? 'http://localhost:3001';
+    // Probe via ApiAgentClient (the sanctioned agent caller); it attaches the
+    // OIDC token and never throws. The catch also covers a malformed client.
     try {
-      // Agent is private (Cloud Run IAM); attach an OIDC token so the liveness
-      // ping is authorised. No-op header in local dev (http loopback).
-      const res = await fetch(`${agentUrl}/health`, {
-        headers: await cloudRunAuthHeaders(agentUrl),
-      });
-      checks['agent'] = res.ok ? 'ok' : 'error';
+      checks['agent'] = (await this.agent.isAgentHealthy()) ? 'ok' : 'error';
     } catch {
       checks['agent'] = 'error';
     }
