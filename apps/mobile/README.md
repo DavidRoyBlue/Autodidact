@@ -33,7 +33,15 @@ pnpm --filter @autodidact/mobile android   # Android emulator
 pnpm --filter @autodidact/mobile typecheck # Type-check only (no test runner)
 ```
 
-`app.json` `extra` block must supply `supabaseUrl`, `supabasePublishableKey`, and `apiBaseUrl`.
+The app reads `supabaseUrl`, `supabasePublishableKey`, and `apiBaseUrl` from `extra`
+(via `expo-constants`). In **dev**, `app.config.ts` self-loads the monorepo-root
+`.env.dev` and resolves `extra.supabaseUrl` / `extra.supabasePublishableKey` from
+`SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` (falling back to the `app.json` defaults).
+Point them at the local Supabase stack — `SUPABASE_URL=http://127.0.0.1:55321`.
+The emulator reaches the stack and API over `127.0.0.1` because `run-mobile.sh` runs
+`adb reverse` for `tcp:55321` (Supabase) and `tcp:3000` (API) — so the URL stays
+`http://127.0.0.1:55321`, not `10.0.2.2`. Production/preview builds inject these via
+EAS profile env (`eas.json`).
 
 ### Running on the Android emulator (WSL2)
 

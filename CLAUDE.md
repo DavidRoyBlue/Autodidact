@@ -22,10 +22,10 @@ Shared packages: `packages/db` (Drizzle + pgvector), `packages/types`, `packages
 ## Commands
 
 ```bash
-pnpm setup              # first-time: checks prereqs → installs deps → copies .env.example → .env.dev → starts Docker → migrates → builds
-pnpm dev                # full backend stack: starts Docker → builds → migrates → all services (reads .env.dev)
+pnpm setup              # first-time: checks prereqs → installs deps → copies .env.example → .env.dev → starts the Supabase stack (supabase start) → migrates → builds
+pnpm dev                # full backend stack: starts the Supabase stack (supabase start) → builds → migrates → all services (reads .env.dev)
 pnpm mobile             # Expo dev server — run in a separate terminal while dev is running
-pnpm stop               # stops Docker infra (Postgres) only; Node services stop via Ctrl+C in their terminal
+pnpm stop               # stops the local Supabase stack (supabase stop); Node services stop via Ctrl+C in their terminal
 
 pnpm build              # turbo build all packages and services
 pnpm typecheck          # type-check all packages (triggers a build first)
@@ -35,10 +35,10 @@ pnpm test               # run all test suites (triggers a build first)
 pnpm test <filter>      # run tests for matching packages only (e.g. pnpm test api, pnpm test agent)
 pnpm clean              # remove all build artifacts
 
-pnpm migrate:dev        # run pending migrations against local DB (applies dev-db-init.sql auth stubs first for Docker)
+pnpm migrate:dev        # run pending Drizzle migrations against the local stack DB (127.0.0.1:55322)
 pnpm db:generate:dev    # generate a new migration from schema changes — review the SQL before committing
-pnpm db:studio:dev      # open Drizzle Studio at https://local.drizzle.studio
-pnpm db:reset:dev       # DESTRUCTIVE: wipe and recreate local DB, re-run all migrations from scratch (localhost only)
+pnpm db:studio:dev      # open Drizzle Studio at https://local.drizzle.studio (Supabase Studio also at http://127.0.0.1:55323)
+pnpm db:reset:dev       # DESTRUCTIVE: supabase db reset → re-apply all Drizzle migrations from scratch (local stack only)
 ```
 
 ---

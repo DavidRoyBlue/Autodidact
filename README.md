@@ -75,11 +75,15 @@ cp .envrc.example .envrc && direnv allow   # requires direnv (https://direnv.net
 # 4. Create .env.prod manually when you need production access
 
 # 5. Start all services in dev mode
+#    Boots the local Supabase stack (supabase start: API 55321, DB 55322,
+#    Studio 55323), applies Drizzle migrations, then starts the services.
+#    After the first `supabase start`, copy the Publishable + Secret keys from
+#    `pnpm exec supabase status` into .env.dev. `pnpm stop` stops the stack.
 pnpm dev
 
 # 6. Run env-specific DB commands as needed
 pnpm migrate:dev
-pnpm db:studio:dev
+pnpm db:studio:dev        # Drizzle Studio; Supabase Studio at http://127.0.0.1:55323
 ```
 
 > **Env loading.** Services validate their environment at boot via `@autodidact/env`
