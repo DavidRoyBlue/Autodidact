@@ -15,6 +15,7 @@ die() { echo -e "${RED}✗ $*${NC}"; exit 1; }
 
 echo -e "${CYAN}${BOLD}▶ Opening Drizzle Studio${NC}"
 echo -e "${YELLOW}  Opens at https://local.drizzle.studio${NC}"
+echo -e "${YELLOW}  (Supabase Studio is also available at http://127.0.0.1:55323 when the stack is up)${NC}"
 echo -e "${YELLOW}  Press Ctrl+C to stop${NC}\n"
 
 exec pnpm --filter @autodidact/db db:studio

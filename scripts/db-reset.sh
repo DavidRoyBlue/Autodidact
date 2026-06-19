@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# DESTRUCTIVE: wipes the local Docker Postgres database and re-runs all migrations from scratch.
-# Only works against the local Docker database. Will NOT run against a Supabase URL.
+# DESTRUCTIVE: resets the local Supabase stack DB to a clean baseline, then re-applies
+# all Drizzle migrations. Only works against the local stack. NEVER runs against prod.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,11 +14,10 @@ step()  { echo -e "\n${CYAN}${BOLD}▶ $*${NC}"; }
 ok()    { echo -e "${GREEN}✓ $*${NC}"; }
 die()   { echo -e "${RED}✗ $*${NC}"; exit 1; }
 
-# Safety: only allow against the local Docker DB
 DB_URL="${DATABASE_URL:-}"
 [[ -n "$DB_URL" ]] || die "DATABASE_URL not set. Run: pnpm db:reset:dev"
-if [[ "$DB_URL" != *"localhost"* ]] && [[ "$DB_URL" != *"127.0.0.1"* ]]; then
-  die "db-reset only works against localhost databases.\nDetected: $DB_URL\nAborting to protect production data."
+if [[ "$DB_URL" != *"127.0.0.1"* ]] && [[ "$DB_URL" != *"localhost"* ]]; then
+  die "db-reset only works against the local stack.\nDetected: $DB_URL\nAborting to protect production data."
 fi
 
 echo -e "${RED}${BOLD}WARNING: This will delete ALL local database data.${NC}"
@@ -26,27 +25,12 @@ echo -e "Database: ${YELLOW}$DB_URL${NC}"
 read -rp "Type 'yes' to confirm: " CONFIRM
 [[ "$CONFIRM" == "yes" ]] || { echo "Aborted."; exit 0; }
 
-step "Ensuring Docker is running"
-docker info &>/dev/null 2>&1 || die "Docker is not running."
-docker compose up -d postgres
-ok "Postgres container is up"
+step "Resetting local Supabase database to clean baseline"
+pnpm exec supabase db reset
+ok "Database reset (clean baseline; inert seed.sql ran)"
 
-# Wait for Postgres to be ready
-for i in $(seq 1 15); do
-  docker compose exec -T postgres pg_isready -U postgres &>/dev/null && break
-  [[ $i -eq 15 ]] && die "Postgres did not become ready"
-  sleep 1
-done
-
-step "Dropping and recreating database"
-docker compose exec -T postgres psql -U postgres -c "DROP DATABASE IF EXISTS autodidact;" &>/dev/null
-docker compose exec -T postgres psql -U postgres -c "CREATE DATABASE autodidact;" &>/dev/null
-ok "Database recreated"
-
-step "Running migrations"
+step "Applying Drizzle migrations"
 "$SCRIPT_DIR/migrate.sh"
 ok "Migrations applied"
 
 echo -e "\n${GREEN}${BOLD}Local database reset complete.${NC}"
-echo "Remember to re-run the Supabase user-sync trigger in Supabase SQL Editor"
-echo "(it was not affected — it lives in Supabase, not in local Docker)."
