@@ -36,6 +36,13 @@
       "when": 1777428000000,
       "tag": "0005_module_content_chunks",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781902852356,
+      "tag": "0006_wild_hellfire_club",
+      "breakpoints": true
     }
   ]
 }

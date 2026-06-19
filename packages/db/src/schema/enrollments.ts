@@ -8,7 +8,7 @@ export const enrollments = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     userId: uuid('user_id')
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: 'cascade' }),
     courseId: uuid('course_id')
       .notNull()
       .references(() => courses.id),

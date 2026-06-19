@@ -10,7 +10,7 @@ export const moduleProgress = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     userId: uuid('user_id')
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: 'cascade' }),
     moduleId: uuid('module_id')
       .notNull()
       .references(() => modules.id),

@@ -7,7 +7,7 @@ export const chatSessions = pgTable('chat_sessions', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id')
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: 'cascade' }),
   moduleId: uuid('module_id')
     .notNull()
     .references(() => modules.id),
