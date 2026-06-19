@@ -6,12 +6,14 @@ import type { CreateCourseRequest } from '@autodidact/schemas';
 import type { JobStatus } from '@autodidact/types';
 import { ApiAgentClient } from '../../services/agent.client.js';
 import { QUEUES, JOB_NAMES } from '../../queues/definitions.js';
+import { ProvisioningService } from '../provisioning/provisioning.service.js';
 
 @Injectable()
 export class CoursesService {
   constructor(
     private readonly agentClient: ApiAgentClient,
     private readonly queueProvider: IQueueProvider,
+    private readonly provisioning: ProvisioningService,
   ) {}
 
   async createOrReuse(userId: string, dto: CreateCourseRequest) {
@@ -74,6 +76,7 @@ export class CoursesService {
   }
 
   async enrollUser(userId: string, courseId: string) {
+    await this.provisioning.ensureProvisioned(userId);
     const db = getDb();
 
     // Upsert enrollment

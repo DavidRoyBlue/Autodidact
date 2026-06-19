@@ -41,6 +41,7 @@ vi.mock('@autodidact/db', () => ({
   modules: { courseId: {}, position: {} },
   enrollments: { userId: {}, courseId: {} },
   moduleProgress: {},
+  users: { id: 'id' },
   eq: vi.fn((a, b) => ({ type: 'eq', a, b })),
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
     type: 'sql',
@@ -64,6 +65,10 @@ function makeMockQueueProvider(taskId = 'task-abc') {
     enqueue: vi.fn().mockResolvedValue(taskId),
     close: vi.fn(),
   };
+}
+
+function makeMockProvisioningService() {
+  return { ensureProvisioned: vi.fn().mockResolvedValue(undefined) };
 }
 
 describe('CoursesService — slug generation', () => {
@@ -103,6 +108,7 @@ describe('CoursesService — slug generation', () => {
       const service = new CoursesService(
         makeMockAgentClient() as never,
         makeMockQueueProvider() as never,
+        makeMockProvisioningService() as never,
       );
       await service.createOrReuse('user-1', {
         topic,
@@ -139,7 +145,7 @@ describe('CoursesService — createOrReuse routing', () => {
   it('returns reused:true when a similar course is found', async () => {
     mockExecute.mockResolvedValue({ rows: [{ id: 'existing-course', title: 'Python', similarity: 0.95 }] });
     const queueProvider = makeMockQueueProvider();
-    const service = new CoursesService(makeMockAgentClient() as never, queueProvider as never);
+    const service = new CoursesService(makeMockAgentClient() as never, queueProvider as never, makeMockProvisioningService() as never);
     const result = await service.createOrReuse('user-1', { topic: 'Python', difficulty: 'beginner', moduleCount: 5 });
     expect(result.reused).toBe(true);
     expect(result.courseId).toBe('existing-course');
@@ -152,7 +158,7 @@ describe('CoursesService — createOrReuse routing', () => {
     mockValues.mockReturnValue({ returning: mockReturning });
     mockInsert.mockReturnValue({ values: mockValues });
     const queueProvider = makeMockQueueProvider('task-xyz');
-    const service = new CoursesService(makeMockAgentClient() as never, queueProvider as never);
+    const service = new CoursesService(makeMockAgentClient() as never, queueProvider as never, makeMockProvisioningService() as never);
     const result = await service.createOrReuse('user-1', { topic: 'Rust', difficulty: 'intermediate', moduleCount: 8 });
     expect(result.reused).toBe(false);
     expect(result.courseId).toBe('new-course-id');
