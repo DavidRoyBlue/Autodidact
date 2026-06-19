@@ -66,6 +66,7 @@ It does NOT run AI models. All AI logic lives in `services/agent`.
 - Bypassing `AuthGuard` on a new controller route
 - Using `APP_GUARD` to register a global guard — the current pattern is `@UseGuards(AuthGuard)` per-controller
 - Importing `IQueueProvider` implementation classes directly; always inject via `QUEUE_PROVIDER_TOKEN`
+- Passing `logger: false` to `NestFactory.create` in `main.ts`. It silences Nest's `ExceptionHandler`, so a provider-factory boot failure surfaces as a misleading `RangeError: Maximum call stack size exceeded` and exits silently. Keep `logger: ['error', 'warn']` so real boot errors print; service code still logs via pino.
 
 ---
 

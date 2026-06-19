@@ -7,14 +7,19 @@
 >   analytics `55327`, shadow `55320`, pooler `55329`) instead of the default `5432x`.
 >   Another local Supabase project (`logged`) was already bound to the defaults; the
 >   user chose to remap so both stacks coexist. All scripts/docs/env use the new ports.
-> - **Worker config fixed:** `.env.dev` had a stale `QUEUE_PROVIDER=bullmq`; set to
->   `loopback` (gitignored, local-only) so the worker boots. Verified.
-> - **Pre-existing, out-of-scope blocker:** the **API** service crashes on boot with a
->   NestJS DI circular-dependency `RangeError: Maximum call stack size exceeded`
->   (`InstanceWrapper.getInstanceByContextId` ↔ `cloneStaticInstance`). It is on
->   committed `master`, env-independent, and unrelated to this migration — it blocks
->   the literal `curl /v1/health → 200` check. Filed as a separate finding to fix
->   outside this plan. The **agent** and **worker** boot cleanly against the new stack.
+> - **Worker + API config fixed:** `.env.dev` had a stale `QUEUE_PROVIDER=bullmq`; set to
+>   `loopback` (gitignored, local-only). `.env.example` already ships `loopback`, so
+>   fresh clones are unaffected.
+> - **The "API DI crash" was a misdiagnosis — now resolved.** Initially reported as a
+>   NestJS DI circular dependency (`RangeError: Maximum call stack size exceeded`). The
+>   real cause was the same `QUEUE_PROVIDER=bullmq`: the `@Global` `QueueModule` factory
+>   threw inside `NestFactory.create`, and `main.ts`'s `logger:false` turned that into a
+>   misleading stack overflow + silent exit. Fixed in a follow-up: `services/api/src/main.ts`
+>   now uses `logger:['error','warn']` + a synchronous stderr write so boot errors are
+>   visible. Full-stack `curl /v1/health` → `{"status":"ok","services":{"db":"ok","agent":"ok"}}`
+>   with API+Agent+Worker all up. (Also fixed a regression this plan's Task 5 introduced:
+>   deleting `docker/dev-db-init.sql` broke the Testcontainers test harness, which still
+>   read it — the auth/extension stubs are now inlined in `packages/test-support/src/database.ts`.)
 > - **Mobile signup verified at the stack level** (direct `POST /auth/v1/signup` →
 >   row in local `auth.users`) rather than via the in-app emulator tap, which needs a
 >   human; the in-app config was verified to resolve to the local stack.
