@@ -38,7 +38,14 @@
     "extra": {
       "apiBaseUrl": "http://localhost:3000/v1",
       "supabaseUrl": "https://cbzdsoojfhpsexuyeyxt.supabase.co",
-      "supabasePublishableKey": "sb_publishable_4gQJJhMvmf_jvbbKVTRdCQ_INqqcIdH"
-    }
+      "supabasePublishableKey": "sb_publishable_4gQJJhMvmf_jvbbKVTRdCQ_INqqcIdH",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "e474adad-9236-4737-8347-a4cd474db980"
+      }
+    },
+    "owner": "davidroyblue"
   }
 }

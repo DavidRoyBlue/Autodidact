@@ -2,8 +2,7 @@
 
 ## Status
 
-Accepted
-Date: 2026-06-19
+Accepted — 2026-06-19
 
 ## Context
 
@@ -260,7 +259,7 @@ Mitigations: CAPTCHA/Turnstile, IP rate-limit, stale-anonymous cleanup job.
   progress (enrollments, chat sessions) persists and carries over on upgrade.
 - The UUID is preserved end-to-end — no row migration on upgrade, no FK
   re-pointing.
-- Anonymous users are first-class via `is_anonymous` column (D6); RLS can
+- Anonymous users are first-class via `is_anonymous` column (D6 — schema column + `is_anonymous()` helper, defined in Spec 2 design); RLS can
   explicitly exclude or include them.
 - Distinct from DEV_AUTO_LOGIN (Spec 4), which serves a different layer
   (consistent persistent dev state, not ephemeral guest access).
@@ -377,7 +376,7 @@ migration and breaks API-dependent features (AI tutor) for guests.
 - Any future intentional PostgREST access requires an explicit `GRANT`
   migration per table/role. This is a one-line migration but is now a mandatory
   step for any such feature.
-- `public.users.email` must be nullable and an `is_anonymous` column added;
+- `public.users.email` must be nullable and an `is_anonymous` column added (D6/D7);
   downstream code that assumed `email NOT NULL` needs updating.
 
 ### Follow-up decisions

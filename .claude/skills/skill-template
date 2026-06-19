@@ -1,0 +1,35 @@
+---
+name: skill-name-with-hyphens
+description: Use when [specific triggering conditions and symptoms]
+---
+
+# Skill Name
+
+## Overview
+One paragraph: what this does and the core principle.
+
+## When to use
+- Trigger 1 (with example phrasing)
+- Trigger 2
+- Trigger 3
+
+## When NOT to use
+- Anti-trigger 1
+- Anti-trigger 2
+
+## Workflow
+1. Step one (concrete)
+2. Step two
+3. Step three
+4. Return [expected output shape]
+
+## Examples
+**Input:** ...
+**Output:** ...
+
+## Common mistakes
+- Mistake → fix
+- Mistake → fix
+
+## References (optional)
+- `references/deep-dive.md` if needed

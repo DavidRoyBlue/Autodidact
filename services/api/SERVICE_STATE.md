@@ -41,6 +41,8 @@ Never validated end-to-end against provisioned infra. Prod env/secrets are not s
 - Infra/runtime secret-name drift (above) — deployment-blocking.
 - No rate limiting / abuse protection on public routes.
 - No request observability backend configured (no Sentry, OTEL endpoint blank).
+- `ApiAgentClient` (`src/services/agent.client.ts`) calls the Agent with bare `fetch` — no timeout, `AbortSignal`, or retry/backoff, so a slow or down Agent fails the request immediately (the Agent's own LLM calls are guarded by `resilient-invoke`, but the API→Agent hop is not).
+- `AGENT_SERVICE_URL` is declared in the boot env schema (`packages/env`), but `agent.client.ts`, `chat.controller.ts`, and `health.controller.ts` still read it via inline `process.env[...] ?? 'http://localhost:3001'` rather than the validated env, so a missing prod value silently falls back to localhost.
 - Doc drift: README lists agent route `/generate-course`; actual route is `/course/generate` (client calls it correctly).
 
 ## Next Steps
