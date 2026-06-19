@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run pending database migrations against the database in DATABASE_URL.
-# For local Docker databases, applies docker/dev-db-init.sql first (extensions + auth stubs).
-# Works for both local (Docker Postgres) and production (Supabase) if DATABASE_URL is set.
+# Works for local (Supabase CLI stack, 127.0.0.1:55322) and production (Supabase pooler).
+# Drizzle is the sole migration authority (packages/db/CLAUDE.md).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,15 +15,6 @@ ok()   { echo -e "${GREEN}✓ $*${NC}"; }
 die()  { echo -e "${RED}✗ $*${NC}"; exit 1; }
 
 [[ -n "${DATABASE_URL:-}" ]] || die "DATABASE_URL is not set in the environment"
-
-# Local Docker Postgres does not have Supabase's auth schema.
-# Apply dev-db-init.sql (extensions + auth stubs) so RLS migrations compile.
-if [[ "${DATABASE_URL}" == *"localhost"* ]] || [[ "${DATABASE_URL}" == *"127.0.0.1"* ]]; then
-  step "Applying dev DB setup (local only)"
-  docker compose exec -T postgres psql -U postgres -d autodidact \
-    < "$ROOT/docker/dev-db-init.sql"
-  ok "Dev setup applied"
-fi
 
 step "Running migrations against: ${DATABASE_URL%%@*}@***"
 pnpm --filter @autodidact/db db:migrate
