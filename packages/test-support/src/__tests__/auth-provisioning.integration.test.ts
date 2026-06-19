@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { withTestDatabase } from '../database.js';
-import { sql } from 'drizzle-orm';
 
 describe('auth provisioning trigger', () => {
   let h: Awaited<ReturnType<typeof withTestDatabase>>;
@@ -39,5 +38,8 @@ describe('auth provisioning trigger', () => {
     const r = await h.pool.query(`select email, is_anonymous from public.users where id = $1`, [id]);
     expect(r.rows[0].email).toBe('upgraded@test.dev');
     expect(r.rows[0].is_anonymous).toBe(false);
+    const r2 = await h.pool.query(`select id, supabase_id from public.users where id = $1`, [id]);
+    expect(r2.rows[0].id).toBe(id);
+    expect(r2.rows[0].supabase_id).toBe(id);
   });
 });
