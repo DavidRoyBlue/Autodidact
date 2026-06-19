@@ -33,6 +33,7 @@ Sort within each section by ADR number.
 - [ADR-019 — Code quality tooling](./cross-cutting/ADR-019-code-quality-tooling.md)
 - [ADR-020 — Authentication strategy](./cross-cutting/ADR-020-authentication-strategy.md)
 - [ADR-023 — Defer the LangChain/LangGraph 1.x major upgrade](./cross-cutting/ADR-023-langchain-1x-upgrade-deferral.md)
+- [ADR-028 — Production auth: identity contract, hybrid provisioning, and data-path posture](./cross-cutting/ADR-028-production-auth-provisioning.md) — Accepted 2026-06-19
 - [ADR-025 — Mobile testing strategy and second test runner](./cross-cutting/ADR-025-mobile-testing-second-runner.md)
 - [ADR-026 — End-to-end testing strategy](./cross-cutting/ADR-026-e2e-testing-strategy.md)
 
