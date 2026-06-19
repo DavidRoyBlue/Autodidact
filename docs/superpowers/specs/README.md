@@ -21,6 +21,7 @@ Specs explore and define a feature's design before implementation begins. A spec
 | Spec | Related plan |
 |---|---|
 | [2026-04-28 — Mobile Design System Design](2026-04-28-mobile-design-system-design.md) | [2026-04-28 — Mobile Design System](../plans/2026-04-28-mobile-design-system.md) |
+| [2026-06-19 — Local Supabase Stack](2026-06-19-local-supabase-stack-design.md) (Spec 1/4) | _pending_ |
 
 ---
 
