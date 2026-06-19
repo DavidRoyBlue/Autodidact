@@ -1,0 +1,6 @@
+-- Intentionally inert. `supabase db reset` runs this BEFORE Drizzle migrations
+-- apply the public schema, so it must not reference app tables.
+-- Real seeding runs as a POST-MIGRATE script step:
+--   - production onboarding course  → Spec 3 (db:seed:onboarding)
+--   - dev test user (test@autodidact.dev) → Spec 4 (db:seed:dev)
+-- Do not add app-data INSERTs here.
