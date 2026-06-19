@@ -24,6 +24,7 @@ Plans are structured task lists written before implementation begins. They are t
 | [2026-04-29 — Fix Vitest Hoisting](2026-04-29-fix-vitest-hoisting.md) | In progress |
 | [2026-04-29 — JWKS Auth](2026-04-29-jwks-auth.md) | In progress |
 | [2026-06-02 — CI/CD & Dependency Hardening](2026-06-02-cicd-dependency-fixes.md) | Not started |
+| [2026-06-19 — Local Supabase Stack](2026-06-19-local-supabase-stack.md) (Spec 1/4) | Not started |
 
 ---
 
