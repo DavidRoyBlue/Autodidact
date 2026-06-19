@@ -23,7 +23,7 @@ pnpm dev             # every time: load .env.dev and start all backend services
 ### `setup.sh`
 **First-time project setup.** Run once after cloning.
 
-Checks prerequisites (Node ≥ 20, pnpm ≥ 9, Docker), installs all dependencies, creates `.env.dev` from `.env.example`, starts Docker infra, waits for Postgres, runs migrations, and builds all packages.
+Checks prerequisites (Node ≥ 20, pnpm ≥ 9, Docker), installs all dependencies, creates `.env.dev` from `.env.example`, starts the local Supabase stack (`supabase start`), runs migrations, and builds all packages.
 
 Does **not** start the dev servers — run `pnpm dev` after completing `.env.dev`.
 
@@ -32,7 +32,7 @@ Does **not** start the dev servers — run `pnpm dev` after completing `.env.dev
 ### `pnpm dev`
 **Start the full local backend stack.** The main command you'll use every day.
 
-Loads `.env.dev` via `dotenv-cli`, verifies required env vars and Docker, starts Postgres via `docker compose up -d`, waits for Postgres readiness, builds all packages (API and Worker require compiled output), runs pending migrations, then launches all backend services (API on `:3000`, Agent on `:3001`, Worker on `:3002`).
+Loads `.env.dev` via `dotenv-cli`, verifies required env vars and Docker, starts the local Supabase stack via `supabase start` (API `:55321`, DB `:55322`, Studio `:55323`), builds all packages (API and Worker require compiled output), runs pending migrations, then launches all backend services (API on `:3000`, Agent on `:3001`, Worker on `:3002`).
 
 Press `Ctrl+C` to stop all services. Start mobile separately with `mobile.sh`.
 
@@ -67,23 +67,23 @@ separately for working auth/API.
 ---
 
 ### `stop.sh`
-**Stop local Docker infrastructure** (Postgres).
+**Stop the local Supabase stack** (`supabase stop`).
 
-Backend service processes (started by `pnpm dev`) are stopped with `Ctrl+C` in that terminal. Data volumes are preserved between stops. To also wipe all local data: `docker compose down -v`.
+Backend service processes (started by `pnpm dev`) are stopped with `Ctrl+C` in that terminal. Local DB data is preserved between stops. To also wipe all local data: `pnpm exec supabase stop --no-backup`.
 
 ---
 
 ### `migrate.sh`
 **Run pending database migrations** against `DATABASE_URL`.
 
-Works for both local Docker Postgres and production Supabase. `DATABASE_URL` must already be set in the environment by a root wrapper such as `pnpm migrate:dev` or `pnpm migrate:prod`.
+Works for both the local Supabase stack (`127.0.0.1:55322`) and production Supabase. `DATABASE_URL` must already be set in the environment by a root wrapper such as `pnpm migrate:dev` or `pnpm migrate:prod`.
 
 ---
 
 ### `db-reset.sh`
 **DESTRUCTIVE — wipe and recreate the local database.**
 
-Drops and recreates the `autodidact` database in local Docker Postgres, re-installs extensions (`vector`, `uuid-ossp`), and re-runs all migrations from scratch. Safety check prevents running against non-localhost URLs. Requires confirmation before proceeding.
+Resets the local Supabase stack DB to a clean baseline (`supabase db reset`, which auto-runs the inert `supabase/seed.sql`), then re-applies all Drizzle migrations from scratch. Safety check prevents running against non-localhost URLs. Requires confirmation before proceeding.
 
 Use this when migrations are in an inconsistent state or you want a clean slate.
 
