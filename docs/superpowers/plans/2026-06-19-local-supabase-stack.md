@@ -93,6 +93,10 @@ Expected: `supabase start` pulls images on first run (slow once), then prints a 
 
 Copy the two keys into your local `.env.dev`, and set its `DATABASE_URL` + `SUPABASE_URL` to the local values from Step 4.
 
+> **Key-name variance (#3):** if `supabase status` labels them `anon key` / `service_role key` (legacy) instead of `Publishable` / `Secret`, use those values for `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY` respectively — they're the local equivalents (JWKS verification works regardless of key format).
+> **Key stability (#6):** these local keys are stable across `supabase stop`/`start` and `db reset`. If you fully tear the stack down (`supabase stop --no-backup`), re-copy from `supabase status`.
+> **Interim state (#5):** from here until Task 3 rewrites `dev.sh`, use `pnpm exec supabase start` directly to bring the stack up — `pnpm dev` still references Docker until then.
+
 - [ ] **Step 6: Verify the DB is reachable and `public` is empty**
 
 Run:
@@ -118,6 +122,8 @@ git commit -m "feat(infra): boot local Supabase stack + inert seed + local env (
 **Interfaces:**
 - Consumes: `DATABASE_URL` (local `:54322` from Task 1).
 - Produces: a fully migrated `public` schema on the local stack.
+
+**Precondition (#2):** the stack must be running — run `pnpm exec supabase start` (idempotent) before this task's steps.
 
 - [ ] **Step 1: Replace `scripts/migrate.sh` wholesale**
 
@@ -262,11 +268,15 @@ Run (Ctrl+C after confirming services start):
 ```bash
 pnpm dev
 ```
-In another terminal:
+In another terminal, first confirm the health route path (NestJS may apply a global `v1` prefix that the health route is/ isn't excluded from):
 ```bash
-curl -s http://localhost:3000/health
+grep -rn "health\|setGlobalPrefix" services/api/src/modules/health/health.controller.ts services/api/src/main.ts
 ```
-Expected: the stack starts, migrations apply, services boot, and `/health` (the unguarded endpoint) returns a 200/health JSON.
+Then curl whichever applies:
+```bash
+curl -s http://localhost:3000/health || curl -s http://localhost:3000/v1/health
+```
+Expected: the stack starts, migrations apply, services boot, and the (unguarded) health endpoint returns a 200 JSON.
 
 - [ ] **Step 4: Commit**
 
@@ -283,6 +293,8 @@ git commit -m "feat(infra): dev.sh and setup.sh boot the Supabase stack via supa
 - Modify: `scripts/db-reset.sh`
 - Modify: `scripts/stop.sh`
 - Modify: `scripts/db-studio.sh`
+
+**Precondition (#2):** the stack must be running — run `pnpm exec supabase start` (idempotent) before this task's steps.
 
 - [ ] **Step 1: Rewrite `scripts/db-reset.sh`**
 
@@ -418,9 +430,11 @@ git commit -m "chore(infra): remove Docker Postgres compose + dev-db-init auth s
 - Consumes: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` from root `.env.dev`.
 - Produces: `extra.supabaseUrl` / `extra.supabasePublishableKey` resolved to the local stack in dev (mobile already reads `extra` via `expo-constants`).
 
+**Precondition (#2):** for Steps 6-7, the stack + backend must be running (`pnpm exec supabase start`, then `pnpm dev`).
+
 - [ ] **Step 1: Make `app.config.ts` env-driven (self-loads root `.env.dev`)**
 
-`run-mobile.sh`/`mobile.sh` start Expo without a `dotenv` wrapper, so `app.config.ts` loads the root env itself (guarded; a no-op in EAS/CI where the file is absent). Replace `apps/mobile/app.config.ts` with:
+`run-mobile.sh`/`mobile.sh` start Expo without a `dotenv` wrapper, so `app.config.ts` loads the root env itself (guarded; a no-op in EAS/CI where the file is absent). Replace `apps/mobile/app.config.ts` with the following. **Note (#4):** Expo transpiles `app.config.ts` to CJS so `__dirname` is normally defined; if a runtime error shows `__dirname is not defined`, swap the path to `path.resolve(process.cwd(), '../../.env.dev')` (and from `apps/mobile`, `process.cwd()` is the app dir, so the relative segment still resolves).
 
 ```typescript
 import type { ConfigContext, ExpoConfig } from 'expo/config';
