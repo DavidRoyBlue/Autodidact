@@ -61,22 +61,10 @@ else
   info ".env.prod is not created automatically; populate it manually."
 fi
 
-# ── Docker infra ──────────────────────────────────────────────────────────────
-step "Starting local infrastructure (Postgres)"
-docker compose up -d
-ok "Docker services started"
-
-# ── Wait for Postgres ─────────────────────────────────────────────────────────
-step "Waiting for Postgres to be ready"
-for i in $(seq 1 30); do
-  if docker compose exec -T postgres pg_isready -U postgres &>/dev/null; then
-    ok "Postgres is ready"
-    break
-  fi
-  [[ $i -eq 30 ]] && die "Postgres did not become ready. Check: docker compose logs postgres"
-  printf "."
-  sleep 1
-done
+# ── Local Supabase stack ───────────────────────────────────────────────────────
+step "Starting the local Supabase stack (first run pulls images, ~minutes)"
+pnpm exec supabase start
+ok "Supabase stack running"
 
 # ── Migrate ───────────────────────────────────────────────────────────────────
 step "Running database migrations"
@@ -98,12 +86,10 @@ if grep -q 'SUPABASE_URL=$\|SUPABASE_URL=""' .env.dev 2>/dev/null; then
   echo
 fi
 echo "Next steps:"
-info "1. Review .env.dev and fill in any missing Supabase + OpenAI keys"
-info "2. Create .env.prod manually when you need production database access"
-info "3. Fill in apps/mobile/app.json → extra.supabaseUrl and supabaseAnonKey"
-info "4. In Supabase SQL Editor, run the user-sync trigger (see docs/architecture/data-model.md)"
-info "5. Create a test user in Supabase dashboard → Authentication → Users"
+info "1. Run 'pnpm exec supabase status' and copy Publishable + Secret keys into .env.dev"
+info "2. Fill in OPENAI_API_KEY in .env.dev"
+info "3. Create .env.prod manually when you need production database access"
 info ""
 info "Then start the app:"
-info "  pnpm dev               ← backend services"
-info "  ./scripts/mobile.sh    ← mobile app (separate terminal)"
+info "  pnpm dev               ← backend services (+ Supabase stack)"
+info "  pnpm mobile            ← mobile app (separate terminal)"
