@@ -11,12 +11,25 @@ import { fileURLToPath } from 'url';
 // resolve from this file's directory in both vitest (src/) and built (dist/) contexts.
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// dev-db-init.sql creates the vector/uuid extensions and the Supabase auth.* stubs
-// that the RLS migrations (0003/0004) reference. Without it, those migrations fail
-// to compile — which is why the original inline harness ran only 0001.
-// Paths resolve from this file's dir in both the vitest (src/) and built (dist/) contexts:
-//   src/database.ts  -> ../../../docker/dev-db-init.sql  and  ../../db/migrations
-const DEV_DB_INIT = join(__dirname, '../../../docker/dev-db-init.sql');
+// Tests run against a plain pgvector Postgres (Testcontainers) that has no Supabase
+// auth schema, so we create the vector/uuid extensions and the auth.* stubs that the
+// RLS migrations (0003/0004) reference — without them those migrations fail to compile.
+// (The local dev stack uses real Supabase GoTrue and needs none of this; the retired
+// docker/dev-db-init.sql once held these stubs — they now live here, with their sole
+// remaining consumer. See packages/test-support/CLAUDE.md.)
+const DEV_DB_INIT_SQL = `
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE SCHEMA IF NOT EXISTS auth;
+CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE
+  AS $$ SELECT '00000000-0000-0000-0000-000000000000'::uuid $$;
+CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE
+  AS $$ SELECT 'authenticated'::text $$;
+`;
+
+// Resolves from this file's dir in both vitest (src/) and built (dist/) contexts:
+//   src/database.ts -> ../../db/migrations
 const MIGRATIONS_DIR = join(__dirname, '../../db/migrations');
 
 // Tables truncated by truncate(); ordered child-before-parent (CASCADE makes the
@@ -64,7 +77,7 @@ export async function withTestDatabase(): Promise<TestDatabase> {
     const db = drizzle(pool, { schema }) as unknown as DB;
 
     // 1. extensions + auth.* stubs
-    await pool.query(readFileSync(DEV_DB_INIT, 'utf-8'));
+    await pool.query(DEV_DB_INIT_SQL);
 
     // 2. all .sql migrations in lexical order (0001 → 0004)
     const migrationFiles = readdirSync(MIGRATIONS_DIR)

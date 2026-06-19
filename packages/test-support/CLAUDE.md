@@ -9,7 +9,7 @@ Real infrastructure harness (Postgres via Testcontainers) and seed factories for
 ## Invariants (must not be broken)
 
 - This package provides **real** infrastructure, never mocks. Mocks live in `@autodidact/config/test-utils` — do not duplicate them here.
-- `withTestDatabase()` MUST apply `docker/dev-db-init.sql` before migrations; the RLS migrations (`0003`/`0004`) reference `auth.uid()`/`auth.role()` and fail to compile without the stubs.
+- `withTestDatabase()` MUST apply the `DEV_DB_INIT_SQL` auth/extension stubs (inlined in `src/database.ts`) before migrations; the RLS migrations (`0003`/`0004`) reference `auth.uid()`/`auth.role()` and fail to compile without the stubs. (The Testcontainers Postgres has no Supabase auth schema; the local dev stack uses real GoTrue and needs none of this.)
 - `withTestDatabase()` applies **all** migrations, not a subset — index and RLS coverage is the point.
 - Keep `TRUNCATE_TABLES` in `src/database.ts` in sync with `packages/db/src/schema` when tables are added.
 - Seed factories take an explicit `db` argument; they must not depend on `getDb()` or any `vi.mock` state.
@@ -25,4 +25,4 @@ pnpm --filter @autodidact/test-support lint
 ## Source of truth
 
 - DB schema / migrations: `@autodidact/db` (this package only consumes them).
-- Auth stubs: `docker/dev-db-init.sql`.
+- Auth stubs: `DEV_DB_INIT_SQL` in `src/database.ts` (inlined; the old `docker/dev-db-init.sql` was retired with the Docker dev stack).
