@@ -28,6 +28,7 @@ Drizzle ORM client, schema definitions, database migrations, and the custom pgve
 - Use: `db.execute(sql\`...\`)` for any query that involves pgvector casting or complex SQL not expressible through Drizzle's builder.
 - Do not use: Prisma, TypeORM, or any other ORM in this package.
 - Do not use: `drizzle push` — all schema changes go through plain SQL migration files.
+- **Known tooling limitation:** `db:generate:dev` is currently broken (ESM / drizzle-kit `.js`→`.ts` resolution under `"type":"module"`), and the drizzle snapshot chain (`migrations/meta/*_snapshot.json`) is incomplete for hand-authored SQL migrations. Until both are repaired together (a dedicated follow-up), author schema migrations as hand-written SQL (see the trigger migrations in `migrations/`) rather than relying on `db:generate`.
 
 ---
 
