@@ -26,6 +26,17 @@ CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE
   AS $$ SELECT '00000000-0000-0000-0000-000000000000'::uuid $$;
 CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE
   AS $$ SELECT 'authenticated'::text $$;
+
+-- Stub of GoTrue's auth.users for tests (the real table exists only in the
+-- Supabase stack / prod). Columns mirror what handle_new_user / the sync trigger
+-- read. The real GoTrue manages this table in the live stack; here it lets the
+-- trigger install and be exercised by inserting/updating rows directly.
+CREATE TABLE IF NOT EXISTS auth.users (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text,
+  is_anonymous boolean NOT NULL DEFAULT false,
+  raw_user_meta_data jsonb NOT NULL DEFAULT '{}'::jsonb
+);
 `;
 
 // Resolves from this file's dir in both vitest (src/) and built (dist/) contexts:
