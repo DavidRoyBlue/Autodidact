@@ -13,19 +13,6 @@ die() { echo -e "${RED}✗ $*${NC}"; exit 1; }
 
 command -v npx &>/dev/null || die "npx not found. Is Node installed?"
 
-# Check app.json is configured
-SUPABASE_URL=$(node -e "
-  const cfg = require('./apps/mobile/app.json');
-  console.log(cfg.expo?.extra?.supabaseUrl ?? '');
-" 2>/dev/null || echo "")
-
-if [[ -z "$SUPABASE_URL" ]]; then
-  echo -e "${YELLOW}⚠ apps/mobile/app.json → extra.supabaseUrl is empty.${NC}"
-  echo "  The mobile app will load but auth will not work."
-  echo "  Fill in supabaseUrl and supabaseAnonKey in app.json first."
-  echo
-fi
-
 echo -e "${CYAN}${BOLD}▶ Starting Expo dev server${NC}"
 echo -e "${YELLOW}  Scan the QR code with Expo Go, or press i/a for simulator${NC}"
 echo -e "${YELLOW}  Backend must be running (./scripts/dev.sh) for API calls to work${NC}\n"

@@ -1,17 +1,11 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import { config as loadEnv } from 'dotenv';
+import path from 'node:path';
 
-/**
- * Dynamic Expo config. The static base (name, icons, identifiers, the dev
- * default `extra`) lives in `app.json`; this layer makes the API base URL
- * build-environment-driven so production binaries point at Cloud Run instead of
- * localhost.
- *
- * EAS build profiles set `AUTODIDACT_API_BASE_URL` (see `eas.json`):
- *   - production / preview → the Cloud Run api URL
- *   - local `expo start`   → no env set, falls back to the app.json dev default
- *
- * The app reads the resolved value via `expo-constants` (`src/api/client.ts`).
- */
+// Dev only: load the monorepo-root .env.dev so SUPABASE_URL / keys reach this
+// config at resolution time. Missing file (EAS/CI) is a silent no-op.
+loadEnv({ path: path.resolve(__dirname, '../../.env.dev') });
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: config.name ?? 'Autodidact',
@@ -22,5 +16,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       process.env.AUTODIDACT_API_BASE_URL ??
       (config.extra?.apiBaseUrl as string | undefined) ??
       'http://localhost:3000/v1',
+    supabaseUrl:
+      process.env.SUPABASE_URL ??
+      (config.extra?.supabaseUrl as string | undefined),
+    supabasePublishableKey:
+      process.env.SUPABASE_PUBLISHABLE_KEY ??
+      (config.extra?.supabasePublishableKey as string | undefined),
   },
 });

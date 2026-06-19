@@ -78,6 +78,8 @@ if [[ -n "$serial" ]]; then
     warn "Expo Go isn't installed on $serial. Install it once: (cd apps/mobile && expo start --android) interactively, then re-run."
   else
     timeout 10 "$LINUX_ADB" -s "$serial" reverse tcp:8081 tcp:8081 >/dev/null 2>&1 || true
+    timeout 10 "$LINUX_ADB" -s "$serial" reverse tcp:55321 tcp:55321 >/dev/null 2>&1 || true
+    timeout 10 "$LINUX_ADB" -s "$serial" reverse tcp:3000 tcp:3000 >/dev/null 2>&1 || true
     # Re-fire the open until the *project* (ExperienceActivity) foregrounds — not
     # Expo Go's HomeActivity, which also contains "exponent". The deep link can land
     # on Home if it fires a beat before Metro is reachable, so retry.
