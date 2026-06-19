@@ -1,5 +1,24 @@
 # Local Supabase Stack Implementation Plan
 
+> Completed: 2026-06-19
+>
+> **Deviations from the written plan (recorded during execution):**
+> - **Ports remapped +1000** (API `55321`, DB `55322`, Studio `55323`, Inbucket `55324`,
+>   analytics `55327`, shadow `55320`, pooler `55329`) instead of the default `5432x`.
+>   Another local Supabase project (`logged`) was already bound to the defaults; the
+>   user chose to remap so both stacks coexist. All scripts/docs/env use the new ports.
+> - **Worker config fixed:** `.env.dev` had a stale `QUEUE_PROVIDER=bullmq`; set to
+>   `loopback` (gitignored, local-only) so the worker boots. Verified.
+> - **Pre-existing, out-of-scope blocker:** the **API** service crashes on boot with a
+>   NestJS DI circular-dependency `RangeError: Maximum call stack size exceeded`
+>   (`InstanceWrapper.getInstanceByContextId` ↔ `cloneStaticInstance`). It is on
+>   committed `master`, env-independent, and unrelated to this migration — it blocks
+>   the literal `curl /v1/health → 200` check. Filed as a separate finding to fix
+>   outside this plan. The **agent** and **worker** boot cleanly against the new stack.
+> - **Mobile signup verified at the stack level** (direct `POST /auth/v1/signup` →
+>   row in local `auth.users`) rather than via the in-app emulator tap, which needs a
+>   human; the in-app config was verified to resolve to the local stack.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Move local development from the hand-rolled Docker-Postgres setup to the full Supabase CLI local stack (`supabase start`) so auth (real GoTrue, RLS with real `auth.uid()`) is testable locally.
@@ -32,11 +51,11 @@
 **Interfaces:**
 - Produces: a running local stack reachable at DB `postgresql://postgres:postgres@127.0.0.1:54322/postgres` and API `http://127.0.0.1:54321`; the well-known local `SUPABASE_PUBLISHABLE_KEY`/`SUPABASE_SECRET_KEY` from `supabase status`.
 
-- [ ] **Step 1: Confirm `major_version` matches the remote (no edit expected)**
+- [x] **Step 1: Confirm `major_version` matches the remote (no edit expected)**
 
 Open `supabase/config.toml`, find `[db] major_version` (line ~42). It must be `17` (remote is Postgres 17.6). If it is already `17`, make no change.
 
-- [ ] **Step 2: Add the mobile scheme to auth redirects**
+- [x] **Step 2: Add the mobile scheme to auth redirects**
 
 In `supabase/config.toml` `[auth]`, replace the `additional_redirect_urls` line:
 
@@ -46,7 +65,7 @@ additional_redirect_urls = ["https://127.0.0.1:3000", "autodidact://", "exp://12
 
 (Leave `enable_anonymous_sign_ins`, `enable_confirmations`, rate limits, etc. at their defaults — Spec 2 owns auth tuning.)
 
-- [ ] **Step 3: Create the inert seed file**
+- [x] **Step 3: Create the inert seed file**
 
 Create `supabase/seed.sql`:
 
@@ -59,7 +78,7 @@ Create `supabase/seed.sql`:
 -- Do not add app-data INSERTs here.
 ```
 
-- [ ] **Step 4: Point `.env.example` at the local stack**
+- [x] **Step 4: Point `.env.example` at the local stack**
 
 In `.env.example`, replace the `LOCAL DATABASE + SUPABASE` block (lines ~24-38) with:
 
@@ -82,7 +101,7 @@ SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SECRET_KEY=
 ```
 
-- [ ] **Step 5: Boot the stack and capture keys**
+- [x] **Step 5: Boot the stack and capture keys**
 
 Run:
 ```bash
@@ -97,7 +116,7 @@ Copy the two keys into your local `.env.dev`, and set its `DATABASE_URL` + `SUPA
 > **Key stability (#6):** these local keys are stable across `supabase stop`/`start` and `db reset`. If you fully tear the stack down (`supabase stop --no-backup`), re-copy from `supabase status`.
 > **Interim state (#5):** from here until Task 3 rewrites `dev.sh`, use `pnpm exec supabase start` directly to bring the stack up — `pnpm dev` still references Docker until then.
 
-- [ ] **Step 6: Verify the DB is reachable and `public` is empty**
+- [x] **Step 6: Verify the DB is reachable and `public` is empty**
 
 Run:
 ```bash
@@ -105,7 +124,7 @@ psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c '\dt public.*'
 ```
 Expected: `Did not find any relations.` (public schema empty — Drizzle migrations come in Task 2). The `auth` schema exists (real GoTrue): `psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c '\dt auth.*'` lists `auth.users`, etc.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add supabase/config.toml supabase/seed.sql .env.example
@@ -125,7 +144,7 @@ git commit -m "feat(infra): boot local Supabase stack + inert seed + local env (
 
 **Precondition (#2):** the stack must be running — run `pnpm exec supabase start` (idempotent) before this task's steps.
 
-- [ ] **Step 1: Replace `scripts/migrate.sh` wholesale**
+- [x] **Step 1: Replace `scripts/migrate.sh` wholesale**
 
 The local stack has a real `auth` schema, so the `dev-db-init.sql` block is obsolete. New content:
 
@@ -153,7 +172,7 @@ pnpm --filter @autodidact/db db:migrate
 ok "All migrations applied"
 ```
 
-- [ ] **Step 2: Apply migrations to the local stack**
+- [x] **Step 2: Apply migrations to the local stack**
 
 With the stack running (Task 1) and `.env.dev` pointing at `:54322`, run:
 ```bash
@@ -161,7 +180,7 @@ pnpm migrate:dev
 ```
 Expected: drizzle-kit applies `0001`–`0005` with no error.
 
-- [ ] **Step 3: Verify schema + pgvector resolved**
+- [x] **Step 3: Verify schema + pgvector resolved**
 
 Run:
 ```bash
@@ -170,7 +189,7 @@ psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c "\d public.cours
 ```
 Expected: tables (`courses`, `modules`, `enrollments`, `module_progress`, `module_content_chunks`, …) listed; `topic_embedding | vector(1536)` shown — proving `CREATE EXTENSION vector` resolved via the `[api] extra_search_path = ["public","extensions"]`. (A missing `uuid-ossp` would have surfaced here; migrations use built-in `gen_random_uuid()`, so none is needed.)
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add scripts/migrate.sh
@@ -185,7 +204,7 @@ git commit -m "feat(infra): migrate.sh applies Drizzle migrations on the local S
 - Modify: `scripts/dev.sh`
 - Modify: `scripts/setup.sh`
 
-- [ ] **Step 1: Rewrite the infra section of `scripts/dev.sh`**
+- [x] **Step 1: Rewrite the infra section of `scripts/dev.sh`**
 
 Replace the "Docker infra" + "Wait for Postgres" sections (lines 30-45) with a single block (`supabase start` blocks until healthy — no `pg_isready` loop needed). The new file body:
 
@@ -236,7 +255,7 @@ echo -e "${YELLOW}Press Ctrl+C to stop services (then 'pnpm stop' to stop the Su
 exec "$ROOT/node_modules/.bin/turbo" run dev
 ```
 
-- [ ] **Step 2: Rewrite the infra + next-steps sections of `scripts/setup.sh`**
+- [x] **Step 2: Rewrite the infra + next-steps sections of `scripts/setup.sh`**
 
 Replace the "Docker infra" + "Wait for Postgres" sections (lines 64-79) with:
 
@@ -262,7 +281,7 @@ info "  pnpm mobile            ← mobile app (separate terminal)"
 
 (The migrate step at line 83 already runs via the `dotenv -e .env.dev` wrapper — leave it. Remove nothing else.)
 
-- [ ] **Step 3: Verify `pnpm dev` boots end-to-end**
+- [x] **Step 3: Verify `pnpm dev` boots end-to-end**
 
 Run (Ctrl+C after confirming services start):
 ```bash
@@ -278,7 +297,7 @@ curl -s http://localhost:3000/health || curl -s http://localhost:3000/v1/health
 ```
 Expected: the stack starts, migrations apply, services boot, and the (unguarded) health endpoint returns a 200 JSON.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add scripts/dev.sh scripts/setup.sh
@@ -296,7 +315,7 @@ git commit -m "feat(infra): dev.sh and setup.sh boot the Supabase stack via supa
 
 **Precondition (#2):** the stack must be running — run `pnpm exec supabase start` (idempotent) before this task's steps.
 
-- [ ] **Step 1: Rewrite `scripts/db-reset.sh`**
+- [x] **Step 1: Rewrite `scripts/db-reset.sh`**
 
 `supabase db reset` resets the local DB to the clean Supabase baseline (empty `public`; auto-runs the inert `seed.sql`); then Drizzle migrate applies the schema. Keep the localhost-only guard + confirm prompt. New content:
 
@@ -339,7 +358,7 @@ ok "Migrations applied"
 echo -e "\n${GREEN}${BOLD}Local database reset complete.${NC}"
 ```
 
-- [ ] **Step 2: Rewrite `scripts/stop.sh`**
+- [x] **Step 2: Rewrite `scripts/stop.sh`**
 
 Replace the body's stop section:
 
@@ -354,7 +373,7 @@ echo -e "${YELLOW}Note: local DB data is preserved. To wipe it: pnpm exec supaba
 
 (Keep the script header/colors/helpers; just swap `docker compose down` for the above.)
 
-- [ ] **Step 3: Add a Supabase Studio hint to `scripts/db-studio.sh`**
+- [x] **Step 3: Add a Supabase Studio hint to `scripts/db-studio.sh`**
 
 After the existing `echo -e "${YELLOW}  Opens at https://local.drizzle.studio${NC}"` line, add:
 
@@ -362,7 +381,7 @@ After the existing `echo -e "${YELLOW}  Opens at https://local.drizzle.studio${N
 echo -e "${YELLOW}  (Supabase Studio is also available at http://127.0.0.1:54323 when the stack is up)${NC}"
 ```
 
-- [ ] **Step 4: Verify reset + stop**
+- [x] **Step 4: Verify reset + stop**
 
 Run:
 ```bash
@@ -372,7 +391,7 @@ pnpm stop
 pnpm exec supabase status   # expected: reports the stack is not running
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/db-reset.sh scripts/stop.sh scripts/db-studio.sh
@@ -387,7 +406,7 @@ git commit -m "feat(infra): db-reset/stop/studio scripts use the Supabase CLI st
 - Delete: `docker-compose.yml`
 - Delete: `docker/dev-db-init.sql`
 
-- [ ] **Step 1: Confirm nothing references them anymore**
+- [x] **Step 1: Confirm nothing references them anymore**
 
 Run:
 ```bash
@@ -395,13 +414,13 @@ grep -rn "docker compose\|docker-compose\|dev-db-init" scripts/ package.json
 ```
 Expected: no matches (Tasks 2-4 removed every reference). If any remain, fix them before deleting.
 
-- [ ] **Step 2: Delete the files**
+- [x] **Step 2: Delete the files**
 
 ```bash
 git rm docker-compose.yml docker/dev-db-init.sql
 ```
 
-- [ ] **Step 3: Verify the full path still works**
+- [x] **Step 3: Verify the full path still works**
 
 ```bash
 pnpm stop || true
@@ -409,7 +428,7 @@ pnpm dev   # boots Supabase stack, migrates, starts services — Ctrl+C after co
 ```
 Expected: no error about a missing `docker-compose.yml` or `dev-db-init.sql`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git commit -m "chore(infra): remove Docker Postgres compose + dev-db-init auth stubs (Spec 1)"
@@ -432,7 +451,7 @@ git commit -m "chore(infra): remove Docker Postgres compose + dev-db-init auth s
 
 **Precondition (#2):** for Steps 6-7, the stack + backend must be running (`pnpm exec supabase start`, then `pnpm dev`).
 
-- [ ] **Step 1: Make `app.config.ts` env-driven (self-loads root `.env.dev`)**
+- [x] **Step 1: Make `app.config.ts` env-driven (self-loads root `.env.dev`)**
 
 `run-mobile.sh`/`mobile.sh` start Expo without a `dotenv` wrapper, so `app.config.ts` loads the root env itself (guarded; a no-op in EAS/CI where the file is absent). Replace `apps/mobile/app.config.ts` with the following. **Note (#4):** Expo transpiles `app.config.ts` to CJS so `__dirname` is normally defined; if a runtime error shows `__dirname is not defined`, swap the path to `path.resolve(process.cwd(), '../../.env.dev')` (and from `apps/mobile`, `process.cwd()` is the app dir, so the relative segment still resolves).
 
@@ -465,14 +484,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 });
 ```
 
-- [ ] **Step 2: Add `dotenv` to mobile devDependencies**
+- [x] **Step 2: Add `dotenv` to mobile devDependencies**
 
 ```bash
 pnpm --filter @autodidact/mobile add -D dotenv
 ```
 Expected: `apps/mobile/package.json` gains `dotenv` under devDependencies.
 
-- [ ] **Step 3: Reverse the Supabase port to the emulator**
+- [x] **Step 3: Reverse the Supabase port to the emulator**
 
 In `scripts/run-mobile.sh` step 4, after the existing `reverse tcp:8081 tcp:8081` line (line ~80), add Supabase + API reverses so the emulator reaches them on `127.0.0.1`:
 
@@ -481,11 +500,11 @@ In `scripts/run-mobile.sh` step 4, after the existing `reverse tcp:8081 tcp:8081
     timeout 10 "$LINUX_ADB" -s "$serial" reverse tcp:3000 tcp:3000 >/dev/null 2>&1 || true
 ```
 
-- [ ] **Step 4: Drop the stale app.json check in `scripts/mobile.sh`**
+- [x] **Step 4: Drop the stale app.json check in `scripts/mobile.sh`**
 
 Remove the `SUPABASE_URL=$(node -e …)` block and its `if [[ -z "$SUPABASE_URL" ]]` warning (lines 16-27) — `supabaseUrl` now comes from env via `app.config.ts`, not `app.json`. Leave the rest of the script unchanged.
 
-- [ ] **Step 5: Note the shared key in `.env.example`**
+- [x] **Step 5: Note the shared key in `.env.example`**
 
 Under the `SUPABASE_PUBLISHABLE_KEY=` line added in Task 1, add a comment:
 
@@ -493,7 +512,7 @@ Under the `SUPABASE_PUBLISHABLE_KEY=` line added in Task 1, add a comment:
 # (also read by the mobile app via app.config.ts for local-stack auth)
 ```
 
-- [ ] **Step 6: Verify the config resolves to the local stack**
+- [x] **Step 6: Verify the config resolves to the local stack**
 
 With `.env.dev` populated and the stack up:
 ```bash
@@ -501,7 +520,7 @@ cd apps/mobile && pnpm exec expo config --json | grep -A1 '"supabaseUrl"'
 ```
 Expected: `"supabaseUrl": "http://127.0.0.1:54321"` and `supabasePublishableKey` = your `sb_publishable_…`.
 
-- [ ] **Step 7: Verify a real local signup round-trips through local GoTrue**
+- [x] **Step 7: Verify a real local signup round-trips through local GoTrue**
 
 Boot backend (`pnpm dev`) + app (`pnpm mobile:run`), sign up a test email in the app, then:
 ```bash
@@ -509,7 +528,7 @@ psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c "select email fr
 ```
 Expected: the email you just registered appears in **local** `auth.users` (proving the app hit the local stack, not the cloud project). The confirmation email (if enabled later) is viewable at Inbucket `http://127.0.0.1:54324`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add apps/mobile/app.config.ts apps/mobile/package.json scripts/run-mobile.sh scripts/mobile.sh .env.example pnpm-lock.yaml
@@ -526,11 +545,11 @@ git commit -m "feat(mobile): resolve Supabase URL/key from env for the local sta
 - Modify: `packages/db/CLAUDE.md` (local-stack pooler exemption note)
 - Modify: `apps/mobile/README.md` (local Supabase URL + adb reverse)
 
-- [ ] **Step 1: Update the root command docs**
+- [x] **Step 1: Update the root command docs**
 
 In `CLAUDE.md` and `README.md`, update the commands so they describe the Supabase stack rather than Docker Postgres: `pnpm setup`/`pnpm dev` now "start the local Supabase stack (`supabase start`) → migrate → services"; `pnpm stop` "stops the Supabase stack (`supabase stop`)"; `pnpm db:reset:dev` "`supabase db reset` → re-apply Drizzle migrations". Note Supabase Studio at `http://127.0.0.1:54323` alongside Drizzle Studio.
 
-- [ ] **Step 2: Document the local pooler exemption in `packages/db/CLAUDE.md`**
+- [x] **Step 2: Document the local pooler exemption in `packages/db/CLAUDE.md`**
 
 After the existing WSL2 pooler invariant line, add:
 
@@ -538,18 +557,18 @@ After the existing WSL2 pooler invariant line, add:
 - **Local-stack exemption:** the port-6543 pooler requirement applies to the **cloud/prod** `DATABASE_URL` only. Local dev uses the Supabase CLI stack on `127.0.0.1:54322` (direct, no pooler) — reachable from WSL2, so the IPv6 problem does not apply.
 ```
 
-- [ ] **Step 3: Document mobile→local-stack networking in `apps/mobile/README.md`**
+- [x] **Step 3: Document mobile→local-stack networking in `apps/mobile/README.md`**
 
 Add a short note: in dev, `app.config.ts` resolves `extra.supabaseUrl`/`supabasePublishableKey` from the root `.env.dev`; the emulator reaches the local stack via `adb reverse tcp:54321` (added in `run-mobile.sh`), so the URL is `http://127.0.0.1:54321` (not `10.0.2.2`).
 
-- [ ] **Step 4: Verify no stale references remain in docs**
+- [x] **Step 4: Verify no stale references remain in docs**
 
 ```bash
 grep -rn "docker compose\|dev-db-init\|localhost:5432" README.md CLAUDE.md apps/mobile/README.md packages/db/CLAUDE.md
 ```
 Expected: no matches (or only historical/intentional ones you've confirmed).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add README.md CLAUDE.md packages/db/CLAUDE.md apps/mobile/README.md
