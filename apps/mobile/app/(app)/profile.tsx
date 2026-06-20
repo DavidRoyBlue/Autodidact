@@ -2,7 +2,7 @@ import { YStack } from 'tamagui';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUserCourses } from '@/api/courses';
-import { Screen, Card, AppText, Button } from '@/components';
+import { Screen, Card, AppText, Button, UpgradeAccountCard } from '@/components';
 
 export default function ProfileScreen() {
   const { user, clearSession } = useAuthStore();
@@ -19,6 +19,8 @@ export default function ProfileScreen() {
   return (
     <Screen>
       <YStack gap="$4" paddingTop="$4">
+        <UpgradeAccountCard />
+
         <Card variant="default">
           <AppText variant="label">Progress</AppText>
           <YStack marginTop="$2" gap="$1">

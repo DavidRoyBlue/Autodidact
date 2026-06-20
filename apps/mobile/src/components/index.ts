@@ -12,6 +12,9 @@ export { IconButton } from './interactive/IconButton';
 export { Input } from './interactive/Input';
 export { Chip } from './interactive/Chip';
 
+// auth
+export { UpgradeAccountCard } from './auth/UpgradeAccountCard';
+
 // display
 export { Card } from './display/Card';
 export { Badge } from './display/Badge';
