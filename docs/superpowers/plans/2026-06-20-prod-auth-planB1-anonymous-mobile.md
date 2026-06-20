@@ -19,6 +19,9 @@
 - **`is_anonymous` client source = the Supabase session `user.is_anonymous`** (boolean on the session's `user`). The app does not query the DB for it (that's the server/API's `public.users.is_anonymous`, Plan A).
 - **Identity contract (Plan A / ADR-028):** upgrade preserves the user UUID — `updateUser({email})` is an UPDATE of the same `auth.users` row, so `public.users.id` is unchanged and progress carries over. Never create a new user on upgrade.
 - **Local stack ports remapped +1000** (Spec 1): API `55321`, DB `55322`. The mobile app resolves `extra.supabaseUrl` from `.env.dev` via `app.config.ts`.
+- **PROD anonymous sign-in is gated on Plan C (hard sequencing constraint).** B1 enables `enable_anonymous_sign_ins` on the **local stack only**. Anonymous sign-in is an abuse vector (anyone with the publishable key can mint unlimited guests → unbounded `public.users` rows + trigger load); spec D5 pairs it with CAPTCHA + IP rate-limiting. **Do NOT enable anonymous sign-ins on the prod project (`cbzdsoojfhpsexuyeyxt`) until Plan C's rate-limit/CAPTCHA mitigations are live.** This is a release dependency, not a soft note.
+- **Email-confirmation awareness:** the upgrade flow must NOT assume `updateUser({email})` takes effect immediately. Locally `enable_confirmations=false` so it does; in prod (once Plan C may enable confirmation) it sends a confirmation and the user stays anonymous server-side until confirmed. The client must derive guest status from the **server-returned user**, never optimistically (see Task 5).
+- **Test mocking:** jest-expo tests must run with `expo-secure-store` mocked (the auth store's `persist` middleware writes to it). Before writing store/component tests, confirm `apps/mobile/jest-setup.ts` mocks `expo-secure-store` globally; if it does not, add a `jest.mock('expo-secure-store', () => ({ getItemAsync: jest.fn(), setItemAsync: jest.fn(), deleteItemAsync: jest.fn() }))` to the setup (or per-file). `jest.mock` factory vars must be prefixed `mock`.
 
 ---
 
@@ -44,20 +47,15 @@ enable_anonymous_sign_ins = true
 
 (Leave the IP rate-limit and CAPTCHA settings at defaults — tuning those is Plan C / GoTrue hardening, not B1. `enable_confirmations` for the email provider stays at its current local value `false`, so an `updateUser({email})` upgrade takes effect immediately for local verification.)
 
-- [ ] **Step 2: Restart the stack so the setting takes effect and verify**
+- [ ] **Step 2: Restart the stack so the setting takes effect and confirm it parsed**
 
 ```bash
 pnpm exec supabase stop
 pnpm exec supabase start
-# anonymous sign-in now succeeds (returns a session whose user.is_anonymous = true)
-curl -s -X POST "http://127.0.0.1:55321/auth/v1/signup" \
-  -H "apikey: $(grep '^SUPABASE_PUBLISHABLE_KEY' .env.dev | cut -d= -f2)" \
-  -H "Content-Type: application/json" -d '{}' -o /dev/null -w "%{http_code}\n"
-# (the anonymous endpoint is /auth/v1/signup with an empty body via the JS SDK; the
-#  definitive check is Task 6's in-app flow — this just confirms the toggle took)
-psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -c "select count(*) from auth.users where is_anonymous = true;"
+# Confirm GoTrue picked up the setting (it reports anonymous enablement in its config endpoint):
+curl -s "http://127.0.0.1:55321/auth/v1/settings" -H "apikey: $(grep '^SUPABASE_PUBLISHABLE_KEY' .env.dev | cut -d= -f2)"
 ```
-Expected: the stack restarts; a row appears in `auth.users` with `is_anonymous = true` (and the Plan A trigger provisions a matching `public.users` row — verify: `psql … -c "select is_anonymous from public.users where is_anonymous = true;"`). Clean up any test rows afterward: `psql … -c "delete from auth.users where is_anonymous = true; delete from public.users where is_anonymous = true;"`.
+Expected: the stack restarts; the settings JSON reports anonymous sign-ins enabled (look for the `external` / anonymous flag — field name varies by GoTrue version). The **definitive functional check is Task 6's in-app guest flow** — do not rely on a hand-rolled signup curl here (the JS SDK's `signInAnonymously()` is the real path; reproducing it by hand is brittle).
 
 - [ ] **Step 3: Commit**
 
@@ -66,7 +64,7 @@ git add supabase/config.toml
 git commit -m "feat(infra): enable anonymous sign-ins in the local Supabase stack (Spec 2 B1)"
 ```
 
-> **Prod parity note (record in the PR, no action here):** the prod project `cbzdsoojfhpsexuyeyxt` must also have anonymous sign-ins enabled (Supabase dashboard → Authentication → Providers → Anonymous, or a `config push` once Spec 1's config-parity question is resolved). B1 enables it locally; prod enablement + CAPTCHA/rate-limit hardening is tracked under Plan C / GoTrue config.
+> **PROD enablement is a Plan C release dependency — NOT done here.** Per the Global Constraint above, the prod project `cbzdsoojfhpsexuyeyxt` must NOT have anonymous sign-ins enabled until Plan C's CAPTCHA + IP-rate-limit mitigations are live (spec D5). When Plan C ships, enable it in prod via `supabase/config.toml` parity (or the dashboard) together with those mitigations. Record this dependency in the PR description.
 
 ---
 
@@ -213,6 +211,8 @@ Replace the guard effect (the `inAuthGroup` effect) with the canonical-order ver
 Run: `pnpm --filter @autodidact/mobile typecheck`
 Expected: passes. (`session.user.is_anonymous` is typed by `@supabase/supabase-js`'s `User`.)
 
+> **Test-coverage boundary (deliberate):** the routing *precedence* (expo-router `router.replace` redirects driven by `segments`) is not unit-tested here — per ADR-025, routing/UI flows are covered by Maestro e2e + manual verification, not jest. The one new piece of *logic* (capturing `session.user?.is_anonymous` into the store) is exercised end-to-end by Task 4's guest flow (store assertion) and Task 6 (in-app + restart). Do not add a brittle full-`RootLayout` render test for the redirects.
+
 - [ ] **Step 4: Commit**
 
 ```bash
@@ -278,13 +278,15 @@ Expected: FAIL — no "Continue as guest" button.
 
 - [ ] **Step 3: Add the guest handler + button**
 
-In `apps/mobile/app/(auth)/sign-in.tsx`, add a guest handler alongside `handleSignIn` (reuse the existing `setSession` selector and `loading` state, or add a separate `guestLoading` — keep it simple, reuse `loading`):
+In `apps/mobile/app/(auth)/sign-in.tsx`, add a separate `guestLoading` state (so the guest button and the Sign-In button don't spin together) and a guest handler alongside `handleSignIn`:
 
 ```typescript
+  const [guestLoading, setGuestLoading] = useState(false);
+
   const handleGuest = async () => {
-    setLoading(true);
+    setGuestLoading(true);
     const { data, error } = await supabase.auth.signInAnonymously();
-    setLoading(false);
+    setGuestLoading(false);
     if (error) {
       Alert.alert('Could not continue as guest', error.message);
       return;
@@ -298,7 +300,7 @@ In `apps/mobile/app/(auth)/sign-in.tsx`, add a guest handler alongside `handleSi
 Add the button after the "Sign up" ghost button (inside the same `YStack`):
 
 ```tsx
-        <Button variant="ghost" size="sm" loading={loading} onPress={handleGuest}>
+        <Button variant="ghost" size="sm" loading={guestLoading} onPress={handleGuest}>
           Continue as guest
         </Button>
 ```
@@ -326,8 +328,10 @@ git commit -m "feat(mobile): add Continue-as-guest anonymous sign-in (Spec 2 B1)
 - Test: `apps/mobile/src/components/auth/__tests__/UpgradeAccountCard.test.tsx`
 
 **Interfaces:**
-- Consumes: `useAuthStore` (`isAnonymous`, `setSession`); the `supabase` client.
-- Produces: `UpgradeAccountCard` — renders only for anonymous users; collects email + password, calls `supabase.auth.updateUser({ email, password })`, and on success updates the store session to non-anonymous (`isAnonymous=false`). The same UUID is preserved (server trigger syncs `public.users`).
+- Consumes: `useAuthStore` (`isAnonymous`, `accessToken`, `refreshToken`, `setSession`); the `supabase` client.
+- Produces: `UpgradeAccountCard` — renders only for anonymous users; collects email + password, calls `supabase.auth.updateUser({ email, password })`, and reconciles local guest status from the **server-returned user** (`data.user.is_anonymous`), NOT optimistically. If the server reports a pending email confirmation (`data.user.new_email` present, or still `is_anonymous`), it shows a "confirm your email" message and the card stays visible until the user is actually upgraded. The UUID is preserved (server trigger syncs `public.users`).
+
+> **Why not optimistic (the confirmation gap):** with email confirmation OFF (local) `updateUser({email})` upgrades immediately; with it ON (prod, once Plan C may enable it) the email is pending until confirmed and the user is still anonymous server-side. Flipping `isAnonymous=false` blindly would hide the card and falsely claim success while `public.users.is_anonymous` is still `true`. So we trust `data.user.is_anonymous` from the response.
 
 - [ ] **Step 1: Write the failing component test**
 
@@ -356,7 +360,7 @@ test('renders nothing for a non-anonymous user', () => {
   expect(queryByText('Save your account')).toBeNull();
 });
 
-test('upgrades an anonymous user via updateUser and clears anonymous state', async () => {
+test('confirmation OFF: server returns non-anonymous → clears guest state', async () => {
   useAuthStore.getState().setSession('at', 'rt', true);
   mockUpdateUser.mockResolvedValue({ data: { user: { id: 'u1', is_anonymous: false } }, error: null });
   const { getByText, getByPlaceholderText } = renderWithProviders(<UpgradeAccountCard />);
@@ -365,6 +369,19 @@ test('upgrades an anonymous user via updateUser and clears anonymous state', asy
   fireEvent.press(getByText('Save your account'));
   await waitFor(() => expect(mockUpdateUser).toHaveBeenCalledWith({ email: 'new@user.dev', password: 'Secret123!' }));
   await waitFor(() => expect(useAuthStore.getState().isAnonymous).toBe(false));
+});
+
+test('confirmation PENDING: server still anonymous w/ new_email → stays a guest', async () => {
+  useAuthStore.getState().setSession('at', 'rt', true);
+  // Email confirmation required: email is pending, user is still anonymous server-side.
+  mockUpdateUser.mockResolvedValue({ data: { user: { id: 'u1', is_anonymous: true, new_email: 'new@user.dev' } }, error: null });
+  const { getByText, getByPlaceholderText } = renderWithProviders(<UpgradeAccountCard />);
+  fireEvent.changeText(getByPlaceholderText('you@example.com'), 'new@user.dev');
+  fireEvent.changeText(getByPlaceholderText('Choose a password'), 'Secret123!');
+  fireEvent.press(getByText('Save your account'));
+  await waitFor(() => expect(mockUpdateUser).toHaveBeenCalled());
+  // Must NOT optimistically clear guest state — the upgrade isn't complete until confirmed.
+  await waitFor(() => expect(useAuthStore.getState().isAnonymous).toBe(true));
 });
 ```
 
@@ -398,16 +415,27 @@ export function UpgradeAccountCard() {
 
   const handleUpgrade = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ email, password });
+    const { data, error } = await supabase.auth.updateUser({ email, password });
     setLoading(false);
     if (error) {
       Alert.alert('Could not save your account', error.message);
       return;
     }
-    // Same UUID preserved; the sync_user_from_auth trigger updates public.users.
-    // Flip local state to non-anonymous (tokens unchanged).
-    if (accessToken && refreshToken) setSession(accessToken, refreshToken, false);
-    Alert.alert('Account saved', 'Your progress is now linked to your email.');
+    // Reconcile from the SERVER-returned user, never optimistically. With email
+    // confirmation ON (prod) the user stays anonymous until they confirm; with it
+    // OFF (local) the upgrade is immediate. Same UUID either way; the
+    // sync_user_from_auth trigger updates public.users when the email lands.
+    const stillAnonymous = data.user?.is_anonymous ?? false;
+    const pendingEmail = (data.user as { new_email?: string } | undefined)?.new_email;
+    if (accessToken && refreshToken) setSession(accessToken, refreshToken, stillAnonymous);
+    if (stillAnonymous || pendingEmail) {
+      Alert.alert(
+        'Confirm your email',
+        `We sent a confirmation link to ${pendingEmail ?? email}. Confirm it to finish linking your account and keep your progress.`,
+      );
+    } else {
+      Alert.alert('Account saved', 'Your progress is now linked to your email.');
+    }
   };
 
   return (
@@ -486,13 +514,17 @@ psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -c "select id, emai
 ```
 Expected: **same `id`**, `email` now set, `is_anonymous = false` — proving the upgrade preserved the UUID and the `sync_user_from_auth` trigger fired (email path). Progress rows (if the guest enrolled before upgrading) remain attached to the same `id`.
 
-- [ ] **Step 3: Clean up the test user**
+- [ ] **Step 3: Verify the anonymous session survives an app restart**
+
+Before upgrading, with a guest session active, **fully close and reopen the app** (or reload Metro). Confirm: the app does NOT bounce to the sign-in screen (the persisted session restores), it lands in `(app)`, and **Profile still shows the upgrade card** (i.e. `isAnonymous` rehydrated true). This exercises the persist→restore→`onAuthStateChange` round-trip for the new `isAnonymous` field — the state path most likely to regress.
+
+- [ ] **Step 4: Clean up the test user**
 
 ```bash
 psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -c "delete from public.users where id = '<guest-id>'; delete from auth.users where id = '<guest-id>';"
 ```
 
-> **Recorded scope:** this verifies the **email** upgrade path (`updateUser({email})`). The **OAuth `linkIdentity`** path is deferred (no OAuth in the app yet); its trigger-coverage verification + any `auth.identities` fallback stays OPEN in ADR-028's follow-ups until OAuth sign-in is added.
+> **Recorded scope:** this verifies the **email** upgrade path (`updateUser({email})`) with **local `enable_confirmations=false`** (immediate upgrade). The **confirmation-ON** behavior (prod) — where the card stays until the user confirms — is exercised by the Task 5 unit test but is only verifiable against real prod GoTrue at deploy time (the local stack has confirmations off). The **OAuth `linkIdentity`** path is deferred (no OAuth in the app yet); its trigger-coverage verification + any `auth.identities` fallback stays OPEN in ADR-028's follow-ups until OAuth sign-in is added.
 
 ---
 
@@ -534,4 +566,5 @@ pnpm --filter @autodidact/mobile typecheck   # clean
 ## Self-review notes (spec coverage)
 
 - 1d anonymous client flow → Tasks 1 (config), 4 (guest entry), 5 (upgrade). 1f/D8 guard precedence → Task 3. 1b **email** upgrade path + acceptance test → Tasks 5 + 6.
-- **Deferred by design:** OAuth `linkIdentity` upgrade + `auth.identities` fallback (no OAuth in app — ADR-028 follow-up stays open); CAPTCHA/IP-rate-limit + prod anonymous enablement (Plan C / GoTrue hardening); DEV_AUTO_LOGIN (Spec 4 — B1 leaves the slot); stale-anonymous cleanup (Plan B2).
+- **Critique fixes applied:** confirmation-aware upgrade (reconcile `isAnonymous` from the server-returned user, handle confirmation-pending — Task 5, with both branches tested); PROD anonymous enablement made a hard Plan-C release dependency (Global Constraints + Task 1); `expo-secure-store` test-mock requirement (Global Constraints); separate `guestLoading` (Task 4); app-restart rehydration verification (Task 6); routing-coverage boundary stated (Task 3); unreliable Task 1 curl removed.
+- **Deferred by design:** OAuth `linkIdentity` upgrade + `auth.identities` fallback (no OAuth in app — ADR-028 follow-up stays open); CAPTCHA/IP-rate-limit + prod anonymous enablement (Plan C / GoTrue hardening); confirmation-ON prod behavior verified only at deploy time (local has confirmations off); DEV_AUTO_LOGIN (Spec 4 — B1 leaves the slot); stale-anonymous cleanup (Plan B2).

@@ -18,6 +18,10 @@
 - **Worker invariants (`services/worker/CLAUDE.md`):** HTTP surface is the task contract only (`/tasks/:name` + `/health`); processors are pure `process*(data, deps)` functions in `src/processors/` (no transport coupling); validate every task body with `@autodidact/schemas`; response codes drive queue behaviour (`2xx` ack, `5xx` retry); use `@autodidact/db` (`getDb`) — never raw `pg`; log via `@autodidact/observability` (never `console.log`).
 - **Types vs schemas split:** payload **types** go in `@autodidact/types` (`src/jobs.ts`, no runtime code); **Zod schemas** go in `@autodidact/schemas` (`src/jobs.ts`). Keep the two shapes mirrored (existing convention).
 - **Test runner = Vitest** via `@autodidact/test-support` (Testcontainers real Postgres). The harness applies all migrations incl. `0006`/`0007` and stubs `auth.users` + the Supabase roles (Plan A). Run with the stale-env workaround: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter <pkg> test`.
+- **Atomicity (required):** the `public.users` delete and the `auth.users` delete MUST run in a **single DB transaction** (`db.transaction`). If they ran as two separate statements and the worker died between them, `public.users` rows would be gone but `auth.users` rows would remain — and they'd be **permanently orphaned**, because the next run keys off `public.users.is_anonymous` (the row needed to re-detect them is already deleted).
+- **Staleness definition (decision — surface it):** "stale" = `is_anonymous = true AND created_at < now() - N days`. There is **no last-activity column** on `users` (`updated_at` only changes on the upgrade-sync trigger), so `created_at` is the only available signal. **Tradeoff:** a guest who has been *actively using the app* for > N days is still deleted. At N=90 this is acceptable; if active-guest retention matters later, add a real activity timestamp (separate change). This is a deliberate choice, not an oversight.
+- **Batch cap (required):** the candidate query is bounded by `MAX_DELETE_BATCH` (1000) so the first prod run can't build one unbounded delete over a large backlog; the scheduled job drains the backlog over successive runs.
+- **`auth.users` delete relies on GoTrue's auth-schema cascades.** Deleting an `auth.users` row in real Supabase cascades to `auth.identities`/`auth.sessions`/`auth.refresh_tokens`. Anonymous users have no identities and typically no long-lived sessions, so this is low-risk, but the **test harness stub `auth.users` has none of those tables** — the integration test cannot catch an auth-schema cascade issue. Verify the cascade against the real local stack in Task 5; the admin API (`supabase.auth.admin.deleteUser`) is the alternative if direct SQL ever proves insufficient.
 
 ---
 
@@ -139,8 +143,8 @@ git commit -m "feat(worker): add cleanup-stale-anonymous job name (Spec 2 B2)"
 - Test: `services/worker/src/__tests__/stale-anonymous-cleanup.processor.integration.test.ts` (confirm the worker test dir + how existing worker integration tests use `withTestDatabase` — follow that pattern)
 
 **Interfaces:**
-- Consumes: `StaleAnonymousCleanupJobData` (Task 1); `getDb`, `sql` from `@autodidact/db`; `Logger`.
-- Produces: `processStaleAnonymousCleanup(data: StaleAnonymousCleanupJobData, deps: { logger: Logger }): Promise<{ deleted: number }>` — deletes stale anonymous users (`public.users` first → cascades, then `auth.users`) and returns the count. `DEFAULT_RETENTION_DAYS = 90`.
+- Consumes: `StaleAnonymousCleanupJobData` (Task 1); `getDb`, `sql`, `inArray`, `users` from `@autodidact/db`; `Logger`.
+- Produces: `processStaleAnonymousCleanup(data: StaleAnonymousCleanupJobData, deps: { logger: Logger }): Promise<{ deleted: number }>` — deletes stale anonymous users inside a single transaction (`public.users` first → cascades, then `auth.users`) and returns the count. `DEFAULT_RETENTION_DAYS = 90`, `MAX_DELETE_BATCH = 1000`.
 
 - [ ] **Step 1: Write the failing integration test**
 
@@ -218,11 +222,12 @@ Expected: FAIL — processor module does not exist.
 Create `services/worker/src/processors/stale-anonymous-cleanup.processor.ts`:
 
 ```typescript
-import { sql, getDb } from '@autodidact/db';
+import { sql, inArray, getDb, users } from '@autodidact/db';
 import type { StaleAnonymousCleanupJobData } from '@autodidact/types';
 import type { Logger } from '@autodidact/observability';
 
 export const DEFAULT_RETENTION_DAYS = 90;
+export const MAX_DELETE_BATCH = 1000;
 
 export interface StaleAnonymousCleanupDeps {
   logger: Logger;
@@ -233,8 +238,11 @@ export interface StaleAnonymousCleanupDeps {
  * Order matters (spec 1e): delete public.users FIRST — cascading to
  * enrollments / module_progress / chat_sessions via the ON DELETE CASCADE FKs
  * (migration 0006) — THEN delete the auth.users rows (no FK links the two, so
- * it is a separate explicit step). Runs as the postgres role (BYPASSRLS) via
- * getDb(). Idempotent: re-running deletes whatever is now stale.
+ * it is a separate explicit step; in real GoTrue that delete cascades within
+ * the auth schema). Both deletes run in ONE transaction so a crash can't orphan
+ * auth.users rows (the next run keys off public.users, which would be gone).
+ * Capped at MAX_DELETE_BATCH per run; the scheduled job drains any backlog over
+ * successive runs. Runs as the postgres role (BYPASSRLS) via getDb(). Idempotent.
  */
 export async function processStaleAnonymousCleanup(
   data: StaleAnonymousCleanupJobData,
@@ -244,9 +252,11 @@ export async function processStaleAnonymousCleanup(
   const db = getDb();
   const cutoff = sql`now() - (${String(retentionDays)} || ' days')::interval`;
 
-  // Collect the stale anonymous ids once, then delete from both tables in order.
+  // Candidate ids (bounded), parameterized — never string-built SQL.
   const stale = await db.execute(
-    sql`select id from public.users where is_anonymous = true and created_at < ${cutoff}`,
+    sql`select id from public.users
+        where is_anonymous = true and created_at < ${cutoff}
+        limit ${MAX_DELETE_BATCH}`,
   );
   const ids = (stale.rows as Array<{ id: string }>).map((r) => r.id);
   if (ids.length === 0) {
@@ -254,17 +264,17 @@ export async function processStaleAnonymousCleanup(
     return { deleted: 0 };
   }
 
-  // 1. public.users — cascades to enrollments/module_progress/chat_sessions (0006).
-  await db.execute(sql`delete from public.users where id in ${sql.raw('(' + ids.map((id) => `'${id}'`).join(',') + ')')}`);
-  // 2. auth.users — separate explicit delete (no FK from public.users to auth.users).
-  await db.execute(sql`delete from auth.users where id in ${sql.raw('(' + ids.map((id) => `'${id}'`).join(',') + ')')}`);
+  await db.transaction(async (tx) => {
+    // 1. public.users — cascades to enrollments/module_progress/chat_sessions (0006).
+    await tx.delete(users).where(inArray(users.id, ids));
+    // 2. auth.users — not in the Drizzle schema; parameterized array delete.
+    await tx.execute(sql`delete from auth.users where id = ANY(${ids}::uuid[])`);
+  });
 
   logger.info({ retentionDays, deleted: ids.length }, 'Stale-anonymous cleanup complete');
   return { deleted: ids.length };
 }
 ```
-
-> The ids come from a `uuid` column (server-generated), so the inline `sql.raw` list is safe here — but if a reviewer prefers parameterization, use `inArray(users.id, ids)` from Drizzle for the `public.users` delete and a parameterized `db.execute` for `auth.users`. Either is acceptable; keep it consistent and never interpolate untrusted strings.
 
 - [ ] **Step 4: Run the test to confirm it passes**
 
@@ -320,6 +330,17 @@ it('POST /tasks/cleanup-stale-anonymous rejects an invalid payload with 400', as
     payload: { retentionDays: -5 },
   });
   expect(res.statusCode).toBe(400);
+});
+
+it('POST /tasks/cleanup-stale-anonymous returns 500 when the processor throws (retry contract)', async () => {
+  const { processStaleAnonymousCleanup } = await import('../processors/stale-anonymous-cleanup.processor.js');
+  vi.mocked(processStaleAnonymousCleanup).mockRejectedValueOnce(new Error('db down'));
+  const res = await app.inject({
+    method: 'POST',
+    url: '/tasks/cleanup-stale-anonymous',
+    payload: {},
+  });
+  expect(res.statusCode).toBe(500);
 });
 ```
 
@@ -401,7 +422,7 @@ PGURL=postgresql://postgres:postgres@127.0.0.1:55322/postgres
 psql "$PGURL" -c "select count(*) as still_in_public from public.users where id='$ID';"
 psql "$PGURL" -c "select count(*) as still_in_auth from auth.users where id='$ID';"
 ```
-Expected: both counts `0` — removed from `public.users` (cascading any dependents) and from `auth.users`.
+Expected: both counts `0` — removed from `public.users` (cascading any dependents) and from `auth.users`. Because the local stack runs **real GoTrue**, this is also the verification that the direct `auth.users` delete behaves correctly against the real auth schema (the Testcontainers stub can't exercise the auth-schema cascade — see Global Constraints).
 
 ---
 
@@ -444,5 +465,6 @@ pnpm --filter @autodidact/worker typecheck
 
 ## Self-review notes (spec coverage)
 
-- 1e scheduler = worker (not pg_cron) → route + processor (Tasks 2–4). 1e ordered cascade delete (`public.users`→dependents→`auth.users`) → Task 3 (relies on Plan A `0006` cascades). Retention N=90 (plan parameter) → default in Task 3, payload in Task 1.
-- **Deferred by design:** the recurring **Cloud Scheduler → Cloud Tasks** trigger (Terraform/`infra/`) — B2 delivers the worker endpoint + processor only; the prod schedule is a separate infra task.
+- 1e scheduler = worker (not pg_cron) → route + processor (Tasks 2–4). 1e ordered cascade delete (`public.users`→dependents→`auth.users`) → Task 3 (relies on Plan A `0006` cascades), now **transactional** so a crash can't orphan `auth.users`. Retention N=90 (plan parameter) → default in Task 3, payload in Task 1.
+- **Critique fixes applied:** atomic two-table delete in one transaction; `inArray`/`= ANY($1)` parameterized (no string-built SQL); `MAX_DELETE_BATCH` cap; `created_at` staleness definition + tradeoff surfaced in Global Constraints; auth-schema-cascade reliance documented + verified against real GoTrue in Task 5; 500-on-throw retry-path test added (Task 4).
+- **Deferred by design:** the recurring **Cloud Scheduler → Cloud Tasks** trigger (Terraform/`infra/`) — B2 delivers the worker endpoint + processor only; the prod schedule is a separate infra task. A real "last activity" timestamp (vs. `created_at`) for active-guest retention is a future change if needed.
