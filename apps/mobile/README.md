@@ -125,6 +125,10 @@ apps/mobile/
     └── lib/                    # Module singletons (Supabase client)
 ```
 
+## Guest / anonymous accounts
+
+The sign-in screen offers **Continue as guest** (`supabase.auth.signInAnonymously()`), which drops the user straight into the app with a real (token-backed) anonymous session. Guests see a **Save your progress** card on the profile screen that upgrades them to a real account via email + password — the user's UUID and progress are preserved. The auth-flow guard precedence is owned by `app/_layout.tsx`. See [`CLAUDE.md`](./CLAUDE.md#auth) for the binding rules.
+
 ## Deeper docs
 
 - [Architecture](docs/architecture.md) — monorepo position, runtime dependencies, auth flow

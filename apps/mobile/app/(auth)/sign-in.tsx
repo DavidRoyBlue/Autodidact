@@ -11,6 +11,7 @@ export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
   const setSession = useAuthStore((s) => s.setSession);
 
   const handleSignIn = async () => {
@@ -23,6 +24,19 @@ export default function SignInScreen() {
     }
     if (data.session?.access_token && data.session?.refresh_token) {
       setSession(data.session.access_token, data.session.refresh_token);
+    }
+  };
+
+  const handleGuest = async () => {
+    setGuestLoading(true);
+    const { data, error } = await supabase.auth.signInAnonymously();
+    setGuestLoading(false);
+    if (error) {
+      Alert.alert('Could not continue as guest', error.message);
+      return;
+    }
+    if (data.session?.access_token && data.session?.refresh_token) {
+      setSession(data.session.access_token, data.session.refresh_token, data.session.user?.is_anonymous ?? true);
     }
   };
 
@@ -63,6 +77,10 @@ export default function SignInScreen() {
 
         <Button variant="ghost" size="sm" onPress={() => router.push('/(auth)/sign-up')}>
           Don't have an account? Sign up
+        </Button>
+
+        <Button variant="ghost" size="sm" loading={guestLoading} onPress={handleGuest}>
+          Continue as guest
         </Button>
       </YStack>
     </Screen>

@@ -1,5 +1,7 @@
 # Production Auth (Spec 2) — Plan B1: Anonymous Sign-In & Mobile Auth Lifecycle (Phase 1d/1f + email-upgrade)
 
+> Completed: 2026-06-20
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let users enter the app as anonymous guests (`signInAnonymously`) with a clean email-upgrade path that preserves their UUID + progress, and establish the canonical mobile auth-flow guard precedence (D8) that Spec 4's DEV_AUTO_LOGIN slots into.
@@ -33,7 +35,7 @@
 **Interfaces:**
 - Produces: a local GoTrue that accepts `signInAnonymously()`. (Without this, the client call returns a 422 "Anonymous sign-ins are disabled".)
 
-- [ ] **Step 1: Flip the toggle**
+- [x] **Step 1: Flip the toggle**
 
 In `supabase/config.toml`, under `[auth]`, change:
 
@@ -47,7 +49,7 @@ enable_anonymous_sign_ins = true
 
 (Leave the IP rate-limit and CAPTCHA settings at defaults — tuning those is Plan C / GoTrue hardening, not B1. `enable_confirmations` for the email provider stays at its current local value `false`, so an `updateUser({email})` upgrade takes effect immediately for local verification.)
 
-- [ ] **Step 2: Restart the stack so the setting takes effect and confirm it parsed**
+- [x] **Step 2: Restart the stack so the setting takes effect and confirm it parsed**
 
 ```bash
 pnpm exec supabase stop
@@ -57,7 +59,7 @@ curl -s "http://127.0.0.1:55321/auth/v1/settings" -H "apikey: $(grep '^SUPABASE_
 ```
 Expected: the stack restarts; the settings JSON reports anonymous sign-ins enabled (look for the `external` / anonymous flag — field name varies by GoTrue version). The **definitive functional check is Task 6's in-app guest flow** — do not rely on a hand-rolled signup curl here (the JS SDK's `signInAnonymously()` is the real path; reproducing it by hand is brittle).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add supabase/config.toml
@@ -78,7 +80,7 @@ git commit -m "feat(infra): enable anonymous sign-ins in the local Supabase stac
 - Consumes: nothing new.
 - Produces: `AuthState` gains `isAnonymous: boolean` (default `false`); `setSession(accessToken, refreshToken, isAnonymous?: boolean)` accepts an optional third arg (defaults `false`); `clearSession()` resets `isAnonymous` to `false`. Persisted under the existing `autodidact-auth` key.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create/extend `apps/mobile/src/stores/__tests__/auth.store.test.ts`:
 
@@ -108,12 +110,12 @@ test('clearSession resets isAnonymous', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to confirm it fails**
+- [x] **Step 2: Run the test to confirm it fails**
 
 Run: `pnpm --filter @autodidact/mobile test auth.store`
 Expected: FAIL — `isAnonymous` is undefined / `setSession` ignores the third arg.
 
-- [ ] **Step 3: Update the store**
+- [x] **Step 3: Update the store**
 
 In `apps/mobile/src/stores/auth.store.ts`, add `isAnonymous` to the interface and state:
 
@@ -142,12 +144,12 @@ In the `create(...)` initializer:
       clearSession: () => set({ accessToken: null, refreshToken: null, user: null, isAnonymous: false }),
 ```
 
-- [ ] **Step 4: Run the test to confirm it passes**
+- [x] **Step 4: Run the test to confirm it passes**
 
 Run: `pnpm --filter @autodidact/mobile test auth.store`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/mobile/src/stores/auth.store.ts apps/mobile/src/stores/__tests__/auth.store.test.ts
@@ -165,7 +167,7 @@ git commit -m "feat(mobile): track isAnonymous in the auth store (Spec 2 B1)"
 - Consumes: `setSession(accessToken, refreshToken, isAnonymous?)` (Task 2).
 - Produces: the `onAuthStateChange` handler passes `session.user?.is_anonymous` into `setSession`; the guard order is documented per D8 with an explicit DEV_AUTO_LOGIN placeholder comment for Spec 4. No behavior change for already-signed-in real users.
 
-- [ ] **Step 1: Update the session-sync to capture `is_anonymous`**
+- [x] **Step 1: Update the session-sync to capture `is_anonymous`**
 
 In `apps/mobile/app/_layout.tsx`, change the `onAuthStateChange` effect body:
 
@@ -182,7 +184,7 @@ In `apps/mobile/app/_layout.tsx`, change the `onAuthStateChange` effect body:
   }, [setSession, clearSession]);
 ```
 
-- [ ] **Step 2: Document the canonical guard precedence (D8) with the Spec 4 slot**
+- [x] **Step 2: Document the canonical guard precedence (D8) with the Spec 4 slot**
 
 Replace the guard effect (the `inAuthGroup` effect) with the canonical-order version. An anonymous session has tokens, so it routes into `(app)` exactly like a real session — the only difference is the upgrade card (Task 5). Add the precedence comment + the explicit DEV_AUTO_LOGIN placeholder:
 
@@ -206,14 +208,14 @@ Replace the guard effect (the `inAuthGroup` effect) with the canonical-order ver
   }, [accessToken, segments, router]);
 ```
 
-- [ ] **Step 3: Verify typecheck**
+- [x] **Step 3: Verify typecheck**
 
 Run: `pnpm --filter @autodidact/mobile typecheck`
 Expected: passes. (`session.user.is_anonymous` is typed by `@supabase/supabase-js`'s `User`.)
 
 > **Test-coverage boundary (deliberate):** the routing *precedence* (expo-router `router.replace` redirects driven by `segments`) is not unit-tested here — per ADR-025, routing/UI flows are covered by Maestro e2e + manual verification, not jest. The one new piece of *logic* (capturing `session.user?.is_anonymous` into the store) is exercised end-to-end by Task 4's guest flow (store assertion) and Task 6 (in-app + restart). Do not add a brittle full-`RootLayout` render test for the redirects.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add apps/mobile/app/_layout.tsx
@@ -232,7 +234,7 @@ git commit -m "feat(mobile): capture is_anonymous in session sync + canonical D8
 - Consumes: `setSession(accessToken, refreshToken, isAnonymous?)` (Task 2); the `supabase` client.
 - Produces: a `handleGuest` handler calling `supabase.auth.signInAnonymously()` and a "Continue as guest" `Button`.
 
-- [ ] **Step 1: Write the failing component test**
+- [x] **Step 1: Write the failing component test**
 
 Create `apps/mobile/app/(auth)/__tests__/sign-in.test.tsx`. Mock the supabase client and assert the guest button calls `signInAnonymously` and stores the session as anonymous:
 
@@ -271,12 +273,12 @@ test('Continue as guest signs in anonymously and records an anonymous session', 
 });
 ```
 
-- [ ] **Step 2: Run the test to confirm it fails**
+- [x] **Step 2: Run the test to confirm it fails**
 
 Run: `pnpm --filter @autodidact/mobile test sign-in`
 Expected: FAIL — no "Continue as guest" button.
 
-- [ ] **Step 3: Add the guest handler + button**
+- [x] **Step 3: Add the guest handler + button**
 
 In `apps/mobile/app/(auth)/sign-in.tsx`, add a separate `guestLoading` state (so the guest button and the Sign-In button don't spin together) and a guest handler alongside `handleSignIn`:
 
@@ -305,12 +307,12 @@ Add the button after the "Sign up" ghost button (inside the same `YStack`):
         </Button>
 ```
 
-- [ ] **Step 4: Run the test to confirm it passes**
+- [x] **Step 4: Run the test to confirm it passes**
 
 Run: `pnpm --filter @autodidact/mobile test sign-in`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/mobile/app/\(auth\)/sign-in.tsx apps/mobile/app/\(auth\)/__tests__/sign-in.test.tsx
@@ -333,7 +335,7 @@ git commit -m "feat(mobile): add Continue-as-guest anonymous sign-in (Spec 2 B1)
 
 > **Why not optimistic (the confirmation gap):** with email confirmation OFF (local) `updateUser({email})` upgrades immediately; with it ON (prod, once Plan C may enable it) the email is pending until confirmed and the user is still anonymous server-side. Flipping `isAnonymous=false` blindly would hide the card and falsely claim success while `public.users.is_anonymous` is still `true`. So we trust `data.user.is_anonymous` from the response.
 
-- [ ] **Step 1: Write the failing component test**
+- [x] **Step 1: Write the failing component test**
 
 Create `apps/mobile/src/components/auth/__tests__/UpgradeAccountCard.test.tsx`:
 
@@ -385,12 +387,12 @@ test('confirmation PENDING: server still anonymous w/ new_email → stays a gues
 });
 ```
 
-- [ ] **Step 2: Run the test to confirm it fails**
+- [x] **Step 2: Run the test to confirm it fails**
 
 Run: `pnpm --filter @autodidact/mobile test UpgradeAccountCard`
 Expected: FAIL — component does not exist.
 
-- [ ] **Step 3: Implement the component**
+- [x] **Step 3: Implement the component**
 
 Create `apps/mobile/src/components/auth/UpgradeAccountCard.tsx` (use only `@/components` primitives + Tamagui layout, matching existing screens):
 
@@ -469,7 +471,7 @@ export function UpgradeAccountCard() {
 
 Export it from the components barrel — open `apps/mobile/src/components/index.ts`, confirm the export style, and add `export { UpgradeAccountCard } from './auth/UpgradeAccountCard';` (match whatever grouping/style the barrel uses).
 
-- [ ] **Step 4: Render it on the profile screen**
+- [x] **Step 4: Render it on the profile screen**
 
 In `apps/mobile/app/(app)/profile.tsx`, import `UpgradeAccountCard` from `@/components` and render it inside the top `YStack` (e.g. above the "Email" card) so guests see the prompt and real users see nothing (the component self-hides):
 
@@ -479,12 +481,12 @@ import { Screen, Card, AppText, Button, UpgradeAccountCard } from '@/components'
         <UpgradeAccountCard />
 ```
 
-- [ ] **Step 5: Run the test + typecheck**
+- [x] **Step 5: Run the test + typecheck**
 
 Run: `pnpm --filter @autodidact/mobile test UpgradeAccountCard && pnpm --filter @autodidact/mobile typecheck`
 Expected: tests PASS; typecheck clean.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/mobile/src/components/auth/UpgradeAccountCard.tsx apps/mobile/src/components/index.ts apps/mobile/app/\(app\)/profile.tsx apps/mobile/src/components/auth/__tests__/UpgradeAccountCard.test.tsx
@@ -497,7 +499,7 @@ git commit -m "feat(mobile): email-upgrade card for anonymous users (Spec 2 B1)"
 
 **Files:** none (manual/scripted verification). **Precondition:** local stack up (`pnpm exec supabase start`), backend running (`pnpm dev`), app on the emulator (`pnpm mobile:run`). This is the spec **1b email-path acceptance test**.
 
-- [ ] **Step 1: Guest sign-in lands in local `auth.users`**
+- [x] **Step 1: Guest sign-in lands in local `auth.users`**
 
 In the app, tap **Continue as guest**. Then:
 ```bash
@@ -506,7 +508,7 @@ psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -c "select id, emai
 ```
 Expected: one anonymous row in **both** tables with the **same id** (Plan A trigger provisioned `public.users`), `email` NULL, `is_anonymous = true`.
 
-- [ ] **Step 2: Upgrade preserves the UUID and syncs email (the 1b acceptance test)**
+- [x] **Step 2: Upgrade preserves the UUID and syncs email (the 1b acceptance test)**
 
 Note the guest's `id` from Step 1. In the app, go to **Profile → Save your account**, enter an email + password, submit. Then:
 ```bash
@@ -514,11 +516,11 @@ psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -c "select id, emai
 ```
 Expected: **same `id`**, `email` now set, `is_anonymous = false` — proving the upgrade preserved the UUID and the `sync_user_from_auth` trigger fired (email path). Progress rows (if the guest enrolled before upgrading) remain attached to the same `id`.
 
-- [ ] **Step 3: Verify the anonymous session survives an app restart**
+- [x] **Step 3: Verify the anonymous session survives an app restart**
 
 Before upgrading, with a guest session active, **fully close and reopen the app** (or reload Metro). Confirm: the app does NOT bounce to the sign-in screen (the persisted session restores), it lands in `(app)`, and **Profile still shows the upgrade card** (i.e. `isAnonymous` rehydrated true). This exercises the persist→restore→`onAuthStateChange` round-trip for the new `isAnonymous` field — the state path most likely to regress.
 
-- [ ] **Step 4: Clean up the test user**
+- [x] **Step 4: Clean up the test user**
 
 ```bash
 psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -c "delete from public.users where id = '<guest-id>'; delete from auth.users where id = '<guest-id>';"
@@ -534,16 +536,16 @@ psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -c "delete from pub
 - Modify: `apps/mobile/README.md`
 - Modify: `apps/mobile/CLAUDE.md` (Auth invariants / Entry points)
 
-- [ ] **Step 1: Document the anonymous lifecycle**
+- [x] **Step 1: Document the anonymous lifecycle**
 
 In `apps/mobile/CLAUDE.md` under **Auth**, add: anonymous sign-in via `supabase.auth.signInAnonymously()` ("Continue as guest" on sign-in); `isAnonymous` lives in `auth.store` (sourced from the Supabase session `user.is_anonymous`); upgrade via `supabase.auth.updateUser({ email, password })` from `UpgradeAccountCard` (preserves UUID; server trigger syncs `public.users`); `app/_layout.tsx` owns the D8 guard precedence (restore → session⇒(app) → DEV_AUTO_LOGIN slot [Spec 4] → auth UI). In `apps/mobile/README.md`, add a short "Guest / anonymous accounts" note pointing at the same.
 
-- [ ] **Step 2: Verify no stale claims**
+- [x] **Step 2: Verify no stale claims**
 
 Run: `grep -rn "email/password only\|no anonymous" apps/mobile/README.md apps/mobile/CLAUDE.md || echo "none"`
 Expected: none (or fix any line that now contradicts anonymous support).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/mobile/README.md apps/mobile/CLAUDE.md

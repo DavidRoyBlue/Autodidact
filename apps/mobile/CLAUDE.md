@@ -36,6 +36,8 @@ This subtree does NOT own:
 - Auth tokens managed exclusively by [`src/stores/auth.store.ts`](./src/stores/auth.store.ts) via `expo-secure-store`
 - `supabase` client (in `src/lib/supabase.ts`) used for auth operations only — `persistSession` must remain `false`; the auth store owns session persistence
 - `apiFetch` injects the auth token automatically — do not pass tokens manually in components
+- **Anonymous (guest) accounts (Spec 2 B1):** "Continue as guest" on the sign-in screen calls `supabase.auth.signInAnonymously()`. An anonymous session is a real session (has tokens), so it routes into `(app)` like any signed-in user. `isAnonymous` lives in `auth.store` — sourced from the Supabase session `user.is_anonymous` (do not query the DB for it client-side). Upgrade to a real account via `supabase.auth.updateUser({ email, password })` from [`UpgradeAccountCard`](./src/components/auth/UpgradeAccountCard.tsx) (profile screen, self-hides for non-guests); this preserves the user UUID and the server `sync_user_from_auth` trigger syncs `public.users`. Reconcile guest status from the **server-returned** `data.user.is_anonymous`, never optimistically (email confirmation may keep the user anonymous until confirmed).
+- **Guard precedence (Spec 2 D8) is owned solely by [`app/_layout.tsx`](./app/_layout.tsx):** restore persisted session → session present (real OR anonymous) ⇒ `(app)` → DEV_AUTO_LOGIN slot (Spec 4, not yet implemented) → auth UI. Do not add competing redirect guards in other files.
 
 ### UI
 - Tamagui only — do not mix `StyleSheet.create`, Styled Components, or other styling libraries
@@ -89,8 +91,9 @@ This subtree does NOT own:
 ## Entry points
 
 - App bootstrap: [`app/_layout.tsx`](./app/_layout.tsx) — TamaguiProvider, QueryClient, ErrorBoundary, ToastProvider, auth guard
-- Auth flow: [`app/(auth)/sign-in.tsx`](./app/(auth)/sign-in.tsx) — sign-in; links to sign-up
+- Auth flow: [`app/(auth)/sign-in.tsx`](./app/(auth)/sign-in.tsx) — sign-in; links to sign-up; "Continue as guest" (anonymous sign-in)
 - New user registration: [`app/(auth)/sign-up.tsx`](./app/(auth)/sign-up.tsx)
+- Guest→account upgrade: [`src/components/auth/UpgradeAccountCard.tsx`](./src/components/auth/UpgradeAccountCard.tsx) — rendered on the profile screen for anonymous users only
 - Main app shell: [`app/(app)/index.tsx`](./app/(app)/index.tsx)
 - Chat feature:
   - Route: `app/(app)/courses/[id]/modules/[moduleId]/chat.tsx`

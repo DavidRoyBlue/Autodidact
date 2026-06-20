@@ -28,7 +28,7 @@ export default function RootLayout() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.access_token && session?.refresh_token) {
-        setSession(session.access_token, session.refresh_token);
+        setSession(session.access_token, session.refresh_token, session.user?.is_anonymous ?? false);
       } else {
         clearSession();
       }
@@ -36,9 +36,18 @@ export default function RootLayout() {
     return () => subscription.unsubscribe();
   }, [setSession, clearSession]);
 
+  // Canonical auth-flow precedence (Spec 2, D8 — this file is the single owner):
+  //   1. Persisted session restored above → autoRefresh keeps it alive.
+  //   2. Session present (real OR anonymous) → route into (app).
+  //   3. No session + __DEV__ + extra.devAutoLogin → DEV_AUTO_LOGIN slot (Spec 4).
+  //      Spec 4 implements this slot; it takes precedence over the guest path in
+  //      dev so the two never both fire. Intentionally NOT implemented in B1.
+  //   4. Otherwise → auth UI ((auth) group), which offers real sign-in/up AND
+  //      "Continue as guest" (signInAnonymously).
   useEffect(() => {
     const inAuthGroup = segments[0] === '(auth)';
     if (!accessToken && !inAuthGroup) {
+      // Spec 4 DEV_AUTO_LOGIN slot goes here (before the redirect to auth UI).
       router.replace('/(auth)/sign-in');
     } else if (accessToken && inAuthGroup) {
       router.replace('/(app)');

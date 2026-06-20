@@ -7,7 +7,8 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   user: UserProfile | null;
-  setSession: (accessToken: string, refreshToken: string) => void;
+  isAnonymous: boolean;
+  setSession: (accessToken: string, refreshToken: string, isAnonymous?: boolean) => void;
   setUser: (user: UserProfile) => void;
   clearSession: () => void;
 }
@@ -24,9 +25,11 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       user: null,
-      setSession: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
+      isAnonymous: false,
+      setSession: (accessToken, refreshToken, isAnonymous = false) =>
+        set({ accessToken, refreshToken, isAnonymous }),
       setUser: (user) => set({ user }),
-      clearSession: () => set({ accessToken: null, refreshToken: null, user: null }),
+      clearSession: () => set({ accessToken: null, refreshToken: null, user: null, isAnonymous: false }),
     }),
     {
       name: 'autodidact-auth',
