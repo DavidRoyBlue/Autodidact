@@ -30,4 +30,8 @@ Specs explore and define a feature's design before implementation begins. A spec
 
 ## Filename format
 
-`YYYY-MM-DD-kebab-case-name.md`
+`YYYY-MM-DD-{area}-{descriptor}.md`
+
+if there is multiple related specs, file format should be
+
+`YYYY-MM-DD-{area}-{descriptor}[-phase{N}]-{phase-descriptor}.md`

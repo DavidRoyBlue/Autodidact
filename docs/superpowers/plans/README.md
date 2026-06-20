@@ -33,10 +33,10 @@ Plans are structured task lists written before implementation begins. They are t
 
 ## Filename format
 
-`YYYY-MM-DD-kebab-case-name.md`
+`YYYY-MM-DD-{area}-{descriptor}.md`
 
 if there is multiple plans related to one big chunk of work, name should be
 
-`YYYY-MM-DD-planname/globalfeature-phaseX-kebab-case-name.md`
+`YYYY-MM-DD-{area}-{descriptor}[-phase{N}]-{phase-descriptor}.md`
 
 make the title of the plan clear as to what spec it is about, and also wich phase it is.
