@@ -7,7 +7,7 @@ jest.mock('expo-secure-store', () => ({
 import { useAuthStore } from '../auth.store';
 
 const reset = () =>
-  useAuthStore.setState({ accessToken: null, refreshToken: null, user: null });
+  useAuthStore.setState({ accessToken: null, refreshToken: null, user: null, isAnonymous: false });
 
 describe('useAuthStore', () => {
   beforeEach(reset);
@@ -43,5 +43,23 @@ describe('useAuthStore', () => {
     expect(s.accessToken).toBeNull();
     expect(s.refreshToken).toBeNull();
     expect(s.user).toBeNull();
+  });
+
+  it('setSession defaults isAnonymous to false', () => {
+    useAuthStore.getState().setSession('a', 'r');
+    expect(useAuthStore.getState().isAnonymous).toBe(false);
+    expect(useAuthStore.getState().accessToken).toBe('a');
+  });
+
+  it('setSession records an anonymous session', () => {
+    useAuthStore.getState().setSession('a', 'r', true);
+    expect(useAuthStore.getState().isAnonymous).toBe(true);
+  });
+
+  it('clearSession resets isAnonymous', () => {
+    useAuthStore.getState().setSession('a', 'r', true);
+    useAuthStore.getState().clearSession();
+    expect(useAuthStore.getState().isAnonymous).toBe(false);
+    expect(useAuthStore.getState().accessToken).toBeNull();
   });
 });
