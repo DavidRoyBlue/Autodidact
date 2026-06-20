@@ -21,6 +21,15 @@ const DEV_DB_INIT_SQL = `
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Supabase predefined roles. The real stack/prod ships these; the plain
+-- Testcontainers Postgres does not. Migrations that GRANT/REVOKE on anon /
+-- authenticated / service_role (e.g. 0008's REVOKE, and Plan C's Data API
+-- lockdown) reference them by name and fail with "role does not exist" without
+-- these. NOLOGIN, no privileges — just enough for the grant DDL to resolve.
+DO $$ BEGIN CREATE ROLE anon NOLOGIN; EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE ROLE service_role NOLOGIN; EXCEPTION WHEN duplicate_object THEN null; END $$;
+
 CREATE SCHEMA IF NOT EXISTS auth;
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE
   AS $$ SELECT '00000000-0000-0000-0000-000000000000'::uuid $$;
