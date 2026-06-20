@@ -5,14 +5,19 @@ import type { MessageEvent } from '@nestjs/common';
 import { getDb, chatSessions, courses, modules, moduleProgress, eq, and } from '@autodidact/db';
 import { cloudRunAuthHeaders } from '@autodidact/providers';
 import { ProgressService } from '../progress/progress.service.js';
+import { ProvisioningService } from '../provisioning/provisioning.service.js';
 import type { ChatMessage } from '@autodidact/types';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly progressService: ProgressService) {}
+  constructor(
+    private readonly progressService: ProgressService,
+    private readonly provisioning: ProvisioningService,
+  ) {}
 
   async createSession(userId: string, moduleId: string, _courseId: string) {
+    await this.provisioning.ensureProvisioned(userId);
     const db = getDb();
     const [session] = await db
       .insert(chatSessions)

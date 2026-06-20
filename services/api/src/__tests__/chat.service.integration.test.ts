@@ -37,8 +37,11 @@ import {
   eq,
   and,
 } from '@autodidact/db';
+import { InternalServerErrorException } from '@nestjs/common';
 import { ChatService } from '../modules/chat/chat.service.js';
 import { ProgressService } from '../modules/progress/progress.service.js';
+import { ProvisioningService } from '../modules/provisioning/provisioning.service.js';
+import { makeMockProvisioningService } from '@autodidact/config/test-utils';
 
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -72,6 +75,19 @@ async function collectEvents(obs: Observable<MessageEvent>): Promise<MessageEven
 
 // ────────────────────────────────────────────────────────────────────────────
 
+describe('ChatService.createSession() — provisioning gate', () => {
+  it('throws InternalServerErrorException for an unprovisioned userId', async () => {
+    // Real ProvisioningService — getDb() is redirected to harness.db by the vi.mock above.
+    // The truncate in a prior test (or fresh harness) ensures this UUID has no public.users row.
+    const unprovisionedUserId = '00000000-0000-0000-0000-000000000099';
+    const service = new ChatService(new ProgressService(), new ProvisioningService());
+
+    await expect(
+      service.createSession(unprovisionedUserId, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002'),
+    ).rejects.toThrow(InternalServerErrorException);
+  });
+});
+
 describe('ChatService.streamMessage()', () => {
   let userId: string;
   let courseId: string;
@@ -102,8 +118,10 @@ describe('ChatService.streamMessage()', () => {
     if (!session) throw new Error('Failed to create chat session');
     sessionId = session.id;
 
-    // Build real service with real ProgressService (writes real DB rows)
-    service = new ChatService(new ProgressService());
+    // Build real service with real ProgressService (writes real DB rows).
+    // ProvisioningService is mocked (no-op) because the seeded user is always provisioned;
+    // the unprovisioned rejection path is tested separately below.
+    service = new ChatService(new ProgressService(), makeMockProvisioningService() as never);
   });
 
   afterEach(() => {
