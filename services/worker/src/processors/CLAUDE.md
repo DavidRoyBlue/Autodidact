@@ -10,6 +10,7 @@ Pure task-processing functions. Each file exports a `process*(data, deps)` funct
 |------|----------|---------------|
 | `course-generation.processor.ts` | `processCourseGeneration` | `POST /tasks/generate-course` |
 | `embedding.processor.ts` | `processEmbedding` | `POST /tasks/generate-embedding` |
+| `stale-anonymous-cleanup.processor.ts` | `processStaleAnonymousCleanup` | `POST /tasks/cleanup-stale-anonymous` |
 
 ---
 
@@ -112,6 +113,47 @@ Drizzle's `.update().set()` does not cleanly handle the `::vector` cast for para
 
 ---
 
-## Retry configuration (both task types)
+## Stale-anonymous cleanup processor
 
-Owned by the Cloud Tasks queue config in `infra/modules/cloud-tasks/main.tf` (`max_attempts = 3`, backoff 5 s → 125 s) — not application code. `TASK_MAX_ATTEMPTS` in the worker env must mirror `max_attempts`. The loopback dev provider performs a single attempt, treated as final.
+### Task payload
+
+```typescript
+StaleAnonymousCleanupJobData {
+  retentionDays?: number  // delete anonymous users created > N days ago; defaults to 90
+}
+```
+
+### Processor steps
+
+```
+1. SELECT id FROM public.users
+     WHERE is_anonymous = true AND created_at < now() - N days
+     LIMIT MAX_DELETE_BATCH (1000)            (bounded candidate set)
+2. if empty → return { deleted: 0 }
+3. DB transaction (atomic — see below):
+     a. DELETE public.users WHERE id IN (ids)  → cascades to enrollments /
+        module_progress / chat_sessions via the ON DELETE CASCADE FKs (migration 0006)
+     b. DELETE auth.users  WHERE id IN (ids)   → in real GoTrue cascades within
+        the auth schema (identities/sessions/refresh_tokens)
+4. return { deleted: ids.length }
+```
+
+### Invariants
+
+- **Ordered delete (spec 1e):** `public.users` first (cascades to dependents), then `auth.users`. No FK links the two tables, so the `auth.users` delete is an explicit second step.
+- **Atomicity:** both deletes run in ONE `db.transaction`. They must never be split — if a crash left `public.users` rows deleted but `auth.users` rows present, the next run could not re-detect them (it keys off `public.users.is_anonymous`, which would be gone), permanently orphaning the `auth.users` rows.
+- **Staleness = `created_at`:** there is no last-activity column on `users`, so an actively-used guest older than N days is still deleted. Acceptable at N=90; add a real activity timestamp if active-guest retention is ever needed.
+- **Bounded:** candidate set is capped at `MAX_DELETE_BATCH` (1000); the scheduled job drains any backlog over successive runs.
+- **Parameterized SQL only:** id lists are passed as drizzle parameters (`inArray` / `in (${ids})`), never string-built.
+- **Idempotent:** a re-run simply finds nothing new (`{ deleted: 0 }`). On error the route returns `500` and Cloud Tasks retries safely — no course-style final-attempt handling.
+- Runs as the `postgres` role (BYPASSRLS) via `getDb()`.
+
+### Scheduling — deferred
+
+The recurring trigger (**Cloud Scheduler → Cloud Tasks**, Terraform/`infra/`) is a **deferred infra task**. B2 ships only the endpoint + processor; in dev the task is invoked by a manual `POST /tasks/cleanup-stale-anonymous`.
+
+---
+
+## Retry configuration (all task types)
+
+Owned by the Cloud Tasks queue config in `infra/modules/cloud-tasks/main.tf` (`max_attempts = 3`, backoff 5 s → 125 s) — not application code. `TASK_MAX_ATTEMPTS` in the worker env must mirror `max_attempts`. The loopback dev provider performs a single attempt, treated as final. (`cleanup-stale-anonymous` is idempotent, so it just returns `500` and lets the queue retry — it has no final-attempt branch.)

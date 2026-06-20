@@ -8,6 +8,7 @@ Pure task-processing functions, free of any transport concern. Each exports a `p
 |------|----------|---------------|
 | `course-generation.processor.ts` | `processCourseGeneration` | `POST /tasks/generate-course` |
 | `embedding.processor.ts` | `processEmbedding` | `POST /tasks/generate-embedding` |
+| `stale-anonymous-cleanup.processor.ts` | `processStaleAnonymousCleanup` | `POST /tasks/cleanup-stale-anonymous` |
 
 ---
 
@@ -88,6 +89,40 @@ Idempotent — safe to retry any number of times. A failed embedding never chang
 Drizzle's `.update().set()` does not cleanly handle the `::vector` cast on parameterised values. The `sql` tagged template literal with `db.execute()` bypasses this limitation by passing the vector as a literal string.
 
 The `courses` row must already exist and have `status = 'ready'` before this runs (guaranteed by task chaining order).
+
+---
+
+## Stale-Anonymous Cleanup Processor
+
+**Payload**: `StaleAnonymousCleanupJobData { retentionDays? }` (default 90)
+
+### What it does
+
+```typescript
+1. SELECT id FROM public.users
+     WHERE is_anonymous = true AND created_at < now() - N days
+     LIMIT 1000                                  // bounded batch
+2. if no ids → return { deleted: 0 }
+3. db.transaction(async (tx) => {
+     await tx.delete(users).where(inArray(users.id, ids));   // cascades to dependents (0006)
+     await tx.execute(sql`delete from auth.users where id in (${ids})`);
+   });
+4. return { deleted: ids.length }
+```
+
+Ordered delete (spec 1e): `public.users` first — cascading to `enrollments` / `module_progress` / `chat_sessions` via the `ON DELETE CASCADE` FKs from migration `0006` — then `auth.users` (no FK links the two; in real GoTrue this delete cascades within the auth schema).
+
+### Why one transaction
+
+Both deletes are atomic. If a crash deleted `public.users` rows but left `auth.users` rows, the next run could not re-detect them — it keys off `public.users.is_anonymous`, which would be gone — permanently orphaning the `auth.users` rows. Idempotent: a re-run finds nothing new; on a throw the route returns `500` and Cloud Tasks retries.
+
+### Staleness signal
+
+"Stale" is `created_at` older than the window. There is no last-activity column on `users`, so an actively-used guest older than N days is still deleted — acceptable at N=90. The candidate set is capped at 1000 per run; the scheduled job drains any backlog over successive runs.
+
+### Scheduling — deferred
+
+The recurring trigger (**Cloud Scheduler → Cloud Tasks**, Terraform/`infra/`) is a deferred infra task. Only the endpoint + processor ship here; in dev it is invoked by a manual POST.
 
 ---
 
