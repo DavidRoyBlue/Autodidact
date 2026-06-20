@@ -6,6 +6,7 @@ export const QUEUES = {
 export const JOB_NAMES = {
   GENERATE_COURSE: 'generate-course',
   GENERATE_EMBEDDING: 'generate-embedding',
+  CLEANUP_STALE_ANONYMOUS: 'cleanup-stale-anonymous',
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

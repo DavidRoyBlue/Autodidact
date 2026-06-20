@@ -1,5 +1,7 @@
 # Production Auth (Spec 2) — Plan B2: Stale-Anonymous Cleanup Job (Phase 1e)
 
+> Completed: 2026-06-20
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Give the worker a `cleanup-stale-anonymous` task that deletes anonymous users older than the retention window (90 days) — `public.users` first (cascading to enrollments/module_progress/chat_sessions via Plan A's `ON DELETE CASCADE`), then `auth.users` — so guest accounts don't accumulate forever.
@@ -35,7 +37,7 @@
 **Interfaces:**
 - Produces: `StaleAnonymousCleanupJobData { retentionDays?: number }` (type); `StaleAnonymousCleanupJobSchema` = `z.object({ retentionDays: z.number().int().positive().optional() })` + inferred `StaleAnonymousCleanupJobInput`. Both exported via the existing `index.ts` `export * from './jobs.js'`.
 
-- [ ] **Step 1: Write the failing schema test**
+- [x] **Step 1: Write the failing schema test**
 
 Create/extend `packages/schemas/src/__tests__/jobs.test.ts`:
 
@@ -58,12 +60,12 @@ describe('StaleAnonymousCleanupJobSchema', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to confirm it fails**
+- [x] **Step 2: Run the test to confirm it fails**
 
 Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/schemas test jobs`
 Expected: FAIL — `StaleAnonymousCleanupJobSchema` is undefined.
 
-- [ ] **Step 3: Add the type**
+- [x] **Step 3: Add the type**
 
 In `packages/types/src/jobs.ts`, append:
 
@@ -74,7 +76,7 @@ export interface StaleAnonymousCleanupJobData {
 }
 ```
 
-- [ ] **Step 4: Add the schema**
+- [x] **Step 4: Add the schema**
 
 In `packages/schemas/src/jobs.ts`, append:
 
@@ -86,12 +88,12 @@ export const StaleAnonymousCleanupJobSchema = z.object({
 export type StaleAnonymousCleanupJobInput = z.infer<typeof StaleAnonymousCleanupJobSchema>;
 ```
 
-- [ ] **Step 5: Run the test to confirm it passes**
+- [x] **Step 5: Run the test to confirm it passes**
 
 Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/schemas test jobs`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/types/src/jobs.ts packages/schemas/src/jobs.ts packages/schemas/src/__tests__/jobs.test.ts
@@ -108,7 +110,7 @@ git commit -m "feat(schemas): StaleAnonymousCleanup job type + schema (Spec 2 B2
 **Interfaces:**
 - Produces: `JOB_NAMES.CLEANUP_STALE_ANONYMOUS = 'cleanup-stale-anonymous'` (the URL path segment for the route). No new `QUEUES` entry is needed — the cleanup is triggered by Cloud Scheduler hitting the route directly, not enqueued by another service.
 
-- [ ] **Step 1: Add the job-name constant**
+- [x] **Step 1: Add the job-name constant**
 
 In `services/worker/src/queues/definitions.ts`, add to `JOB_NAMES`:
 
@@ -122,12 +124,12 @@ export const JOB_NAMES = {
 
 (Leave `QUEUES` unchanged. The `services/api` copy of `definitions.ts` does **not** need this constant — the API never enqueues cleanup; adding it there would be unused.)
 
-- [ ] **Step 2: Verify typecheck**
+- [x] **Step 2: Verify typecheck**
 
 Run: `pnpm --filter @autodidact/worker typecheck`
 Expected: passes (the `as const` keeps `JobName` a literal union).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add services/worker/src/queues/definitions.ts
@@ -146,7 +148,7 @@ git commit -m "feat(worker): add cleanup-stale-anonymous job name (Spec 2 B2)"
 - Consumes: `StaleAnonymousCleanupJobData` (Task 1); `getDb`, `sql`, `inArray`, `users` from `@autodidact/db`; `Logger`.
 - Produces: `processStaleAnonymousCleanup(data: StaleAnonymousCleanupJobData, deps: { logger: Logger }): Promise<{ deleted: number }>` — deletes stale anonymous users inside a single transaction (`public.users` first → cascades, then `auth.users`) and returns the count. `DEFAULT_RETENTION_DAYS = 90`, `MAX_DELETE_BATCH = 1000`.
 
-- [ ] **Step 1: Write the failing integration test**
+- [x] **Step 1: Write the failing integration test**
 
 Create `services/worker/src/__tests__/stale-anonymous-cleanup.processor.integration.test.ts`. It seeds, via the harness pool, an OLD anonymous user (with a dependent enrollment), a RECENT anonymous user, and a real user, then asserts only the old anonymous one (and its dependents) is removed from both tables:
 
@@ -212,12 +214,12 @@ describe('processStaleAnonymousCleanup', () => {
 
 > Confirm the `courses` insert columns against `packages/db/src/schema/courses.ts` before relying on them — adjust the seed insert to match the actual NOT NULL columns (e.g. `topic`, `generated_by`, `status`, `is_public`). The point is a dependent row that cascades; use the minimal valid course shape.
 
-- [ ] **Step 2: Run the test to confirm it fails**
+- [x] **Step 2: Run the test to confirm it fails**
 
 Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/worker test stale-anonymous-cleanup`
 Expected: FAIL — processor module does not exist.
 
-- [ ] **Step 3: Implement the processor**
+- [x] **Step 3: Implement the processor**
 
 Create `services/worker/src/processors/stale-anonymous-cleanup.processor.ts`:
 
@@ -276,12 +278,12 @@ export async function processStaleAnonymousCleanup(
 }
 ```
 
-- [ ] **Step 4: Run the test to confirm it passes**
+- [x] **Step 4: Run the test to confirm it passes**
 
 Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/worker test stale-anonymous-cleanup`
 Expected: PASS — old anonymous deleted from both tables with its enrollment cascaded; recent anon + real user retained; default-90 case deletes the 100-day-old guest.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add services/worker/src/processors/stale-anonymous-cleanup.processor.ts services/worker/src/__tests__/stale-anonymous-cleanup.processor.integration.test.ts
@@ -300,7 +302,7 @@ git commit -m "feat(worker): stale-anonymous cleanup processor (ordered cascade 
 - Consumes: `processStaleAnonymousCleanup` (Task 3), `StaleAnonymousCleanupJobSchema` (Task 1), `JOB_NAMES.CLEANUP_STALE_ANONYMOUS` (Task 2).
 - Produces: `POST /tasks/cleanup-stale-anonymous` — validates the body (400 on invalid), runs the processor, returns `200 { deleted }` on success, `500` on failure (so Cloud Tasks retries; cleanup is idempotent, so retry is safe — no course-style "final attempt" handling needed).
 
-- [ ] **Step 1: Write the failing route test**
+- [x] **Step 1: Write the failing route test**
 
 In the worker route test file, add a case. Mock the processor so the route is tested in isolation (mirror how existing route tests inject deps / mock processors — adjust to the file's actual style):
 
@@ -344,12 +346,12 @@ it('POST /tasks/cleanup-stale-anonymous returns 500 when the processor throws (r
 });
 ```
 
-- [ ] **Step 2: Run the test to confirm it fails**
+- [x] **Step 2: Run the test to confirm it fails**
 
 Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/worker test app`
 Expected: FAIL — route returns 404 (not registered).
 
-- [ ] **Step 3: Add the route**
+- [x] **Step 3: Add the route**
 
 In `services/worker/src/app.ts`: import the schema, the processor, and use the new job name. Add the route alongside the existing ones (after the embedding route, inside `buildApp`):
 
@@ -377,12 +379,12 @@ import { processStaleAnonymousCleanup } from './processors/stale-anonymous-clean
   });
 ```
 
-- [ ] **Step 4: Run the test + full worker suite**
+- [x] **Step 4: Run the test + full worker suite**
 
 Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/worker test`
 Expected: the new route tests PASS and no existing worker tests regress.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add services/worker/src/app.ts services/worker/src/__tests__/app.test.ts
@@ -395,7 +397,7 @@ git commit -m "feat(worker): POST /tasks/cleanup-stale-anonymous route (Spec 2 B
 
 **Files:** none. **Precondition:** local stack up + worker running (`pnpm dev`), or run the worker alone. The worker listens on `:3002`.
 
-- [ ] **Step 1: Seed a stale anonymous user on the local stack**
+- [x] **Step 1: Seed a stale anonymous user on the local stack**
 
 ```bash
 PGURL=postgresql://postgres:postgres@127.0.0.1:55322/postgres
@@ -406,7 +408,7 @@ psql "$PGURL" -c "select id, is_anonymous, created_at from public.users where id
 ```
 Expected: a `public.users` row (provisioned by the Plan A trigger), `is_anonymous=true`, `created_at` 120 days ago.
 
-- [ ] **Step 2: Invoke the cleanup task (loopback / direct POST)**
+- [x] **Step 2: Invoke the cleanup task (loopback / direct POST)**
 
 ```bash
 curl -s -X POST "http://localhost:3002/tasks/cleanup-stale-anonymous" \
@@ -415,7 +417,7 @@ echo
 ```
 Expected: `{"deleted":1}` (or higher if other stale guests exist).
 
-- [ ] **Step 3: Confirm the ordered cascade delete**
+- [x] **Step 3: Confirm the ordered cascade delete**
 
 ```bash
 PGURL=postgresql://postgres:postgres@127.0.0.1:55322/postgres
@@ -433,16 +435,16 @@ Expected: both counts `0` — removed from `public.users` (cascading any depende
 - Modify: `services/worker/README.md` (if present; otherwise the CLAUDE.md task list)
 - Modify: `services/worker/src/processors/CLAUDE.md` (processor table)
 
-- [ ] **Step 1: Document the new task**
+- [x] **Step 1: Document the new task**
 
 Add `cleanup-stale-anonymous` to the worker's task list in `services/worker/CLAUDE.md` (purpose: deletes anonymous users older than the retention window; ordered delete `public.users`→cascade→`auth.users`; idempotent; `2xx` ack / `5xx` retry). Add a row to the processor table in `services/worker/src/processors/CLAUDE.md` (`stale-anonymous-cleanup.processor.ts` → `processStaleAnonymousCleanup` → `POST /tasks/cleanup-stale-anonymous`). Note explicitly that the **recurring schedule (Cloud Scheduler → Cloud Tasks) is deferred to an infra task** — B2 ships only the endpoint + processor; in dev it's invoked by a manual POST.
 
-- [ ] **Step 2: Verify no contradiction**
+- [x] **Step 2: Verify no contradiction**
 
 Run: `grep -rn "cleanup-stale-anonymous\|StaleAnonymous" services/worker/CLAUDE.md services/worker/src/processors/CLAUDE.md`
 Expected: the new task appears in both.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add services/worker/CLAUDE.md services/worker/src/processors/CLAUDE.md

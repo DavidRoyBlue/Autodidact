@@ -2,10 +2,15 @@ import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { and, eq, inArray, getDb, courses } from '@autodidact/db';
 import type { IQueueProvider } from '@autodidact/providers';
 import type { Logger } from '@autodidact/observability';
-import { CourseGenerationJobSchema, EmbeddingJobSchema } from '@autodidact/schemas';
+import {
+  CourseGenerationJobSchema,
+  EmbeddingJobSchema,
+  StaleAnonymousCleanupJobSchema,
+} from '@autodidact/schemas';
 import type { AgentClient } from './services/agent.client.js';
 import { processCourseGeneration } from './processors/course-generation.processor.js';
 import { processEmbedding } from './processors/embedding.processor.js';
+import { processStaleAnonymousCleanup } from './processors/stale-anonymous-cleanup.processor.js';
 import { JOB_NAMES } from './queues/definitions.js';
 
 export interface AppDeps {
@@ -98,6 +103,23 @@ export function buildApp(deps: AppDeps): FastifyInstance {
         // the embedding is regenerated. Acknowledge to stop retries.
         return reply.code(200).send({ status: 'failed' });
       }
+      return reply.code(500).send({ error: 'task failed' });
+    }
+  });
+
+  app.post(`/tasks/${JOB_NAMES.CLEANUP_STALE_ANONYMOUS}`, async (req, reply) => {
+    const parsed = StaleAnonymousCleanupJobSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      logger.error({ issues: parsed.error.issues }, 'Invalid cleanup-stale-anonymous payload');
+      return reply.code(400).send({ error: 'invalid payload' });
+    }
+
+    try {
+      const result = await processStaleAnonymousCleanup(parsed.data, { logger });
+      return await reply.code(200).send(result);
+    } catch (err) {
+      logger.error({ err }, 'Stale-anonymous cleanup task failed');
+      // Idempotent — let Cloud Tasks retry. No course-style final-attempt handling.
       return reply.code(500).send({ error: 'task failed' });
     }
   });

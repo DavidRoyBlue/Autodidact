@@ -8,6 +8,7 @@ Background task handler. A thin Fastify HTTP service whose `/tasks/:name` endpoi
 
 - `POST /tasks/generate-course` — calls the Agent service to generate a full course blueprint, writes it and all module rows to PostgreSQL, then enqueues a follow-up embedding task.
 - `POST /tasks/generate-embedding` — calls the Agent service to generate a topic embedding vector, stores it in `courses.topic_embedding` via raw pgvector SQL.
+- `POST /tasks/cleanup-stale-anonymous` — deletes anonymous users older than the retention window (default 90 days): `public.users` first (cascading to enrollments/module_progress/chat_sessions), then `auth.users`, in one transaction. Idempotent; `2xx` ack / `5xx` retry. The recurring schedule (Cloud Scheduler → Cloud Tasks) is **deferred to an infra task** — only the endpoint + processor ship here; in dev it is invoked by a manual POST. See `src/processors/CLAUDE.md`.
 
 Internal only — never exposed publicly. Scales to zero between tasks.
 

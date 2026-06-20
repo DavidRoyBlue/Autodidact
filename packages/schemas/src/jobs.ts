@@ -20,5 +20,10 @@ export const EmbeddingJobSchema = z.object({
   topic: z.string().min(1),
 });
 
+export const StaleAnonymousCleanupJobSchema = z.object({
+  retentionDays: z.number().int().positive().optional(),
+});
+
 export type CourseGenerationJobInput = z.infer<typeof CourseGenerationJobSchema>;
 export type EmbeddingJobInput = z.infer<typeof EmbeddingJobSchema>;
+export type StaleAnonymousCleanupJobInput = z.infer<typeof StaleAnonymousCleanupJobSchema>;

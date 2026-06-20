@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Background task handler for Autodidact. Handles the two async workloads that are too slow or expensive to run in the request/response cycle: course generation and embedding computation.
+Background task handler for Autodidact. Handles async workloads that are too slow, expensive, or periodic to run in the request/response cycle: course generation, embedding computation, and stale-anonymous-user cleanup.
 
 ## Role in System
 
@@ -26,6 +26,7 @@ The Worker is a thin Fastify HTTP service, internal only — its `/tasks/:name` 
 - Handle `POST /tasks/generate-embedding` task deliveries
 - Call the Agent service to generate topic embedding vectors
 - Store vectors in PostgreSQL via pgvector raw SQL
+- Handle `POST /tasks/cleanup-stale-anonymous` task deliveries — delete anonymous users past the retention window (default 90 days), `public.users` first (cascading to dependents) then `auth.users`, in one transaction
 
 ## Inputs / Outputs
 
@@ -35,8 +36,9 @@ The Worker is a thin Fastify HTTP service, internal only — its `/tasks/:name` 
 |----------|-------|---------|
 | `POST /tasks/generate-course` | `autodidact-course-generation` | `{ courseId, userId, topic, difficulty, moduleCount }` |
 | `POST /tasks/generate-embedding` | `autodidact-embedding` | `{ courseId, topic }` |
+| `POST /tasks/cleanup-stale-anonymous` | Cloud Scheduler (deferred) | `{ retentionDays? }` (default 90) |
 
-Tasks are created by the API service (`CoursesService`) when a new course request arrives without a similarity match, and by this service for the embedding follow-up.
+Tasks are created by the API service (`CoursesService`) when a new course request arrives without a similarity match, and by this service for the embedding follow-up. The cleanup task is intended to run on a recurring schedule (**Cloud Scheduler → Cloud Tasks**) — that wiring is a deferred infra task; today it is invoked by a manual POST in dev.
 
 **Outputs**
 
@@ -53,6 +55,7 @@ Tasks are created by the API service (`CoursesService`) when a new course reques
 | **App (HTTP layer)** | `src/app.ts` | Fastify routes, payload validation, retry/terminal-failure semantics. |
 | **processCourseGeneration** | `src/processors/course-generation.processor.ts` | Pure processing function for course generation. |
 | **processEmbedding** | `src/processors/embedding.processor.ts` | Pure processing function for embeddings. |
+| **processStaleAnonymousCleanup** | `src/processors/stale-anonymous-cleanup.processor.ts` | Pure processing function for deleting stale anonymous users (ordered cascade delete). |
 | **AgentClient** | `src/services/agent.client.ts` | HTTP client for Agent service. Methods: `generateCourse()`, `generateEmbedding()`. |
 
 ## Key Flows
@@ -87,6 +90,21 @@ POST /tasks/generate-embedding { courseId, topic }
 ```
 
 Raw `execute()` is used instead of Drizzle's `.update().set()` because Drizzle's custom vector column type does not handle the `::vector` cast cleanly in parameterised queries. Embedding failures never change course status — the course stays `ready`; only similarity reuse is degraded.
+
+### Stale-anonymous cleanup task
+
+```
+POST /tasks/cleanup-stale-anonymous { retentionDays? }   (default 90)
+  1. SELECT id FROM public.users
+       WHERE is_anonymous = true AND created_at < now() - N days
+       LIMIT 1000                                    (bounded batch)
+  2. DB transaction:
+       a. DELETE public.users  → cascades to enrollments/module_progress/chat_sessions
+       b. DELETE auth.users    → cascades within the auth schema (real GoTrue)
+  → 200 { deleted }
+```
+
+Both deletes run in **one transaction** so a crash can't orphan `auth.users` rows (the next run keys off `public.users`, which would be gone). The task is idempotent — on a throw it returns `500` and Cloud Tasks retries safely. "Stale" is defined by `created_at` (there is no last-activity column), so an actively-used guest older than the window is still deleted; acceptable at N=90.
 
 ### Task chaining
 
