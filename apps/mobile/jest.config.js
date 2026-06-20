@@ -15,6 +15,9 @@ module.exports = {
   transformIgnorePatterns: [
     'node_modules/(?!(?:\\.pnpm/)?(?:jest-)?(@?react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@unimodules|unimodules|sentry-expo|native-base|react-native-svg|@tamagui|tamagui|uuid|@autodidact))',
   ],
-  testMatch: ['<rootDir>/src/**/__tests__/**/*.test.{ts,tsx}'],
+  testMatch: [
+    '<rootDir>/src/**/__tests__/**/*.test.{ts,tsx}',
+    '<rootDir>/app/**/__tests__/**/*.test.{ts,tsx}',
+  ],
   collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/*.d.ts', '!src/design/**'],
 };
