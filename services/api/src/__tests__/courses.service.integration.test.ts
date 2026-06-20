@@ -36,7 +36,9 @@ import {
   eq,
   and,
 } from '@autodidact/db';
+import { InternalServerErrorException } from '@nestjs/common';
 import { CoursesService } from '../modules/courses/courses.service.js';
+import { ProvisioningService } from '../modules/provisioning/provisioning.service.js';
 
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -172,6 +174,30 @@ describe('CoursesService.enrollUser()', () => {
       .from(moduleProgress)
       .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.courseId, courseId)));
     expect(allProgress).toHaveLength(0);
+  });
+
+  it('throws InternalServerErrorException when the user has no public.users row (provisioning gate)', async () => {
+    // Use a real ProvisioningService so the guard is genuinely exercised.
+    // getDb() is already redirected to harness.db by the vi.mock above.
+    // harness.truncate() (called in beforeEach) wiped all rows, so this
+    // UUID has no public.users entry — ensureProvisioned must throw.
+    const unprovisionedUserId = '00000000-0000-0000-0000-000000000099';
+    const service = new CoursesService(
+      makeMockAgentClient() as never,
+      makeMockQueueProvider() as never,
+      new ProvisioningService() as never,
+    );
+
+    await expect(service.enrollUser(unprovisionedUserId, courseId)).rejects.toThrow(
+      InternalServerErrorException,
+    );
+
+    // Guard must fire before any enrollment row is written
+    const rows = await harness.db
+      .select({ id: enrollments.id })
+      .from(enrollments)
+      .where(eq(enrollments.userId, unprovisionedUserId));
+    expect(rows).toHaveLength(0);
   });
 });
 
