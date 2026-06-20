@@ -1,5 +1,7 @@
 # Production Auth (Spec 2) — Plan B1: Anonymous Sign-In & Mobile Auth Lifecycle (Phase 1d/1f + email-upgrade)
 
+> Completed: 2026-06-20
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let users enter the app as anonymous guests (`signInAnonymously`) with a clean email-upgrade path that preserves their UUID + progress, and establish the canonical mobile auth-flow guard precedence (D8) that Spec 4's DEV_AUTO_LOGIN slots into.
@@ -497,7 +499,7 @@ git commit -m "feat(mobile): email-upgrade card for anonymous users (Spec 2 B1)"
 
 **Files:** none (manual/scripted verification). **Precondition:** local stack up (`pnpm exec supabase start`), backend running (`pnpm dev`), app on the emulator (`pnpm mobile:run`). This is the spec **1b email-path acceptance test**.
 
-- [ ] **Step 1: Guest sign-in lands in local `auth.users`**
+- [x] **Step 1: Guest sign-in lands in local `auth.users`**
 
 In the app, tap **Continue as guest**. Then:
 ```bash
@@ -506,7 +508,7 @@ psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -c "select id, emai
 ```
 Expected: one anonymous row in **both** tables with the **same id** (Plan A trigger provisioned `public.users`), `email` NULL, `is_anonymous = true`.
 
-- [ ] **Step 2: Upgrade preserves the UUID and syncs email (the 1b acceptance test)**
+- [x] **Step 2: Upgrade preserves the UUID and syncs email (the 1b acceptance test)**
 
 Note the guest's `id` from Step 1. In the app, go to **Profile → Save your account**, enter an email + password, submit. Then:
 ```bash
@@ -514,11 +516,11 @@ psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -c "select id, emai
 ```
 Expected: **same `id`**, `email` now set, `is_anonymous = false` — proving the upgrade preserved the UUID and the `sync_user_from_auth` trigger fired (email path). Progress rows (if the guest enrolled before upgrading) remain attached to the same `id`.
 
-- [ ] **Step 3: Verify the anonymous session survives an app restart**
+- [x] **Step 3: Verify the anonymous session survives an app restart**
 
 Before upgrading, with a guest session active, **fully close and reopen the app** (or reload Metro). Confirm: the app does NOT bounce to the sign-in screen (the persisted session restores), it lands in `(app)`, and **Profile still shows the upgrade card** (i.e. `isAnonymous` rehydrated true). This exercises the persist→restore→`onAuthStateChange` round-trip for the new `isAnonymous` field — the state path most likely to regress.
 
-- [ ] **Step 4: Clean up the test user**
+- [x] **Step 4: Clean up the test user**
 
 ```bash
 psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -c "delete from public.users where id = '<guest-id>'; delete from auth.users where id = '<guest-id>';"
