@@ -7,12 +7,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const processCourseGenerationMock = vi.fn();
 const processEmbeddingMock = vi.fn();
+const processStaleAnonymousCleanupMock = vi.fn();
 
 vi.mock('../processors/course-generation.processor.js', () => ({
   processCourseGeneration: processCourseGenerationMock,
 }));
 vi.mock('../processors/embedding.processor.js', () => ({
   processEmbedding: processEmbeddingMock,
+}));
+vi.mock('../processors/stale-anonymous-cleanup.processor.js', () => ({
+  processStaleAnonymousCleanup: processStaleAnonymousCleanupMock,
 }));
 
 // Mock @autodidact/db for markCourseFailed
@@ -59,6 +63,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   processCourseGenerationMock.mockResolvedValue(undefined);
   processEmbeddingMock.mockResolvedValue(undefined);
+  processStaleAnonymousCleanupMock.mockResolvedValue({ deleted: 0 });
   mockUpdate.mockReturnValue({ set: mockUpdateSet });
   mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
 });
@@ -205,5 +210,59 @@ describe('POST /tasks/generate-embedding', () => {
     expect(res.statusCode).toBe(200);
     // Embedding failure never flips course status — the course stays 'ready'.
     expect(mockUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /tasks/cleanup-stale-anonymous', () => {
+  it('runs the processor and returns 200 with the deleted count', async () => {
+    processStaleAnonymousCleanupMock.mockResolvedValue({ deleted: 3 });
+    const app = makeApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tasks/cleanup-stale-anonymous',
+      payload: { retentionDays: 90 },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ deleted: 3 });
+    expect(processStaleAnonymousCleanupMock).toHaveBeenCalledWith(
+      { retentionDays: 90 },
+      expect.objectContaining({ logger: expect.anything() }),
+    );
+  });
+
+  it('accepts an empty body (retentionDays optional)', async () => {
+    const app = makeApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tasks/cleanup-stale-anonymous',
+      payload: {},
+    });
+    expect(res.statusCode).toBe(200);
+    expect(processStaleAnonymousCleanupMock).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ logger: expect.anything() }),
+    );
+  });
+
+  it('rejects an invalid payload with 400 without running the processor', async () => {
+    const app = makeApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tasks/cleanup-stale-anonymous',
+      payload: { retentionDays: -5 },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(processStaleAnonymousCleanupMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 when the processor throws (idempotent — Cloud Tasks retries)', async () => {
+    processStaleAnonymousCleanupMock.mockRejectedValue(new Error('db down'));
+    const app = makeApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tasks/cleanup-stale-anonymous',
+      payload: {},
+    });
+    expect(res.statusCode).toBe(500);
   });
 });
