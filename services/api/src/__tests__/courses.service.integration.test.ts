@@ -9,7 +9,7 @@ import {
   seedEnrollment,
   seedModuleProgress,
 } from '@autodidact/test-support';
-import { makeMockAgentClient, makeMockQueueProvider } from '@autodidact/config/test-utils';
+import { makeMockAgentClient, makeMockQueueProvider, makeMockProvisioningService } from '@autodidact/config/test-utils';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Real-DB harness: assigned in beforeAll; getDb() closure defers until call time.
@@ -99,7 +99,7 @@ describe('CoursesService.enrollUser()', () => {
 
   it('assigns status="available" to the position-0 module', async () => {
     const mods = await seedModules(harness.db, courseId, 3);
-    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
     await service.enrollUser(userId, courseId);
 
     // mods is ordered by position (seedModules inserts 0, 1, 2)
@@ -114,7 +114,7 @@ describe('CoursesService.enrollUser()', () => {
 
   it('assigns status="locked" to all modules with position > 0', async () => {
     const mods = await seedModules(harness.db, courseId, 3);
-    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
     await service.enrollUser(userId, courseId);
 
     // mods[1] and mods[2] have position 1 and 2 → must be 'locked'
@@ -129,7 +129,7 @@ describe('CoursesService.enrollUser()', () => {
 
   it('creates a moduleProgress row for every module in the course', async () => {
     await seedModules(harness.db, courseId, 4);
-    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
     await service.enrollUser(userId, courseId);
 
     const allProgress = await harness.db
@@ -142,7 +142,7 @@ describe('CoursesService.enrollUser()', () => {
 
   it('is idempotent (onConflictDoNothing): re-enrolling does not duplicate module_progress rows', async () => {
     await seedModules(harness.db, courseId, 2);
-    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
     await service.enrollUser(userId, courseId);
     await service.enrollUser(userId, courseId); // second call — must not throw or duplicate
 
@@ -156,7 +156,7 @@ describe('CoursesService.enrollUser()', () => {
 
   it('does nothing for a course with no modules', async () => {
     // courseId has no modules seeded
-    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
     await service.enrollUser(userId, courseId);
 
     // Enrollment must still exist
@@ -197,7 +197,7 @@ describe('CoursesService.createOrReuse() — similarity routing', () => {
     const queue = makeMockQueueProvider();
     const agentClient = makeMockAgentClient();
     // generateEmbedding returns Array(1536).fill(0.1) = SIMILAR_VECTOR
-    const service = new CoursesService(agentClient as never, queue as never);
+    const service = new CoursesService(agentClient as never, queue as never, makeMockProvisioningService() as never);
 
     const result = await service.createOrReuse(userId, {
       topic: 'Python',
@@ -220,7 +220,7 @@ describe('CoursesService.createOrReuse() — similarity routing', () => {
 
     const queue = makeMockQueueProvider();
     const agentClient = makeMockAgentClient();
-    const service = new CoursesService(agentClient as never, queue as never);
+    const service = new CoursesService(agentClient as never, queue as never, makeMockProvisioningService() as never);
 
     const result = await service.createOrReuse(userId, {
       topic: 'Rust',
@@ -257,14 +257,14 @@ describe('CoursesService read paths', () => {
   });
 
   it('getCourse returns the seeded course', async () => {
-    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
     const result = await service.getCourse(courseId);
     expect(result.id).toBe(courseId);
     expect(result.topic).toBe('Python');
   });
 
   it('getCourse throws NotFoundException for a non-existent course', async () => {
-    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
     await expect(service.getCourse('00000000-0000-0000-0000-000000000001')).rejects.toThrow(
       'Course not found',
     );
@@ -272,7 +272,7 @@ describe('CoursesService read paths', () => {
 
   it('getCourseWithModules returns course with ordered modules', async () => {
     await seedModules(harness.db, courseId, 3);
-    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
     const result = await service.getCourseWithModules(courseId);
     expect(result.id).toBe(courseId);
     expect(result.modules).toHaveLength(3);
@@ -284,14 +284,14 @@ describe('CoursesService read paths', () => {
 
   it('getUserCourses returns enrolled courses for a user', async () => {
     await seedEnrollment(harness.db, userId, courseId);
-    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
     const results = await service.getUserCourses(userId);
     expect(results).toHaveLength(1);
     expect(results[0]!.id).toBe(courseId);
   });
 
   it('getUserCourses returns empty array for a user with no enrollments', async () => {
-    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
     const results = await service.getUserCourses(userId);
     expect(results).toHaveLength(0);
   });

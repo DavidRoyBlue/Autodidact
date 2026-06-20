@@ -67,6 +67,10 @@ export function makeMockAgentClient() {
   };
 }
 
+export function makeMockProvisioningService() {
+  return { ensureProvisioned: vi.fn().mockResolvedValue(undefined) };
+}
+
 export function makeMockLogger() {
   return {
     info: vi.fn(),

@@ -6,5 +6,6 @@ export {
   makeMockAuthProvider,
   makeMockEmbeddingProvider,
   makeMockAgentClient,
+  makeMockProvisioningService,
   makeMockLogger,
 } from './mock-factories.js';

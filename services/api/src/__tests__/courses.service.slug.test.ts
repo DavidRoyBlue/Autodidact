@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { makeMockProvisioningService } from '@autodidact/config/test-utils';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Mock @autodidact/db before importing CoursesService
@@ -65,10 +66,6 @@ function makeMockQueueProvider(taskId = 'task-abc') {
     enqueue: vi.fn().mockResolvedValue(taskId),
     close: vi.fn(),
   };
-}
-
-function makeMockProvisioningService() {
-  return { ensureProvisioned: vi.fn().mockResolvedValue(undefined) };
 }
 
 describe('CoursesService — slug generation', () => {
