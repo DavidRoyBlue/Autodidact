@@ -1,5 +1,31 @@
 # Production Auth — Plan A: Provisioning & Identity Implementation Plan
 
+> Completed: 2026-06-20
+>
+> Executed subagent-driven (fresh implementer + task-gate review per task, plus a
+> dedicated code review of Task 5 and a final whole-branch review). 12 commits on
+> `master` (`0de53b0..2d14cd3`), merged + pushed. Suites green (api 8/61,
+> test-support 4/18, repo typecheck 25/25).
+>
+> **Deviations from the written plan (recorded during execution):**
+> - **Applied to prod via the Supabase MCP, not `pnpm migrate:prod` (Task 6).** The
+>   `.env.prod` DB password is stale (pooler auth failed), so — at the user's
+>   direction — `0006`/`0007` were applied with `mcp__supabase__execute_sql` and the
+>   Drizzle journal table (`drizzle.__drizzle_migrations`) was hand-synced (hash =
+>   `sha256(file)`, created_at = journal `when`) so a future `migrate:prod` won't
+>   re-run them. A real prod GoTrue signup verified provisioning (`id==supabase_id`).
+> - **Added migration `0008` (not in the original plan):** prod security advisors
+>   flagged the two `SECURITY DEFINER` functions as `anon`/`authenticated`-EXECUTE-able
+>   (advisors 0028/0029). `0008_revoke_provisioning_fn_execute.sql` REVOKEs EXECUTE;
+>   the test harness gained the `anon`/`authenticated`/`service_role` roles so the
+>   REVOKE resolves on plain Postgres.
+> - **Task 4 added an `auth.jwt()` harness stub** (the `is_anonymous()` helper calls it).
+> - **Final review fix:** the existence-assertion was extended to `ChatService.createSession`
+>   (not just `enrollUser`) for consistency.
+> - **Bookkeeping:** progress was tracked in the SDD ledger (`.superpowers/sdd/progress.md`)
+>   during execution; these plan-file checkboxes were marked complete retroactively on
+>   2026-06-20.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Close the signup FK gap at its source — a DB trigger provisions a `public.users` row for every `auth.users` insert (real and anonymous) — and lock in the identity contract `users.id == supabase_id == auth.uid()`.
@@ -33,12 +59,12 @@
 **Interfaces:**
 - Produces: the durable decision record the rest of Plan A/B/C reference. No code.
 
-- [ ] **Step 1: Confirm the next free ADR number**
+- [x] **Step 1: Confirm the next free ADR number**
 
 Run: `find docs/architecture/ADRs -name "ADR-*.md" | grep -oE "ADR-[0-9]+" | sort -u | tail -3`
 Expected: highest is `ADR-027`; use **ADR-028**. (If 028 is taken, use the next free number and adjust the filename + index below.)
 
-- [ ] **Step 2: Write the ADR**
+- [x] **Step 2: Write the ADR**
 
 Use the template at `docs/architecture/ADRs/ADR-000-ADRtemplate.md`. Record, neutrally surveying alternatives then concluding:
 - **Identity contract (D1):** `users.id == supabase_id == auth.uid()`; why it's the only value reconciling the API code (`AuthUser.id = sub`) and the existing RLS policies (`supabase_id = auth.uid()`). Alternative considered & rejected: decoupled `users.id` + `sub→PK` translation (larger blast radius, no gain now).
@@ -47,11 +73,11 @@ Use the template at `docs/architecture/ADRs/ADR-000-ADRtemplate.md`. Record, neu
 - **Anonymous auth (D5):** enabled for onboarding; upgrade preserves the UUID so the provisioned row + progress carry over (mobile/worker details in Plan B).
 Cross-link `ADR-020-authentication-strategy.md` (add a forward-reference note there is optional; do not duplicate content).
 
-- [ ] **Step 3: Add the ADR to the index**
+- [x] **Step 3: Add the ADR to the index**
 
 Add an `ADR-028` row to `docs/architecture/ADRs/README.md` in the same format as the surrounding entries (status: Accepted; date 2026-06-19; one-line summary).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/architecture/ADRs/cross-cutting/ADR-028-production-auth-provisioning.md docs/architecture/ADRs/README.md
@@ -70,7 +96,7 @@ git commit -m "docs(adr): ADR-028 production-auth identity contract + hybrid pro
 **Interfaces:**
 - Produces: `users.email` nullable (still `unique`); `users.is_anonymous boolean not null default false`; `enrollments.user_id` / `module_progress.user_id` / `chat_sessions.user_id` → `users.id` with `onDelete: 'cascade'`.
 
-- [ ] **Step 1: Edit the `users` schema**
+- [x] **Step 1: Edit the `users` schema**
 
 In `packages/db/src/schema/users.ts`, change `email` to nullable and add `isAnonymous`:
 
@@ -91,7 +117,7 @@ export const users = pgTable('users', {
 
 (Dropping `.notNull()` on `email` makes it nullable; `unique` permits multiple NULLs in Postgres, so anonymous users coexist.)
 
-- [ ] **Step 2: Add `onDelete: 'cascade'` to the three user-owned FKs**
+- [x] **Step 2: Add `onDelete: 'cascade'` to the three user-owned FKs**
 
 In each of `enrollments.ts`, `module_progress.ts`, `chat_sessions.ts`, change the `user_id` reference to cascade (mirror the existing `modules.ts` pattern `{ onDelete: 'cascade' }`):
 
@@ -101,12 +127,12 @@ userId: uuid('user_id')
   .references(() => users.id, { onDelete: 'cascade' }),
 ```
 
-- [ ] **Step 3: Generate the migration**
+- [x] **Step 3: Generate the migration**
 
 Run: `pnpm db:generate:dev`
 Expected: a new `packages/db/migrations/0006_*.sql` plus an appended `meta/_journal.json` entry and a `meta/0006_snapshot.json`. Open the `.sql` and confirm it contains: `ALTER TABLE "users" ALTER COLUMN "email" DROP NOT NULL;`, `ALTER TABLE "users" ADD COLUMN "is_anonymous" boolean DEFAULT false NOT NULL;`, and three FK drop/recreate statements adding `ON DELETE CASCADE`. If drizzle does not emit the FK cascade changes, append them as explicit `ALTER TABLE … DROP CONSTRAINT … ; ALTER TABLE … ADD CONSTRAINT … REFERENCES users(id) ON DELETE CASCADE;` to the same file (review the SQL — see `packages/db/CLAUDE.md`).
 
-- [ ] **Step 4: Apply to the local stack and verify**
+- [x] **Step 4: Apply to the local stack and verify**
 
 ```bash
 env DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55322/postgres pnpm migrate:dev
@@ -115,7 +141,7 @@ psql postgresql://postgres:postgres@127.0.0.1:55322/postgres -c "select conname,
 ```
 Expected: `email` shows no `not null`; `is_anonymous | boolean` present; the three user FKs show `confdeltype = c` (cascade).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/db/src/schema packages/db/migrations/0006_* packages/db/migrations/meta
@@ -135,7 +161,7 @@ git commit -m "feat(db): users.email nullable + is_anonymous + cascade user FKs 
 **Interfaces:**
 - Produces: a stub `public`-adjacent `auth.users(id uuid pk, email text, is_anonymous boolean, raw_user_meta_data jsonb)` available in `withTestDatabase()` before migrations run.
 
-- [ ] **Step 1: Extend `DEV_DB_INIT_SQL`**
+- [x] **Step 1: Extend `DEV_DB_INIT_SQL`**
 
 In `packages/test-support/src/database.ts`, add a stub `auth.users` to the `DEV_DB_INIT_SQL` constant (after the `auth` schema is created, before migrations run):
 
@@ -152,16 +178,16 @@ CREATE TABLE IF NOT EXISTS auth.users (
 );
 ```
 
-- [ ] **Step 2: Update the test-support source-of-truth note**
+- [x] **Step 2: Update the test-support source-of-truth note**
 
 In `packages/test-support/CLAUDE.md`, under the invariant that mentions `DEV_DB_INIT_SQL`, add: the stub now also includes a minimal `auth.users` so auth-schema trigger migrations install and are testable; the real `auth.users` is GoTrue-managed in the stack/prod and is never created by a migration.
 
-- [ ] **Step 3: Verify the harness still boots (regression)**
+- [x] **Step 3: Verify the harness still boots (regression)**
 
 Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/test-support test`
 Expected: all existing test-support tests pass (containers boot, migrations apply through `0006`).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add packages/test-support/src/database.ts packages/test-support/CLAUDE.md
@@ -181,7 +207,7 @@ git commit -m "test(test-support): stub auth.users so trigger migrations install
 - Consumes: stub `auth.users` (Task 3) in tests; real `auth.users` in stack/prod. The `public.users` schema from Task 2.
 - Produces: `public.handle_new_user()`, `public.sync_user_from_auth()` functions; triggers `on_auth_user_created` (AFTER INSERT) and `on_auth_user_updated` (AFTER UPDATE OF email, is_anonymous) on `auth.users`; `public.is_anonymous()` helper.
 
-- [ ] **Step 1: Write the failing integration test**
+- [x] **Step 1: Write the failing integration test**
 
 Create `packages/test-support/src/__tests__/auth-provisioning.integration.test.ts`. (Uses `withTestDatabase()`; inserts into the stub `auth.users` and asserts `public.users`.)
 
@@ -231,12 +257,12 @@ describe('auth provisioning trigger', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to confirm it fails**
+- [x] **Step 2: Run the test to confirm it fails**
 
 Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/test-support test auth-provisioning`
 Expected: FAIL — no `public.users` row appears (no trigger yet).
 
-- [ ] **Step 3: Write the trigger migration**
+- [x] **Step 3: Write the trigger migration**
 
 Create `packages/db/migrations/0007_auth_provisioning.sql`:
 
@@ -291,16 +317,16 @@ CREATE TRIGGER on_auth_user_updated
   FOR EACH ROW EXECUTE FUNCTION public.sync_user_from_auth();
 ```
 
-- [ ] **Step 4: Register the migration in the journal**
+- [x] **Step 4: Register the migration in the journal**
 
 Append a `0007_auth_provisioning` entry to `packages/db/migrations/meta/_journal.json` `entries` array, mirroring the existing hand-authored entries (`idx: 5`, `version: "7"`, a `when` timestamp greater than `0005`'s `1777428000000`, `tag: "0007_auth_provisioning"`, `breakpoints: true`). Confirm the same registration style the prior hand-authored SQL migrations used (`0003_rls`, `0004_rls_fixes`) — check whether they have a `meta/000X_snapshot.json`; if hand-authored ones do not, none is needed here either.
 
-- [ ] **Step 5: Run the test to confirm it passes**
+- [x] **Step 5: Run the test to confirm it passes**
 
 Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/test-support test auth-provisioning`
 Expected: PASS — all three cases (real, anonymous, upgrade-sync).
 
-- [ ] **Step 6: Apply to the local stack and verify against REAL GoTrue**
+- [x] **Step 6: Apply to the local stack and verify against REAL GoTrue**
 
 ```bash
 env DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55322/postgres pnpm migrate:dev
@@ -318,7 +344,7 @@ Expected: one row, `id_matches = t`, `email` set, `is_anonymous = f`. (Deleting 
 
 > **MUST-VERIFY (spec 1b, deferred to Plan B for the OAuth path):** this confirms the email/password path. The OAuth `linkIdentity` upgrade path is verified in **Plan B** (it may populate `auth.identities` without touching `auth.users.email`; if so, Plan B adds the documented fallback). Plan A ships the column-scoped UPDATE trigger, which covers email/OTP upgrades.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/db/migrations/0007_auth_provisioning.sql packages/db/migrations/meta/_journal.json packages/test-support/src/__tests__/auth-provisioning.integration.test.ts
@@ -340,7 +366,7 @@ git commit -m "feat(db): handle_new_user + sync triggers + is_anonymous() helper
 - Consumes: `getDb()` from `@autodidact/db`; `AuthUser.id`.
 - Produces: `ProvisioningService.ensureProvisioned(userId: string): Promise<void>` — a cheap existence assertion. Throws `InternalServerErrorException` (loud 500) if the row is missing (trigger failure). **Does not create the row.** This is the seam Spec 3 extends with onboarding (auto-enroll / course-gen kickoff).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `services/api/src/__tests__/provisioning.service.test.ts`:
 
@@ -370,12 +396,12 @@ describe('ProvisioningService.ensureProvisioned', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to confirm it fails**
+- [x] **Step 2: Run the test to confirm it fails**
 
 Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/api test provisioning.service`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement the service**
+- [x] **Step 3: Implement the service**
 
 Create `services/api/src/modules/provisioning/provisioning.service.ts`:
 
@@ -415,23 +441,23 @@ import { ProvisioningService } from './provisioning.service.js';
 export class ProvisioningModule {}
 ```
 
-- [ ] **Step 4: Wire the module and call the assertion before the first user-scoped write**
+- [x] **Step 4: Wire the module and call the assertion before the first user-scoped write**
 
 In `services/api/src/app.module.ts`, add `ProvisioningModule` to the `imports` array (alongside `AuthModule`, `QueueModule`, …).
 
 In `services/api/src/modules/courses/courses.service.ts`, inject `ProvisioningService` and call `await this.provisioning.ensureProvisioned(userId)` as the first line of `enrollUser(userId, courseId)` (before the `enrollments` insert). Confirm `CoursesService` is constructed via the factory in `courses.module.ts` — add `ProvisioningService` to that factory's `inject` array and constructor signature.
 
-- [ ] **Step 5: Run the test to confirm it passes**
+- [x] **Step 5: Run the test to confirm it passes**
 
 Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/api test provisioning.service`
 Expected: PASS.
 
-- [ ] **Step 6: Run the full API suite (no regressions; e2e enroll path still works)**
+- [x] **Step 6: Run the full API suite (no regressions; e2e enroll path still works)**
 
 Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/api test`
 Expected: all pass. (The e2e provisions its test user via the seeded `users` row / mock; confirm the enroll e2e still passes with the new assertion — if the e2e inserts its own `users` row, the assertion is satisfied.)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add services/api/src/modules/provisioning services/api/src/app.module.ts services/api/src/modules/courses/courses.service.ts services/api/src/modules/courses/courses.module.ts services/api/src/__tests__/provisioning.service.test.ts
@@ -446,16 +472,16 @@ git commit -m "feat(api): ensureProvisioned existence assertion (loud 500, no se
 
 **Precondition:** Tasks 2 & 4 migrations reviewed and green locally; `.env.prod` exists (the WSL2 pooler URL invariant applies to prod — port 6543).
 
-- [ ] **Step 1: Dry-review the exact SQL that will run against prod**
+- [x] **Step 1: Dry-review the exact SQL that will run against prod**
 
 Confirm the only pending migrations are `0006_*` and `0007_auth_provisioning.sql`. Re-read both files. Confirm neither creates `auth.users` (Task 4 only creates the trigger ON it; the harness stub is test-only and never ships in a migration).
 
-- [ ] **Step 2: Apply migrations to prod via the migration tooling (not ad-hoc SQL)**
+- [x] **Step 2: Apply migrations to prod via the migration tooling (not ad-hoc SQL)**
 
 Run: `pnpm migrate:prod`
 Expected: `0006` and `0007` apply with no error. (Per the spec: reviewed migrations applied via tooling — **not** ad-hoc `execute_sql`/`apply_migration`.)
 
-- [ ] **Step 3: Verify provisioning on prod with a throwaway signup**
+- [x] **Step 3: Verify provisioning on prod with a throwaway signup**
 
 Sign up a throwaway email against the **prod** GoTrue (use the prod `SUPABASE_URL` + publishable key), then:
 ```bash
@@ -463,11 +489,11 @@ psql "$PROD_DATABASE_URL" -c "select id = supabase_id as ok, email, is_anonymous
 ```
 Expected: one row, `ok = t`. Then delete the throwaway from both `public.users` and `auth.users` (admin API or SQL).
 
-- [ ] **Step 4: Re-run security advisors**
+- [x] **Step 4: Re-run security advisors**
 
 Use the Supabase MCP `get_advisors(security)` against the prod project. Expected: no **new** errors introduced by these migrations (the RLS-disabled errors are addressed in Plan C, not here).
 
-- [ ] **Step 5: Record the prod apply**
+- [x] **Step 5: Record the prod apply**
 
 No commit (operational). Note in the PR/branch description that `0006`/`0007` were applied to `cbzdsoojfhpsexuyeyxt` on the apply date, and that the throwaway user was cleaned up.
 
