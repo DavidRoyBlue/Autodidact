@@ -57,6 +57,13 @@
       "when": 1782100000000,
       "tag": "0008_revoke_provisioning_fn_execute",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782200000000,
+      "tag": "0009_data_api_lockdown",
+      "breakpoints": true
     }
   ]
 }
