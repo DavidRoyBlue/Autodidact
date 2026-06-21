@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from 'react';
-import { YStack } from 'tamagui';
+import { View } from 'react-native';
 import { AppText } from '../typography/AppText';
 import { Button } from '../interactive/Button';
 import { Card } from '../display/Card';
@@ -21,28 +21,23 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <YStack flex={1} backgroundColor="$bg" alignItems="center" justifyContent="center" padding="$6" gap="$4">
+        <View className="flex-1 items-center justify-center gap-4 bg-background p-6">
           <Card variant="default">
-            <YStack gap="$3" alignItems="center">
-              <AppText variant="body" weight="semibold" textAlign="center">
+            <View className="items-center gap-3">
+              <AppText variant="body" weight="semibold" className="text-center">
                 Something went wrong
               </AppText>
-              <AppText variant="muted" textAlign="center">
+              <AppText variant="muted" className="text-center">
                 An unexpected error occurred. Please try again.
               </AppText>
-              <Button
-                variant="ghost"
-                size="md"
-                onPress={() => this.setState({ hasError: false })}
-              >
+              <Button variant="ghost" size="md" onPress={() => this.setState({ hasError: false })}>
                 Try again
               </Button>
-            </YStack>
+            </View>
           </Card>
-        </YStack>
+        </View>
       );
     }
-
     return this.props.children;
   }
 }
