@@ -404,3 +404,29 @@ cleanup job (Plan B2)**. CAPTCHA/Turnstile is **not** used: it is poor UX for th
 phone app (the only client) and was explicitly removed from scope. The core D5
 decision (anonymous sign-in enabled, UUID-preserving upgrade) is unchanged; only
 the mitigation set is refined. Spec D5 carries the matching revision.
+
+## Update (2026-06-21) — Plan C implemented (Data API closed; policies + config hardened)
+
+Phases 2–3 (D3/D4′) shipped as Plan C (Spec 2):
+
+- **C1 (migration `0009`)** — revoked `anon`/`authenticated` privileges on all `public`
+  tables/sequences and `ALTER DEFAULT PRIVILEGES` so future tables are born locked (root
+  cause was a `postgres`-owned `pg_default_acl` grant). Enabled RLS on `module_content_chunks`
+  and the 4 LangGraph checkpoint tables. Checkpoint tables are created at runtime, so RLS is
+  enabled two ways: conditionally in `0009` (prod/warm DBs) **and** in
+  `PostgresCheckpointerProvider.init()` after `setup()` (fresh DBs). The backend connects as
+  `postgres` (BYPASSRLS), so the lockdown closes only the PostgREST client surface.
+- **C2 (migration `0010` + `supabase/config.toml`)** — dropped deprecated `auth.role()`;
+  scoped all 13 app-table policies `TO authenticated` (anonymous users are `authenticated`,
+  so guests are included — D5). Config: password length 8 + strength, **TOTP MFA enabled**
+  (config-only; mobile enrollment UI deferred). **No CAPTCHA.** Anonymous-abuse mitigation =
+  IP rate-limit + B2 cleanup.
+- **Prod anonymous sign-in is ENABLED** (revises the earlier "OFF pending" posture), flipped
+  **after** prod rate-limits are applied. Prod GoTrue settings (confirmation, password policy,
+  MFA, anon-ON, rate-limits) are applied via the Dashboard/Management API — the Supabase MCP
+  has no auth-config mutation, and `config.toml` drives local only (`config push` parity is an
+  open Spec 1 item, so local `enable_confirmations` stays `false` for the B1 dev flow while
+  prod is ON).
+- Verified by a real-Postgres integration test (`@autodidact/test-support`): `authenticated`
+  and `anon` are denied table `SELECT`; RLS on `module_content_chunks`; own-row `TO authenticated`
+  scoping; no `auth.role()` remains.

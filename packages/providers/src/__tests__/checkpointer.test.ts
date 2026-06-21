@@ -23,12 +23,17 @@ vi.mock('@langchain/langgraph', () => ({
 // imports in vitest.
 // ────────────────────────────────────────────────────────────────────────────
 
-const { mockFromConnString, mockSetup } = vi.hoisted(() => {
+const { mockFromConnString, mockSetup, mockQuery } = vi.hoisted(() => {
   const mockSetup = vi.fn().mockResolvedValue(undefined);
-  const mockSaverInstance = { _tag: 'MockPostgresSaver', setup: mockSetup };
+  const mockQuery = vi.fn().mockResolvedValue({ rows: [] });
+  const mockSaverInstance = {
+    _tag: 'MockPostgresSaver',
+    setup: mockSetup,
+    pool: { query: mockQuery },
+  };
   const mockFromConnString = vi.fn().mockReturnValue(mockSaverInstance);
 
-  return { mockFromConnString, mockSetup, mockSaverInstance };
+  return { mockFromConnString, mockSetup, mockQuery, mockSaverInstance };
 });
 
 vi.mock('@langchain/langgraph-checkpoint-postgres', () => ({
@@ -45,7 +50,12 @@ import { PostgresCheckpointerProvider } from '../implementations/checkpointer/po
 beforeEach(() => {
   vi.clearAllMocks();
   mockSetup.mockResolvedValue(undefined);
-  mockFromConnString.mockReturnValue({ _tag: 'MockPostgresSaver', setup: mockSetup });
+  mockQuery.mockResolvedValue({ rows: [] });
+  mockFromConnString.mockReturnValue({
+    _tag: 'MockPostgresSaver',
+    setup: mockSetup,
+    pool: { query: mockQuery },
+  });
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -120,6 +130,38 @@ describe('PostgresCheckpointerProvider', () => {
       });
       await provider.init();
       expect(() => provider.getCheckpointer()).not.toThrow();
+    });
+
+    // Data-API lockdown (Spec 2 C1): the library's setup() creates the checkpoint
+    // tables without RLS. init() must enable RLS on each so the publishable key
+    // cannot reach them via PostgREST (the backend connects as postgres/BYPASSRLS).
+    it('enables RLS on all four checkpoint tables after setup()', async () => {
+      const provider = new PostgresCheckpointerProvider({
+        connectionString: 'postgresql://localhost/test',
+      });
+      await provider.init();
+
+      const expected = [
+        'checkpoints',
+        'checkpoint_writes',
+        'checkpoint_blobs',
+        'checkpoint_migrations',
+      ];
+      for (const t of expected) {
+        expect(mockQuery).toHaveBeenCalledWith(
+          `ALTER TABLE public.${t} ENABLE ROW LEVEL SECURITY`,
+        );
+      }
+    });
+
+    it('runs setup() before enabling RLS (tables must exist first)', async () => {
+      const provider = new PostgresCheckpointerProvider({
+        connectionString: 'postgresql://localhost/test',
+      });
+      await provider.init();
+      const setupOrder = mockSetup.mock.invocationCallOrder[0];
+      const firstAlterOrder = mockQuery.mock.invocationCallOrder[0];
+      expect(setupOrder).toBeLessThan(firstAlterOrder);
     });
   });
 });
