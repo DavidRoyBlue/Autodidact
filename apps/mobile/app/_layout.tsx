@@ -1,11 +1,12 @@
 import '@/global.css';
 import { useEffect } from 'react';
+import { View } from 'react-native';
+import { useColorScheme as useRNColorScheme } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { TamaguiProvider } from 'tamagui';
+import { useColorScheme } from 'nativewind';
 import { useAuthStore } from '@/stores/auth.store';
 import { supabase } from '@/lib/supabase';
-import config from '@/design/config';
 import { ErrorBoundary, ToastProvider } from '@/components';
 
 const queryClient = new QueryClient({
@@ -16,6 +17,12 @@ export default function RootLayout() {
   const { accessToken, refreshToken, setSession, clearSession } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
+  const { colorScheme, setColorScheme } = useColorScheme();
+  const rnScheme = useRNColorScheme();
+
+  useEffect(() => {
+    setColorScheme(rnScheme ?? 'light');
+  }, [rnScheme, setColorScheme]);
 
   // On app launch, restore the Supabase in-memory session from our persisted tokens
   // so that autoRefreshToken can kick in without requiring a full sign-in.
@@ -56,13 +63,13 @@ export default function RootLayout() {
   }, [accessToken, segments, router]);
 
   return (
-    <TamaguiProvider config={config} defaultTheme="dark">
+    <View className={colorScheme === 'dark' ? 'dark flex-1' : 'flex-1'}>
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
           <Slot />
         </ErrorBoundary>
         <ToastProvider />
       </QueryClientProvider>
-    </TamaguiProvider>
+    </View>
   );
 }
