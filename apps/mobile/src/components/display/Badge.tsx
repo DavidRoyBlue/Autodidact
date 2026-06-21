@@ -1,32 +1,18 @@
-import { styled, XStack } from 'tamagui';
+import { View } from 'react-native';
 import { AppText } from '../typography/AppText';
 
-const BadgeFrame = styled(XStack, {
-  name: 'Badge',
-  paddingHorizontal: '$2',
-  paddingVertical: '$0.5',
-  borderRadius: '$sm',
-  alignSelf: 'flex-start',
+const frameClass = {
+  default: 'bg-primary/[0.13]',
+  success: 'bg-success/[0.15]',
+  warning: 'bg-warning/[0.15]',
+  danger: 'bg-destructive/[0.15]',
+} as const;
 
-  variants: {
-    variant: {
-      default: { backgroundColor: '$primarySubtle' },
-      success: { backgroundColor: '$successSubtle' },
-      warning: { backgroundColor: '$warningSubtle' },
-      danger:  { backgroundColor: '$dangerSubtle' },
-    },
-  } as const,
-
-  defaultVariants: {
-    variant: 'default',
-  },
-});
-
-const textColorMap = {
-  default: '$primaryHover',
-  success: '$success',
-  warning: '$warning',
-  danger:  '$danger',
+const textClass = {
+  default: 'text-primary-hover',
+  success: 'text-success',
+  warning: 'text-warning',
+  danger: 'text-destructive',
 } as const;
 
 type BadgeProps = {
@@ -36,10 +22,10 @@ type BadgeProps = {
 
 export function Badge({ label, variant = 'default' }: BadgeProps) {
   return (
-    <BadgeFrame variant={variant}>
-      <AppText variant="label" color={textColorMap[variant]}>
+    <View className={`self-start rounded-sm px-2 py-0.5 ${frameClass[variant]}`}>
+      <AppText variant="label" className={textClass[variant]}>
         {label}
       </AppText>
-    </BadgeFrame>
+    </View>
   );
 }
