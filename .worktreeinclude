@@ -1,6 +1,5 @@
 .env.dev
 .env
-.env.prod
 .env.local
 .env.*.local
 .envrc

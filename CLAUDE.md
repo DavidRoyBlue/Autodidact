@@ -60,6 +60,24 @@ See `.env.example` for all vars and provider-swap options (`LLM_PROVIDER`, `CHEC
 
 ---
 
+## Production & deployment
+
+Production runs on **GCP** (project `autodidact-494819`, region `northamerica-northeast1`): Cloud Run ×3 (api public, agent internal, worker scale-to-zero), Cloud Tasks queues, Artifact Registry, and GCP Secret Manager — all defined as Terraform IaC under `infra/` (remote state in GCS). The hosted prod DB is the Supabase project reached via its transaction pooler (port 6543).
+
+- **Full setup runbook:** [`docs/gcp_infra_setup.md`](docs/gcp_infra_setup.md) — GCP bootstrap, Terraform apply, Secret Manager, Workload Identity Federation. Read this before touching prod infra.
+- **Deploy:** push to `master` → `.github/workflows/deploy.yml` builds the three images, runs DB migrations, and `gcloud run deploy`s — authenticated via Workload Identity Federation (no key files). No manual step for an ordinary release.
+- **Prod secrets:** `infra/secrets.env` is the single source (seeds Secret Manager via `scripts/gcp-bootstrap.sh`); never committed. There is **no `.env.prod`**.
+- **Prod DB tools** (run locally, sparingly — CI already migrates on deploy):
+
+```bash
+pnpm migrate:prod       # apply pending Drizzle migrations to the prod DB (loads infra/secrets.env)
+pnpm db:studio:prod     # open Drizzle Studio against the prod DB (loads infra/secrets.env)
+```
+
+The mobile app's prod target (Cloud Run API + hosted Supabase) is selected by EAS build profiles in `apps/mobile/eas.json`; local `expo start` uses `.env.dev`.
+
+---
+
 ## Core engineering values
 
 Every code change must respect these:

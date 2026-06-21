@@ -213,7 +213,7 @@ Containerized deployment to GCP Cloud Run with Terraform IaC and gated GitHub Ac
 - No automated rollback strategy (manual `terraform apply` / revision pin).
 - Trace export unconfigured → spans silently dropped despite OTEL instrumentation.
 - No error/crash aggregation anywhere in the stack.
-- **Not a security issue:** `.env.prod` exists on disk but is **gitignored and not tracked** (verified via `git ls-files`). Only `.env.example`/`.envrc.example` are committed.
+- **Not a security issue:** prod secrets live in `infra/secrets.env` (**gitignored and not tracked**, verified via `git ls-files`) and GCP Secret Manager. Only `.env.example` / `infra/secrets.env.example` / `.envrc.example` are committed. There is no `.env.prod`.
 
 #### Next Step
 Wire `OTEL_EXPORTER_OTLP_ENDPOINT` to a real collector and add error tracking; confirm the GitHub production approval gate is enforced.
@@ -309,4 +309,4 @@ The immediate objective appears to be: **get the mobile app building cleanly on 
 
 ---
 
-*Compiled from: source code (services + packages + mobile), test files, `.github/workflows/`, `infra/` Terraform, `docker-compose.yml`, `.env.example`, `.gitignore`, and git history. Sub-agent claims of "secrets committed to git" (false — `.env.prod` is gitignored) and "49 test files" (actual: 25 tracked) were corrected against direct repo inspection.*
+*Compiled from: source code (services + packages + mobile), test files, `.github/workflows/`, `infra/` Terraform, `docker-compose.yml`, `.env.example`, `.gitignore`, and git history. Sub-agent claims of "secrets committed to git" (false — `infra/secrets.env` is gitignored) and "49 test files" (actual: 25 tracked) were corrected against direct repo inspection.*

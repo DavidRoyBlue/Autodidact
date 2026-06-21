@@ -7,8 +7,9 @@
 #
 # .envrc is gitignored (it may hold machine-specific paths like a venv); this
 # .example is the committed, reproducible source. .env.dev stays the gitignored
-# secret store. The `dotenv -e .env.prod --` scripts in package.json remain the
-# explicit prod/CI path and override these values in their subprocess.
+# secret store. The `dotenv -e infra/secrets.env --` scripts in package.json
+# (migrate:prod, db:studio:prod) remain the explicit prod path and override
+# these values in their subprocess.
 
 # Optional: activate a local Python virtualenv if you use one.
 # source .venv/bin/activate
