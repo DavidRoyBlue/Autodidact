@@ -110,9 +110,16 @@ names but **not yet wired**: each factory currently hardcodes its single
 implemented option and ignores the env var. They live under "RESERVED" in
 `.env.example` so the template doesn't advertise behavior the code lacks.
 
+## Deploying
+
+Production runs on GCP Cloud Run and deploys automatically on push to `master`
+(`.github/workflows/deploy.yml`). For first-time infra setup, Terraform, secrets,
+and running prod DB migrations, see the [GCP setup runbook](docs/gcp_infra_setup.md).
+
 ## Documentation
 
 - [Architecture](docs/architecture/overview.md)
+- [GCP / production setup](docs/gcp_infra_setup.md)
 - [Stack decisions](docs/stack.md)
 - [Product vision](docs/product.md)
 - [Roadmap](docs/roadmap.md)
