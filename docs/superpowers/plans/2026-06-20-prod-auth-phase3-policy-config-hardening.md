@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the deprecated `auth.role()` predicate with structural `TO authenticated` scoping; scope every app-table RLS policy `TO authenticated` (currently `TO public`); and harden GoTrue via `supabase/config.toml` (email confirmation, password policy + leaked-password/HIBP protection, anonymous-signup IP rate-limit on **local**, redirect allow-list, and **TOTP MFA enablement**). **No CAPTCHA** — it is poor UX for the phone app and explicitly not wanted; IP rate-limit + B2's stale-anonymous cleanup are the anonymous-abuse mitigations. Production anonymous sign-in stays **OFF**.
+**Goal:** Replace the deprecated `auth.role()` predicate with structural `TO authenticated` scoping; scope every app-table RLS policy `TO authenticated` (currently `TO public`); and harden GoTrue via `supabase/config.toml` (email confirmation, password policy + leaked-password/HIBP protection, anonymous-signup IP rate-limit on **local**, redirect allow-list, and **TOTP MFA enablement**). **No CAPTCHA** — it is poor UX for the phone app and explicitly not wanted; IP rate-limit + B2's stale-anonymous cleanup are the anonymous-abuse mitigations. Production anonymous sign-in is **ENABLED** in this plan — *after* the prod rate-limits are tuned (order matters), satisfying B1's release gate.
 
 **Architecture:** One hand-authored SQL migration (`0010_policy_hardening.sql`) that drops + recreates the 13 existing app-table policies with `TO authenticated` and removes the `auth.role()` text from the `courses`/`modules` policies. Plus edits to `supabase/config.toml`'s `[auth]` section for the GoTrue settings (config-as-code for local; mirrored to prod manually because `supabase config push` parity is an open Spec 1 item). MFA is **config-only** (enable the TOTP factor); the mobile enrollment/challenge UI is a documented follow-up, not in this plan.
 
@@ -19,7 +19,7 @@
 - **Anonymous users are first-class (D5).** Supabase anonymous users carry `role: authenticated` in their JWT (with `is_anonymous: true`), so **`TO authenticated` INCLUDES guests** — correct, because guests own enrollments/progress/chat and carry them through an account upgrade. **Do not** add an `is_anonymous() = false` guard to any current own-row or public-read policy. The `is_anonymous()` helper (Plan A) stays available for any *future* guest-exclusion policy; none is added now.
 - **Preserve every policy predicate exactly** — only change the role scope (`TO public` → `TO authenticated`) and drop the redundant `auth.role() = 'authenticated'` text (now structural). Keep the `(SELECT auth.uid())` / `(SELECT id FROM public.users WHERE …)` sub-selects verbatim (they are the `0004` performance-optimized form).
 - **GoTrue settings live in `config.toml`, never in a migration.** Config keys vary by Supabase CLI version — **confirm each key against the installed CLI's `config.toml` schema** before writing it; the keys below are the canonical names.
-- **Prod anonymous stays OFF** (decision): C2 lands the mitigations (IP rate-limit + B2 cleanup — **no CAPTCHA**) and enables anon on **local only**. The prod flip is a deliberate later release; no external prerequisite remains (CAPTCHA dropped — poor mobile UX).
+- **Prod anonymous is ENABLED** (decision): C2 lands the mitigations (IP rate-limit + B2 cleanup — **no CAPTCHA**) and turns anonymous sign-in ON in **both local and prod**. **Ordering is mandatory:** tune + apply the prod rate-limits **first**, then flip `enable_anonymous_sign_ins = true` in prod — never the reverse (an unthrottled prod anon endpoint is the abuse vector B1 flagged). No external prerequisite remains (CAPTCHA dropped — poor mobile UX).
 - **`supabase config push` parity is unresolved (Spec 1).** Prod GoTrue settings are applied manually (Dashboard → Auth, or Management API) and recorded; document, don't automate.
 - **Test/verify env workaround:** prefix package test runs with `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER`.
 
@@ -153,7 +153,7 @@ git commit -m "feat(auth): GoTrue hardening — confirmation, password/HIBP, rat
 
 ---
 
-### Task 3: Mirror settings to prod (parity, anon stays OFF)
+### Task 3: Mirror settings to prod (parity + enable anon, rate-limits first)
 
 **Files:** none (operational + a recorded checklist in this plan).
 
@@ -164,12 +164,16 @@ Because `supabase config push` parity is unresolved, apply via **Dashboard → A
 - [ ] Password policy + leaked-password (HIBP) protection: ON.
 - [ ] MFA TOTP: enroll + verify enabled.
 - [ ] Redirect allow-list: prod app scheme/URLs.
-- [ ] Rate limits: prod-tuned (this + B2 cleanup are the anonymous-signup mitigations; no CAPTCHA).
-- [ ] **`enable_anonymous_sign_ins` = OFF** (decision) — stays OFF until a deliberate release flips it. No external prerequisite remains (CAPTCHA dropped); the flip is just a config decision once prod rate-limits are tuned.
+- [ ] Rate limits: prod-tuned **and applied first** (this + B2 cleanup are the anonymous-signup mitigations; no CAPTCHA). Verify the limits are live before the next step.
+- [ ] **`enable_anonymous_sign_ins` = ON** (decision) — flip **only after** the prod rate-limits above are confirmed live. This satisfies B1's release gate ("do not enable prod anon until Plan C's rate-limit mitigation is live").
 
-- [ ] **Step 2: Record applied values**
+- [ ] **Step 2: Smoke-test prod anonymous sign-in**
 
-Capture the exact prod settings applied in this plan's completion notes, so the future anon-enable release has a precise checklist.
+After the flip: `signInAnonymously()` against prod succeeds and provisions a `public.users` row (`is_anonymous = true`) via the existing trigger; an `updateUser({ email, password })` upgrade preserves the UUID and flips `is_anonymous = false`. Confirm the rate-limit actually throttles a burst of anonymous sign-ups (e.g. rapid repeats return 429). Clean up the throwaway guest(s).
+
+- [ ] **Step 3: Record applied values**
+
+Capture the exact prod settings applied (rate-limit values + `enable_anonymous_sign_ins = true`) in this plan's completion notes.
 
 ---
 
@@ -207,7 +211,7 @@ Against the local stack / Testcontainers harness: `SET ROLE authenticated` with 
 
 - [ ] **Step 2: Update ADR-028 + plans index**
 
-Record in ADR-028 (or a short follow-up note): Data API closed (C1/D3), policy `TO authenticated` scoping (D4′), MFA TOTP enabled at config level with mobile enrollment UI deferred, anonymous-abuse mitigation = IP rate-limit + B2 cleanup (CAPTCHA dropped — poor mobile UX), prod anonymous release stays OFF pending a deliberate flip. Add the C2 row to `docs/superpowers/plans/README.md`.
+Record in ADR-028 (or a short follow-up note): Data API closed (C1/D3), policy `TO authenticated` scoping (D4′), MFA TOTP enabled at config level with mobile enrollment UI deferred, anonymous-abuse mitigation = IP rate-limit + B2 cleanup (CAPTCHA dropped — poor mobile UX), prod anonymous sign-in ENABLED (rate-limits applied first). Add the C2 row to `docs/superpowers/plans/README.md`.
 
 - [ ] **Step 3: Commit**
 
@@ -225,14 +229,14 @@ pnpm migrate:dev                                                                
 env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/db test   # RLS defense-in-depth green
 # DB: every public policy roles={authenticated}; no auth.role() text remains
 # config: local signup requires confirmation; TOTP enrollment available; IP rate-limit on; anon (guest) still works locally
-# prod: settings mirrored (anon OFF); 0010 applied; get_advisors(security) clean; drizzle journal id 10
+# prod: settings mirrored; rate-limits applied FIRST then anon ENABLED; 0010 applied; get_advisors(security) clean; drizzle journal id 10
 ```
 
-**Done when:** `0010` applied to local **and** prod (journal id 10); every app-table policy is scoped `TO authenticated` with no `auth.role()` remaining and the advisor is clean; GoTrue is hardened per the decisions (confirmation, password/HIBP, IP rate-limit local, TOTP MFA; **no CAPTCHA**) with prod settings mirrored and **prod anonymous sign-in still OFF**; the RLS defense-in-depth test (incl. the guest = `authenticated` case) passes.
+**Done when:** `0010` applied to local **and** prod (journal id 10); every app-table policy is scoped `TO authenticated` with no `auth.role()` remaining and the advisor is clean; GoTrue is hardened per the decisions (confirmation, password/HIBP, IP rate-limit, TOTP MFA; **no CAPTCHA**) with prod settings mirrored and **prod anonymous sign-in ENABLED (rate-limits applied first)**; the RLS defense-in-depth test (incl. the guest = `authenticated` case) passes.
 
 ## Self-review notes (spec coverage)
 
 - **Phase 3 / D4′ mapped:** drop `auth.role()` + scope `TO authenticated` → `0010` (all 13 policies); `vector`-move DROPPED per D4′ (not in this plan); GoTrue settings via `config.toml` → Task 2, mirrored to prod → Task 3.
 - **D5/D7:** anonymous users are `role: authenticated`, so `TO authenticated` includes guests by design — **no** `is_anonymous() = false` guard added; helper retained for future use. Test covers the guest case.
 - **MFA (open item → decided):** config-enable TOTP only (Task 2/3); mobile enrollment + challenge UI explicitly deferred to a follow-up spec.
-- **Deliberate scope / deferrals:** prod anonymous sign-in stays OFF (deliberate flip; no external prerequisite — CAPTCHA dropped, IP rate-limit + B2 cleanup are the mitigations); `supabase config push` parity unresolved → prod settings applied manually and recorded; depends on **C1** landing first (Data API already closed, so these policies are defense-in-depth).
+- **Deliberate scope / deferrals:** prod anonymous sign-in ENABLED, with prod rate-limits applied **before** the flip (IP rate-limit + B2 cleanup are the mitigations; CAPTCHA dropped — poor mobile UX); `supabase config push` parity unresolved → prod settings applied manually and recorded; depends on **C1** landing first (Data API already closed, so these policies are defense-in-depth).
