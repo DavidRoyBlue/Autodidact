@@ -72,7 +72,8 @@ cp .env.example .env.dev
 #    With it, every command — build, test, single-service runs — gets a real env.
 cp .envrc.example .envrc && direnv allow   # requires direnv (https://direnv.net)
 
-# 4. Create .env.prod manually when you need production access
+# 4. For local access to the prod DB, populate infra/secrets.env (the same file
+#    that seeds GCP Secret Manager). Prod runtime secrets come from Secret Manager.
 
 # 5. Start all services in dev mode
 #    Boots the local Supabase stack (supabase start: API 55321, DB 55322,
@@ -88,9 +89,11 @@ pnpm db:studio:dev        # Drizzle Studio; Supabase Studio at http://127.0.0.1:
 
 > **Env loading.** Services validate their environment at boot via `@autodidact/env`
 > and fail fast with a clear message if a required variable is missing. With direnv
-> (step 3) `.env.dev` is loaded for *every* command in this directory; `.env.prod`
-> is selected explicitly by the `dotenv -e .env.prod --` wrappers (`migrate:prod`,
-> `db:studio:prod`), which override direnv in their subprocess.
+> (step 3) `.env.dev` is loaded for *every* command in this directory. There is no
+> `.env.prod`: the prod-DB wrappers (`migrate:prod`, `db:studio:prod`) select
+> `infra/secrets.env` explicitly via `dotenv -e`, overriding direnv in their
+> subprocess. Production **runtime** secrets are not read from any local file —
+> Cloud Run injects them from GCP Secret Manager (seeded from `infra/secrets.env`).
 
 ## Provider Configuration
 

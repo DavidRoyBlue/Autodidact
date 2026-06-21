@@ -17,10 +17,10 @@
     "eval": "pnpm build && dotenv -e .env.dev -- pnpm --filter @autodidact/agent eval",
     "clean": "turbo run clean",
     "migrate:dev": "dotenv -e .env.dev -- ./scripts/migrate.sh",
-    "migrate:prod": "dotenv -e .env.prod -- ./scripts/migrate.sh",
+    "migrate:prod": "dotenv -e infra/secrets.env -- ./scripts/migrate.sh",
     "db:reset:dev": "dotenv -e .env.dev -- ./scripts/db-reset.sh",
     "db:studio:dev": "dotenv -e .env.dev -- ./scripts/db-studio.sh",
-    "db:studio:prod": "dotenv -e .env.prod -- ./scripts/db-studio.sh",
+    "db:studio:prod": "dotenv -e infra/secrets.env -- ./scripts/db-studio.sh",
     "db:generate:dev": "dotenv -e .env.dev -- ./scripts/gen-migration.sh"
   },
   "devDependencies": {

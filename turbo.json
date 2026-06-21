@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [".env.dev", ".env.prod"],
+  "globalDependencies": [".env.dev", "infra/secrets.env"],
   "globalEnv": [
     "NODE_ENV",
     "LOG_LEVEL",

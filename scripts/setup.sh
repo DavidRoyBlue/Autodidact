@@ -58,7 +58,7 @@ else
   info "${BOLD}OPENAI_API_KEY${NC}           → OpenAI API key"
   info ""
   info "All available at: Supabase dashboard → Settings → API"
-  info ".env.prod is not created automatically; populate it manually."
+  info "For prod-DB access, populate infra/secrets.env manually (also seeds Secret Manager)."
 fi
 
 # ── Local Supabase stack ───────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ fi
 echo "Next steps:"
 info "1. Run 'pnpm exec supabase status' and copy Publishable + Secret keys into .env.dev"
 info "2. Fill in OPENAI_API_KEY in .env.dev"
-info "3. Create .env.prod manually when you need production database access"
+info "3. Populate infra/secrets.env manually for prod database access (also seeds Secret Manager)"
 info ""
 info "Then start the app:"
 info "  pnpm dev               ← backend services (+ Supabase stack)"

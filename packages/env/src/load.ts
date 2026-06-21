@@ -13,7 +13,8 @@ export class EnvValidationError extends Error {
       .join('\n');
     super(
       `Invalid environment for the "${service}" service:\n${details}\n\n` +
-        `Set the missing variables in .env.dev / .env.prod (see .env.example).\n` +
+        `Set the missing variables in .env.dev for local dev (see .env.example); ` +
+        `in production they are injected by Cloud Run from GCP Secret Manager.\n` +
         `If you are running a single service directly, make sure the env is loaded ` +
         `first (run "direnv allow" once, or use the "dotenv -e" wrapper scripts).`,
     );
