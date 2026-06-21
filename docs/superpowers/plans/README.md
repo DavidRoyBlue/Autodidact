@@ -28,6 +28,8 @@ Plans are structured task lists written before implementation begins. They are t
 | [2026-06-19 — Prod Auth Plan A: Provisioning & Identity](2026-06-19-prod-auth-1-provisioning.md) (Spec 2/4, Phase 0–1 provisioning) | Complete (2026-06-20, merged + applied to prod) |
 | [2026-06-20 — Prod Auth Plan B1: Anonymous Sign-In & Mobile Lifecycle](2026-06-20-prod-auth-planB1-anonymous-mobile.md) (Spec 2/4, Phase 1d/1f) | Not started |
 | [2026-06-20 — Prod Auth Plan B2: Stale-Anonymous Cleanup Job](2026-06-20-prod-auth-planB2-stale-anon-cleanup.md) (Spec 2/4, Phase 1e) | Complete (2026-06-20, endpoint + processor; Cloud Scheduler wiring deferred to infra) |
+| [2026-06-20 — Prod Auth Plan C1: Data-API Lockdown](2026-06-20-prod-auth-phase2-data-api-lockdown.md) (Spec 2/4, Phase 2 / D3) | Not started |
+| [2026-06-20 — Prod Auth Plan C2: Policy & Config Hardening](2026-06-20-prod-auth-phase3-policy-config-hardening.md) (Spec 2/4, Phase 3 / D4′) | Not started |
 
 ---
 
