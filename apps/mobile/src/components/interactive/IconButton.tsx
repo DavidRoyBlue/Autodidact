@@ -1,29 +1,6 @@
 import type { ReactNode } from 'react';
-import { styled, XStack, Spinner } from 'tamagui';
-
-const IconButtonFrame = styled(XStack, {
-  name: 'IconButton',
-  width: '$lg',
-  height: '$lg',
-  borderRadius: '$xl',
-  alignItems: 'center',
-  justifyContent: 'center',
-  pressStyle: { opacity: 0.75 },
-
-  variants: {
-    variant: {
-      primary: { backgroundColor: '$primary' },
-      ghost:   { backgroundColor: 'transparent', borderWidth: 1, borderColor: '$border' },
-    },
-    disabled: {
-      true: { opacity: 0.4 },
-    },
-  } as const,
-
-  defaultVariants: {
-    variant: 'primary',
-  },
-});
+import { ActivityIndicator, Pressable } from 'react-native';
+import { cn } from '@/lib/utils';
 
 type IconButtonProps = {
   icon: ReactNode;
@@ -40,13 +17,18 @@ export function IconButton({
   disabled = false,
   onPress,
 }: IconButtonProps) {
+  const isDisabled = disabled || loading;
   return (
-    <IconButtonFrame
-      variant={variant}
-      disabled={disabled || loading}
-      onPress={disabled || loading ? undefined : onPress}
+    <Pressable
+      onPress={isDisabled ? undefined : onPress}
+      disabled={isDisabled}
+      className={cn(
+        'h-10 w-10 items-center justify-center rounded-full active:opacity-75',
+        variant === 'primary' ? 'bg-primary' : 'border border-border bg-transparent',
+        isDisabled && 'opacity-40',
+      )}
     >
-      {loading ? <Spinner size="small" color="$text" /> : icon}
-    </IconButtonFrame>
+      {loading ? <ActivityIndicator size="small" className="text-primary-foreground" /> : icon}
+    </Pressable>
   );
 }

@@ -1,48 +1,25 @@
-import { styled, Input as TamaguiInput, YStack } from 'tamagui';
-import type { GetProps } from 'tamagui';
+import { View } from 'react-native';
+import type { ComponentPropsWithoutRef } from 'react';
+import { Input as UIInput } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { AppText } from '../typography/AppText';
 
-const StyledInput = styled(TamaguiInput, {
-  name: 'Input',
-  backgroundColor: '$surface',
-  borderColor: '$border',
-  borderWidth: 1,
-  borderRadius: '$md',
-  color: '$text',
-  fontSize: '$4',
-  paddingHorizontal: '$4',
-  placeholderTextColor: '$textMuted',
-
-  focusStyle: {
-    borderColor: '$primary',
-    outlineWidth: 0,
-  },
-
-  variants: {
-    hasError: {
-      true: { borderColor: '$danger' },
-    },
-  } as const,
-});
-
-type InputProps = GetProps<typeof StyledInput> & {
+type InputProps = ComponentPropsWithoutRef<typeof UIInput> & {
   label?: string;
   error?: string;
   helper?: string;
-  /** React Native TextInput editable prop — prevents keyboard from appearing when false */
-  editable?: boolean;
 };
 
-export function Input({ label, error, helper, editable, ...props }: InputProps) {
+export function Input({ label, error, helper, className, ...props }: InputProps) {
   return (
-    <YStack gap="$1">
+    <View className="gap-1">
       {label && <AppText variant="label">{label}</AppText>}
-      <StyledInput hasError={!!error} {...(editable === false ? { disabled: true } : {})} {...props} />
-      {error
-        ? <AppText variant="error">{error}</AppText>
-        : helper
-        ? <AppText variant="caption">{helper}</AppText>
-        : null}
-    </YStack>
+      <UIInput className={cn(error && 'border-destructive', className)} {...props} />
+      {error ? (
+        <AppText variant="error">{error}</AppText>
+      ) : helper ? (
+        <AppText variant="caption">{helper}</AppText>
+      ) : null}
+    </View>
   );
 }
