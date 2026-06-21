@@ -252,7 +252,7 @@ read access is wanted.
 `is_anonymous: true`. The trigger provisions a `public.users` row immediately.
 Upgrade via `updateUser({email})` or `linkIdentity()` preserves the UUID;
 the UPDATE-sync trigger flips `email`/`is_anonymous` on the existing row.
-Mitigations: CAPTCHA/Turnstile, IP rate-limit, stale-anonymous cleanup job.
+Mitigations: IP rate-limit, stale-anonymous cleanup job (CAPTCHA dropped — see Update 2026-06-21).
 
 **Pros**
 - Low-friction entry: users start courses without creating an account. Real
@@ -387,7 +387,7 @@ migration and breaks API-dependent features (AI tutor) for guests.
   ALL privileges, so it is not re-applied on fresh setups.
 - Phase 3: replace deprecated `auth.role()` in existing RLS policies with
   `TO authenticated` scoping; configure GoTrue settings (email confirmation,
-  anonymous toggle, CAPTCHA, rate limits) via `supabase/config.toml`.
+  anonymous toggle, rate limits) via `supabase/config.toml`.
 - Stale-anonymous retention window `N` is a plan parameter — choose before
   Phase 1 ships to production.
 - If ADR-020's reconsideration triggers fire (Supabase Auth migration), D1's
@@ -396,3 +396,11 @@ migration and breaks API-dependent features (AI tutor) for guests.
 - `is_anonymous()` SQL helper (D7 in spec) must be kept consistent with the
   `is_anonymous` column (D6); if the column is the authoritative source, the
   helper is defense-in-depth for RLS and should be documented as such.
+
+## Update (2026-06-21) — CAPTCHA dropped
+
+The anonymous-sign-in abuse mitigations are **IP rate-limit + the stale-anonymous
+cleanup job (Plan B2)**. CAPTCHA/Turnstile is **not** used: it is poor UX for the
+phone app (the only client) and was explicitly removed from scope. The core D5
+decision (anonymous sign-in enabled, UUID-preserving upgrade) is unchanged; only
+the mitigation set is refined. Spec D5 carries the matching revision.

@@ -21,7 +21,7 @@
 - **`is_anonymous` client source = the Supabase session `user.is_anonymous`** (boolean on the session's `user`). The app does not query the DB for it (that's the server/API's `public.users.is_anonymous`, Plan A).
 - **Identity contract (Plan A / ADR-028):** upgrade preserves the user UUID — `updateUser({email})` is an UPDATE of the same `auth.users` row, so `public.users.id` is unchanged and progress carries over. Never create a new user on upgrade.
 - **Local stack ports remapped +1000** (Spec 1): API `55321`, DB `55322`. The mobile app resolves `extra.supabaseUrl` from `.env.dev` via `app.config.ts`.
-- **PROD anonymous sign-in is gated on Plan C (hard sequencing constraint).** B1 enables `enable_anonymous_sign_ins` on the **local stack only**. Anonymous sign-in is an abuse vector (anyone with the publishable key can mint unlimited guests → unbounded `public.users` rows + trigger load); spec D5 pairs it with CAPTCHA + IP rate-limiting. **Do NOT enable anonymous sign-ins on the prod project (`cbzdsoojfhpsexuyeyxt`) until Plan C's rate-limit/CAPTCHA mitigations are live.** This is a release dependency, not a soft note.
+- **PROD anonymous sign-in is gated on Plan C (hard sequencing constraint).** B1 enables `enable_anonymous_sign_ins` on the **local stack only**. Anonymous sign-in is an abuse vector (anyone with the publishable key can mint unlimited guests → unbounded `public.users` rows + trigger load); the mitigations are IP rate-limiting + B2's stale-anonymous cleanup (CAPTCHA dropped — poor mobile UX). **Do NOT enable anonymous sign-ins on the prod project (`cbzdsoojfhpsexuyeyxt`) until Plan C's IP-rate-limit mitigation is live.** This is a release dependency, not a soft note.
 - **Email-confirmation awareness:** the upgrade flow must NOT assume `updateUser({email})` takes effect immediately. Locally `enable_confirmations=false` so it does; in prod (once Plan C may enable confirmation) it sends a confirmation and the user stays anonymous server-side until confirmed. The client must derive guest status from the **server-returned user**, never optimistically (see Task 5).
 - **Test mocking:** jest-expo tests must run with `expo-secure-store` mocked (the auth store's `persist` middleware writes to it). Before writing store/component tests, confirm `apps/mobile/jest-setup.ts` mocks `expo-secure-store` globally; if it does not, add a `jest.mock('expo-secure-store', () => ({ getItemAsync: jest.fn(), setItemAsync: jest.fn(), deleteItemAsync: jest.fn() }))` to the setup (or per-file). `jest.mock` factory vars must be prefixed `mock`.
 
@@ -47,7 +47,7 @@ to
 enable_anonymous_sign_ins = true
 ```
 
-(Leave the IP rate-limit and CAPTCHA settings at defaults — tuning those is Plan C / GoTrue hardening, not B1. `enable_confirmations` for the email provider stays at its current local value `false`, so an `updateUser({email})` upgrade takes effect immediately for local verification.)
+(Leave the IP rate-limit settings at defaults — tuning those is Plan C / GoTrue hardening, not B1. `enable_confirmations` for the email provider stays at its current local value `false`, so an `updateUser({email})` upgrade takes effect immediately for local verification.)
 
 - [x] **Step 2: Restart the stack so the setting takes effect and confirm it parsed**
 
@@ -66,7 +66,7 @@ git add supabase/config.toml
 git commit -m "feat(infra): enable anonymous sign-ins in the local Supabase stack (Spec 2 B1)"
 ```
 
-> **PROD enablement is a Plan C release dependency — NOT done here.** Per the Global Constraint above, the prod project `cbzdsoojfhpsexuyeyxt` must NOT have anonymous sign-ins enabled until Plan C's CAPTCHA + IP-rate-limit mitigations are live (spec D5). When Plan C ships, enable it in prod via `supabase/config.toml` parity (or the dashboard) together with those mitigations. Record this dependency in the PR description.
+> **PROD enablement is a Plan C release dependency — NOT done here.** Per the Global Constraint above, the prod project `cbzdsoojfhpsexuyeyxt` must NOT have anonymous sign-ins enabled until Plan C's IP-rate-limit mitigation is live (CAPTCHA dropped — poor mobile UX; rate-limit + B2 cleanup are the mitigations). When Plan C ships, enable it in prod via `supabase/config.toml` parity (or the dashboard) together with those mitigations. Record this dependency in the PR description.
 
 ---
 
@@ -569,4 +569,4 @@ pnpm --filter @autodidact/mobile typecheck   # clean
 
 - 1d anonymous client flow → Tasks 1 (config), 4 (guest entry), 5 (upgrade). 1f/D8 guard precedence → Task 3. 1b **email** upgrade path + acceptance test → Tasks 5 + 6.
 - **Critique fixes applied:** confirmation-aware upgrade (reconcile `isAnonymous` from the server-returned user, handle confirmation-pending — Task 5, with both branches tested); PROD anonymous enablement made a hard Plan-C release dependency (Global Constraints + Task 1); `expo-secure-store` test-mock requirement (Global Constraints); separate `guestLoading` (Task 4); app-restart rehydration verification (Task 6); routing-coverage boundary stated (Task 3); unreliable Task 1 curl removed.
-- **Deferred by design:** OAuth `linkIdentity` upgrade + `auth.identities` fallback (no OAuth in app — ADR-028 follow-up stays open); CAPTCHA/IP-rate-limit + prod anonymous enablement (Plan C / GoTrue hardening); confirmation-ON prod behavior verified only at deploy time (local has confirmations off); DEV_AUTO_LOGIN (Spec 4 — B1 leaves the slot); stale-anonymous cleanup (Plan B2).
+- **Deferred by design:** OAuth `linkIdentity` upgrade + `auth.identities` fallback (no OAuth in app — ADR-028 follow-up stays open); IP-rate-limit + prod anonymous enablement (Plan C / GoTrue hardening; no CAPTCHA); confirmation-ON prod behavior verified only at deploy time (local has confirmations off); DEV_AUTO_LOGIN (Spec 4 — B1 leaves the slot); stale-anonymous cleanup (Plan B2).
