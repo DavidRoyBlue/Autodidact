@@ -1,18 +1,18 @@
 import { useEffect } from 'react';
-import { XStack } from 'tamagui';
+import { View } from 'react-native';
 import { AppText } from '../typography/AppText';
 import { useToastStore, type ToastVariant } from '../../stores/toast.store';
 
-const bgMap: Record<ToastVariant, string> = {
-  success: '$successSubtle',
-  error:   '$dangerSubtle',
-  info:    '$surface',
+const frameClass: Record<ToastVariant, string> = {
+  success: 'bg-success/[0.15] border-success',
+  error: 'bg-destructive/[0.15] border-destructive',
+  info: 'bg-card border-border',
 };
 
-const textColorMap: Record<ToastVariant, string> = {
-  success: '$success',
-  error:   '$danger',
-  info:    '$text',
+const textClass: Record<ToastVariant, string> = {
+  success: 'text-success',
+  error: 'text-destructive',
+  info: 'text-foreground',
 };
 
 type ToastProps = {
@@ -30,22 +30,10 @@ export function Toast({ id, message, variant }: ToastProps) {
   }, [id, removeToast]);
 
   return (
-    <XStack
-      transition="fast"
-      enterStyle={{ opacity: 0, y: -12 }}
-      exitStyle={{ opacity: 0, y: -12 }}
-      backgroundColor={bgMap[variant]}
-      borderRadius="$md"
-      paddingHorizontal="$4"
-      paddingVertical="$3"
-      borderWidth={1}
-      borderColor={variant === 'success' ? '$success' : variant === 'error' ? '$danger' : '$border'}
-      alignItems="center"
-      gap="$2"
-    >
-      <AppText color={textColorMap[variant]} weight="semibold" flex={1}>
+    <View className={`flex-row items-center gap-2 rounded-md border px-4 py-3 ${frameClass[variant]}`}>
+      <AppText weight="semibold" className={`flex-1 ${textClass[variant]}`}>
         {message}
       </AppText>
-    </XStack>
+    </View>
   );
 }
