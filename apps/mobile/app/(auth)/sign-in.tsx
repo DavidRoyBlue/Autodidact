@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { YStack } from 'tamagui';
 import { useAuthStore } from '@/stores/auth.store';
 import { supabase } from '@/lib/supabase';
 import { Screen, Heading, AppText, Input, Button } from '@/components';
@@ -42,13 +41,13 @@ export default function SignInScreen() {
 
   return (
     <Screen>
-      <YStack flex={1} justifyContent="center" gap="$4">
-        <YStack gap="$2" marginBottom="$6">
+      <View className="flex-1 justify-center gap-4">
+        <View className="gap-2 mb-6">
           <Heading size="h1">Autodidact</Heading>
           <AppText variant="muted" size="lg">Learn anything, one module at a time.</AppText>
-        </YStack>
+        </View>
 
-        <YStack gap="$3">
+        <View className="gap-3">
           <Input
             label="Email"
             placeholder="you@example.com"
@@ -64,7 +63,7 @@ export default function SignInScreen() {
             onChangeText={setPassword}
             secureTextEntry
           />
-        </YStack>
+        </View>
 
         <Button
           variant="primary"
@@ -82,7 +81,7 @@ export default function SignInScreen() {
         <Button variant="ghost" size="sm" loading={guestLoading} onPress={handleGuest}>
           Continue as guest
         </Button>
-      </YStack>
+      </View>
     </Screen>
   );
 }

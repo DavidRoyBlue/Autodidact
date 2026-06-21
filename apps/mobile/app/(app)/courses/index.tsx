@@ -1,6 +1,5 @@
-import { FlatList, RefreshControl } from 'react-native';
+import { FlatList, RefreshControl, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useTheme, XStack, YStack } from 'tamagui';
 import { useUserCourses } from '@/api/courses';
 import { Screen, Card, AppText, Badge, EmptyState, SkeletonCard } from '@/components';
 
@@ -14,17 +13,16 @@ type Course = {
 
 export default function MyCoursesScreen() {
   const router = useRouter();
-  const theme = useTheme();
   const { data: courses, isLoading, isRefetching, refetch } = useUserCourses();
 
   if (isLoading) {
     return (
       <Screen>
-        <YStack gap="$3" paddingVertical="$1">
+        <View className="gap-3 py-1">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
-        </YStack>
+        </View>
       </Screen>
     );
   }
@@ -39,7 +37,7 @@ export default function MyCoursesScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={theme.primary.get()}
+            tintColor="#6366f1"
           />
         }
         ListEmptyComponent={
@@ -51,19 +49,19 @@ export default function MyCoursesScreen() {
         }
         renderItem={({ item }: { item: Course }) => (
           <Card variant="default" onPress={() => router.push(`/(app)/courses/${item.id}`)}>
-            <XStack justifyContent="space-between" alignItems="flex-start" marginBottom="$2">
-              <YStack flex={1} marginRight="$2">
+            <View className="flex-row justify-between items-start mb-2">
+              <View className="flex-1 mr-2">
                 <AppText variant="body" weight="semibold" size="lg">
                   {item.title}
                 </AppText>
-              </YStack>
+              </View>
               <Badge label={item.difficulty} />
-            </XStack>
+            </View>
             <AppText variant="muted" size="sm" numberOfLines={2}>{item.description}</AppText>
             {item.completedAt && (
-              <YStack marginTop="$2">
-                <AppText variant="body" color="$success" size="sm">✓ Completed</AppText>
-              </YStack>
+              <View className="mt-2">
+                <AppText variant="body" className="text-success" size="sm">✓ Completed</AppText>
+              </View>
             )}
           </Card>
         )}

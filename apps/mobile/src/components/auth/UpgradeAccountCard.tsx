@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
-import { YStack } from 'tamagui';
+import { Alert, View } from 'react-native';
 import { useAuthStore } from '@/stores/auth.store';
 import { supabase } from '@/lib/supabase';
 import { Card, AppText, Input, Button } from '@/components';
@@ -45,7 +44,7 @@ export function UpgradeAccountCard() {
     <Card variant="elevated">
       <AppText variant="label">Save your progress</AppText>
       <AppText variant="muted">You're browsing as a guest. Add an email to keep your progress.</AppText>
-      <YStack marginTop="$3" gap="$3">
+      <View className="mt-3 gap-3">
         <Input
           label="Email"
           placeholder="you@example.com"
@@ -64,7 +63,7 @@ export function UpgradeAccountCard() {
         <Button variant="primary" size="lg" loading={loading} onPress={handleUpgrade}>
           Save your account
         </Button>
-      </YStack>
+      </View>
     </Card>
   );
 }
