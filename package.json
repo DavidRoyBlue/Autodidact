@@ -21,7 +21,8 @@
     "db:reset:dev": "dotenv -e .env.dev -- ./scripts/db-reset.sh",
     "db:studio:dev": "dotenv -e .env.dev -- ./scripts/db-studio.sh",
     "db:studio:prod": "dotenv -e infra/secrets.env -- ./scripts/db-studio.sh",
-    "db:generate:dev": "dotenv -e .env.dev -- ./scripts/gen-migration.sh"
+    "db:generate:dev": "dotenv -e .env.dev -- ./scripts/gen-migration.sh",
+    "db:seed:onboarding:dev": "dotenv -e .env.dev -- pnpm --filter @autodidact/db db:seed:onboarding"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
