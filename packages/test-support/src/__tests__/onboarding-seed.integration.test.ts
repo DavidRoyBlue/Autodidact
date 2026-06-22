@@ -17,7 +17,7 @@ describe('seedOnboardingCourse', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.id).toBe(courseId);
     const mods = await h.db.select({ id: modules.id }).from(modules).where(eq(modules.courseId, courseId));
-    expect(mods.length).toBeGreaterThanOrEqual(1);
+    expect(mods).toHaveLength(2);
   });
 
   it('is idempotent — running twice yields one course and stable module ids', async () => {

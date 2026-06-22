@@ -1,4 +1,6 @@
-import { getDb, getPool, courses, modules, eq, type DB } from '../index.js';
+import { getDb, getPool, type DB } from '../client.js';
+import { courses, modules } from '../schema/index.js';
+import { eq } from 'drizzle-orm';
 import type { ContentSection } from '@autodidact/types';
 
 const ONBOARDING_SLUG = 'welcome-to-autodidact';
