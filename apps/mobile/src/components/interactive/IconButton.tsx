@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable } from 'react-native';
+import { useColorScheme } from 'nativewind';
 import { cn } from '@/lib/utils';
 
 type IconButtonProps = {
@@ -17,7 +18,9 @@ export function IconButton({
   disabled = false,
   onPress,
 }: IconButtonProps) {
+  const { colorScheme } = useColorScheme();
   const isDisabled = disabled || loading;
+  const indicatorColor = variant === 'primary' ? '#f1f5f9' : (colorScheme === 'dark' ? '#f1f5f9' : '#0f172a');
   return (
     <Pressable
       onPress={isDisabled ? undefined : onPress}
@@ -28,7 +31,7 @@ export function IconButton({
         isDisabled && 'opacity-40',
       )}
     >
-      {loading ? <ActivityIndicator size="small" className="text-primary-foreground" /> : icon}
+      {loading ? <ActivityIndicator size="small" color={indicatorColor} /> : icon}
     </Pressable>
   );
 }
