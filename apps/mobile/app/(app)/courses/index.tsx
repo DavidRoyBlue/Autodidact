@@ -1,16 +1,8 @@
 import { FlatList, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme, XStack, YStack } from 'tamagui';
-import { useUserCourses } from '@/api/courses';
+import { useUserCourses, type Course } from '@/api/courses';
 import { Screen, Card, AppText, Badge, EmptyState, SkeletonCard } from '@/components';
-
-type Course = {
-  id: string;
-  title: string;
-  description: string;
-  difficulty: string;
-  completedAt: string | null;
-};
 
 export default function MyCoursesScreen() {
   const router = useRouter();

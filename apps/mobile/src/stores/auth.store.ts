@@ -8,8 +8,10 @@ interface AuthState {
   refreshToken: string | null;
   user: UserProfile | null;
   isAnonymous: boolean;
+  hasSeenOnboarding: boolean;
   setSession: (accessToken: string, refreshToken: string, isAnonymous?: boolean) => void;
   setUser: (user: UserProfile) => void;
+  setHasSeenOnboarding: (seen: boolean) => void;
   clearSession: () => void;
 }
 
@@ -26,9 +28,12 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       user: null,
       isAnonymous: false,
+      hasSeenOnboarding: false,
       setSession: (accessToken, refreshToken, isAnonymous = false) =>
         set({ accessToken, refreshToken, isAnonymous }),
       setUser: (user) => set({ user }),
+      setHasSeenOnboarding: (seen) => set({ hasSeenOnboarding: seen }),
+      // hasSeenOnboarding intentionally survives sign-out — it is device-local UX, not session state.
       clearSession: () => set({ accessToken: null, refreshToken: null, user: null, isAnonymous: false }),
     }),
     {

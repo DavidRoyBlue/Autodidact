@@ -63,3 +63,27 @@ describe('useAuthStore', () => {
     expect(useAuthStore.getState().accessToken).toBeNull();
   });
 });
+
+describe('auth.store — hasSeenOnboarding', () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      accessToken: 'tok', refreshToken: 'ref', user: null, isAnonymous: false, hasSeenOnboarding: false,
+    });
+  });
+
+  it('defaults to false', () => {
+    expect(useAuthStore.getState().hasSeenOnboarding).toBe(false);
+  });
+
+  it('setHasSeenOnboarding flips the flag', () => {
+    useAuthStore.getState().setHasSeenOnboarding(true);
+    expect(useAuthStore.getState().hasSeenOnboarding).toBe(true);
+  });
+
+  it('clearSession does NOT reset hasSeenOnboarding (device-local UX, not session state)', () => {
+    useAuthStore.getState().setHasSeenOnboarding(true);
+    useAuthStore.getState().clearSession();
+    expect(useAuthStore.getState().hasSeenOnboarding).toBe(true);
+    expect(useAuthStore.getState().accessToken).toBeNull();
+  });
+});
