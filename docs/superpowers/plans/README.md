@@ -39,6 +39,7 @@ Done plans are never deleted; they record how and why something was built. Their
 |---|---|
 | [2026-05-14 — Sync main: SessionStart hook](to-be-reviewed/2026-05-14-sync-main-session-start-hook.md) | Proposed; hook script not yet created |
 | [2026-06-20 — Prod Auth Plan C2: Policy & Config Hardening](to-be-reviewed/2026-06-20-prod-auth-phase3-policy-config-hardening.md) | Spec 2/4, Phase 3 / D4' |
+| [2026-06-22 — Onboarding Course (Spec 3/4)](to-be-reviewed/2026-06-22-onboarding-course-implementation.md) | Auto-enroll + placeholder seed + first-launch deep-link; resolves Spec 3 D9/D10 |
 
 ### 🟡 In progress
 
