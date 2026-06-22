@@ -90,6 +90,14 @@ Every code change must respect these:
 
 ---
 
+## Mean and lean (hard constraint)
+- Implement the minimum code that satisfies the requirement. No pre-emptive abstractions.
+- Prefer SDK and library calls over custom implementations — they are maintained externally; custom code is yours to own forever.
+- Test logic, not SDK calls or infrastructure wrappers.
+- No docs updates unless something is genuinely non-obvious to a future reader.
+- No placeholder comments for unimplemented future specs.
+- Being lean is our core advantage. Always prioritize concise code/librairy/sdk over costum implementation.
+
 ## Before you code
 
 State assumptions before implementing. If uncertain, ask:

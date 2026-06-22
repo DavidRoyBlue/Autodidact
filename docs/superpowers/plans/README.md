@@ -13,23 +13,58 @@ Plans are structured task lists written before implementation begins. They are t
 ## Where this fits
 
 - Parent: [superpowers/README.md](../README.md)
+- Rules: [../CLAUDE.md](../CLAUDE.md)
+
+---
+
+## Triage model
+
+A plan's **status is the subfolder it lives in** — this is the single source of truth. Move the file to change its status.
+
+| | Folder | Meaning |
+|---|---|---|
+| 🔵 | [`to-be-reviewed/`](to-be-reviewed/) | To review / not started — proposed work, not yet picked up |
+| 🟡 | [`in-progress/`](in-progress/) | Implementation underway |
+| ⚪ | [`_done/`](_done/) | Completed / implemented — shipped, kept as a record |
+
+Done plans are never deleted; they record how and why something was built. Their in-file `- [ ]` checkboxes may lag the real outcome — trust the folder and git history over the boxes.
 
 ---
 
 ## Index
 
-| Plan | Status |
+### 🔵 To be reviewed
+
+| Plan | Notes |
 |---|---|
-| [2026-04-28 — Mobile Design System](2026-04-28-mobile-design-system.md) | In progress |
-| [2026-04-29 — Fix Vitest Hoisting](2026-04-29-fix-vitest-hoisting.md) | In progress |
-| [2026-04-29 — JWKS Auth](2026-04-29-jwks-auth.md) | In progress |
-| [2026-06-02 — CI/CD & Dependency Hardening](2026-06-02-cicd-dependency-fixes.md) | Not started |
-| [2026-06-19 — Local Supabase Stack](2026-06-19-local-supabase-stack.md) (Spec 1/4) | Complete (2026-06-19) |
-| [2026-06-19 — Prod Auth Plan A: Provisioning & Identity](2026-06-19-prod-auth-1-provisioning.md) (Spec 2/4, Phase 0–1 provisioning) | Complete (2026-06-20, merged + applied to prod) |
-| [2026-06-20 — Prod Auth Plan B1: Anonymous Sign-In & Mobile Lifecycle](2026-06-20-prod-auth-planB1-anonymous-mobile.md) (Spec 2/4, Phase 1d/1f) | Not started |
-| [2026-06-20 — Prod Auth Plan B2: Stale-Anonymous Cleanup Job](2026-06-20-prod-auth-planB2-stale-anon-cleanup.md) (Spec 2/4, Phase 1e) | Complete (2026-06-20, endpoint + processor; Cloud Scheduler wiring deferred to infra) |
-| [2026-06-20 — Prod Auth Plan C1: Data-API Lockdown](2026-06-20-prod-auth-phase2-data-api-lockdown.md) (Spec 2/4, Phase 2 / D3) | Not started |
-| [2026-06-20 — Prod Auth Plan C2: Policy & Config Hardening](2026-06-20-prod-auth-phase3-policy-config-hardening.md) (Spec 2/4, Phase 3 / D4′) | Not started |
+| [2026-05-14 — Sync main: SessionStart hook](to-be-reviewed/2026-05-14-sync-main-session-start-hook.md) | Proposed; hook script not yet created |
+| [2026-06-20 — Prod Auth Plan C2: Policy & Config Hardening](to-be-reviewed/2026-06-20-prod-auth-phase3-policy-config-hardening.md) | Spec 2/4, Phase 3 / D4' |
+
+### 🟡 In progress
+
+_None._
+
+### ⚪ Done
+
+| Plan | Completed |
+|---|---|
+| [2026-04-28 — Mobile Design System](_done/2026-04-28-mobile-design-system.md) | Tamagui design system + screens shipped |
+| [2026-04-29 — Fix Vitest Hoisting](_done/2026-04-29-fix-vitest-hoisting.md) | `vi.hoisted()` migration |
+| [2026-04-29 — JWKS Auth](_done/2026-04-29-jwks-auth.md) | JWKS/RS256 local verification |
+| [2026-06-01 — Test Overhaul Phase 0: Foundation](_done/2026-06-01-test-overhaul-phase-0-foundation.md) | `packages/test-support` harness |
+| [2026-06-01 — Test Overhaul Phase 1: Backend Integration](_done/2026-06-01-test-overhaul-phase-1-backend-integration.md) | provider/db/worker integration tests |
+| [2026-06-01 — Test Overhaul Phase 2: API E2E](_done/2026-06-01-test-overhaul-phase-2-api-e2e.md) | `services/api` e2e harness |
+| [2026-06-01 — Test Overhaul Phase 3: Cross-service E2E](_done/2026-06-01-test-overhaul-phase-3-cross-service-e2e.md) | `e2e/` workspace golden path |
+| [2026-06-02 — CI/CD & Dependency Hardening](_done/2026-06-02-cicd-dependency-fixes.md) | merged in PR #25 |
+| [2026-06-11 — ESM Migration](_done/2026-06-11-esm-migration.md) | all packages `type:module`, Node 22.12 |
+| [2026-06-13 — Chat SSE Disconnect Fix](_done/2026-06-13-chat-sse-disconnect-fix.md) | `reply.raw` disconnect detection |
+| [2026-06-19 — Local Supabase Stack](_done/2026-06-19-local-supabase-stack.md) (Spec 1/4) | 2026-06-19 |
+| [2026-06-19 — Prod Auth Plan A: Provisioning & Identity](_done/2026-06-19-prod-auth-1-provisioning.md) (Spec 2/4, Phase 0-1) | 2026-06-20 (merged + applied to prod) |
+| [2026-06-20 — Prod Auth Plan B1: Anonymous Sign-In & Mobile Lifecycle](_done/2026-06-20-prod-auth-planB1-anonymous-mobile.md) (Spec 2/4, Phase 1d/1f) | 2026-06-20 |
+| [2026-06-20 — Prod Auth Plan B2: Stale-Anonymous Cleanup Job](_done/2026-06-20-prod-auth-planB2-stale-anon-cleanup.md) (Spec 2/4, Phase 1e) | 2026-06-20 (Cloud Scheduler wiring deferred to infra) |
+| [2026-06-20 — Prod Auth Plan C1: Data-API Lockdown](_done/2026-06-20-prod-auth-phase2-data-api-lockdown.md) (Spec 2/4, Phase 2 / D3) | migration 0009 landed (commit e310078) |
+
+> Review-pipeline byproducts (`*.diff.md`, `*.parallel.md`, `*.review.md`) are left at the folder root next to this index; they are transient artifacts, not plans.
 
 ---
 
@@ -37,8 +72,8 @@ Plans are structured task lists written before implementation begins. They are t
 
 `YYYY-MM-DD-{area}-{descriptor}.md`
 
-if there is multiple plans related to one big chunk of work, name should be
+If there are multiple plans for one area (a big chunk of work):
 
-`YYYY-MM-DD-{area}-{descriptor}[-phase{N}]-{phase-descriptor}.md`
+`YYYY-MM-DD-{area}-{spec{x}}-[plan{N}]-{descriptor}.md`
 
-make the title of the plan clear as to what spec it is about, and also wich phase it is.
+Make the title clear about which spec and which phase the plan covers.

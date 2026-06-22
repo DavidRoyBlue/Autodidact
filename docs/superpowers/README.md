@@ -32,12 +32,24 @@ This folder is not responsible for:
 | [specs/](specs/) | Design specs — exploration and scoping before planning |
 | [plans/](plans/) | Implementation plans — task-level instructions for feature development |
 
+Each is triaged by status into subfolders — **the subfolder a document lives in is its status** (see each folder's `README.md`):
+
+- 🔵 `to-be-reviewed/` — proposed / not started
+- 🟡 `in-progress/` — implementation underway
+- ⚪ `_done/` — completed / shipped
+
 ---
 
 ## Lifecycle
 
 ```
-Spec (design) → Plan (task list) → Implementation → Done
+Spec (specs/to-be-reviewed → specs/in-progress → specs/_done)
+                     │
+                     ▼
+Plan (plans/to-be-reviewed → plans/in-progress → plans/_done)
+                     │
+                     ▼
+              Implementation
 ```
 
-Plans are not deleted after completion — they serve as a record of how and why something was built.
+Plans and specs are not deleted after completion — they move to `_done/` and serve as a record of how and why something was built.
