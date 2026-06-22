@@ -1,28 +1,27 @@
-import { FlatList, RefreshControl } from 'react-native';
+import { FlatList, RefreshControl, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useTheme, XStack, YStack } from 'tamagui';
 import { useCourse } from '@/api/courses';
 import { useProgress } from '@/api/progress';
 import { Screen, Heading, AppText, Card, ProgressBar, PositionBadge, SkeletonLine, SkeletonCard } from '@/components';
 import type { ModuleBlueprint } from '@autodidact/types';
+import { PRIMARY } from '@/lib/theme-colors';
 
 function LoadingSkeleton() {
   return (
-    <YStack gap="$3" paddingVertical="$1">
-      <SkeletonLine width="70%" height={32} />
-      <SkeletonLine width="100%" />
-      <SkeletonLine width="100%" height={6} />
+    <View className="gap-3 py-1">
+      <SkeletonLine className="w-[70%] h-8" />
+      <SkeletonLine />
+      <SkeletonLine className="h-1.5" />
       <SkeletonCard />
       <SkeletonCard />
       <SkeletonCard />
-    </YStack>
+    </View>
   );
 }
 
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const theme = useTheme();
   const { data: course, isLoading, isRefetching: courseRefetching, refetch: refetchCourse } = useCourse(id);
   const { data: progress, isRefetching: progressRefetching, refetch: refetchProgress } = useProgress(id);
 
@@ -56,15 +55,15 @@ export default function CourseDetailScreen() {
           <RefreshControl
             refreshing={courseRefetching || progressRefetching}
             onRefresh={handleRefresh}
-            tintColor={theme.primary.get()}
+            tintColor={PRIMARY}
           />
         }
         ListHeaderComponent={
-          <YStack gap="$4" marginBottom="$4">
+          <View className="gap-4 mb-4">
             <Heading size="h1">{course.title}</Heading>
             <AppText variant="muted">{course.description}</AppText>
             <ProgressBar value={progressPct} label={`${completedCount}/${totalCount} modules`} />
-          </YStack>
+          </View>
         }
         renderItem={({ item }) => {
           const modProgress = progressMap.get(item.id);
@@ -78,14 +77,14 @@ export default function CourseDetailScreen() {
               onPress={isLocked ? undefined : () => router.push(`/(app)/courses/${id}/modules/${item.id}/chat`)}
               disabled={isLocked}
             >
-              <XStack alignItems="center" gap="$3" marginBottom="$2">
+              <View className="flex-row items-center gap-3 mb-2">
                 <PositionBadge position={item.position + 1} completed={isCompleted} />
-                <YStack flex={1}>
+                <View className="flex-1">
                   <AppText variant="body" weight="semibold">{item.title}</AppText>
                   <AppText variant="caption">{status.replace('_', ' ')}</AppText>
-                </YStack>
+                </View>
                 {!isLocked && <AppText variant="muted" size="xl">›</AppText>}
-              </XStack>
+              </View>
               <AppText variant="muted" size="sm" numberOfLines={2}>{item.description}</AppText>
             </Card>
           );

@@ -1,28 +1,6 @@
-import { styled, XStack } from 'tamagui';
+import { Pressable } from 'react-native';
+import { cn } from '@/lib/utils';
 import { AppText } from '../typography/AppText';
-
-const ChipFrame = styled(XStack, {
-  name: 'Chip',
-  flex: 1,
-  alignItems: 'center',
-  justifyContent: 'center',
-  paddingHorizontal: '$3',
-  paddingVertical: '$2',
-  borderRadius: '$sm',
-  borderWidth: 1,
-  borderColor: '$border',
-  backgroundColor: '$surface',
-  pressStyle: { opacity: 0.8 },
-
-  variants: {
-    selected: {
-      true: {
-        borderColor: '$primary',
-        backgroundColor: '$primarySubtle',
-      },
-    },
-  } as const,
-});
 
 type ChipProps = {
   label: string;
@@ -32,14 +10,20 @@ type ChipProps = {
 
 export function Chip({ label, selected = false, onPress }: ChipProps) {
   return (
-    <ChipFrame selected={selected} onPress={onPress}>
+    <Pressable
+      onPress={onPress}
+      className={cn(
+        'flex-1 flex-row items-center justify-center rounded-sm border px-3 py-2 active:opacity-80',
+        selected ? 'border-primary bg-primary/[0.13]' : 'border-border bg-card',
+      )}
+    >
       <AppText
         variant={selected ? 'body' : 'muted'}
         weight={selected ? 'semibold' : 'regular'}
-        color={selected ? '$primary' : '$textMuted'}
+        className={selected ? 'text-primary' : 'text-muted-foreground'}
       >
         {label}
       </AppText>
-    </ChipFrame>
+    </Pressable>
   );
 }

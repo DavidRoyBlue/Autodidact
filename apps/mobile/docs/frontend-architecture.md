@@ -25,10 +25,10 @@ Parentheses groups `(auth)` and `(app)` are route segments that don't appear in 
 
 ## Provider stack
 
-`app/_layout.tsx` owns the two global providers and the auth guard:
+`app/_layout.tsx` owns the root NativeWind wrapper, the global providers, and the auth guard:
 
 ```
-TamaguiProvider (config + dark theme)
+View (NativeWind dark-mode root — carries 'dark' class when useColorScheme() === 'dark')
   └── QueryClientProvider (staleTime 30s, retry 1)
         └── Slot (rendered route)
 ```
@@ -39,7 +39,7 @@ The auth guard runs inside `_layout.tsx` via three `useEffect` hooks:
 2. **`onAuthStateChange` listener**: syncs Supabase auth events (token refresh, sign-out) into the store by calling `setSession` or `clearSession`.
 3. **Route guard**: watches `accessToken` + `segments` → redirects between `(auth)` and `(app)` using `router.replace`.
 
-`app/(app)/_layout.tsx` renders the tab bar. It reads Tamagui theme values via `useTheme()` to feed React Navigation's `screenOptions` with real hex values.
+`app/(app)/_layout.tsx` renders the tab bar. It passes hardcoded tintColor hex values to React Navigation's `screenOptions` (inline `style` — no Tailwind equivalent for RN nav props).
 
 ## Screens
 
@@ -54,6 +54,6 @@ The auth guard runs inside `_layout.tsx` via three `useEffect` hooks:
 
 ## Conventions
 
-- Screens import only from `@/components` and `@/stores` / `@/api`. No raw Tamagui primitives in screen files.
+- Screens import only from `@/components` and `@/stores` / `@/api`. No raw styled primitives in screen files; use plain RN `View`/`Text` with `className` for one-off layout.
 - Navigation params come from `useLocalSearchParams<{ id: string }>()`.
-- No `StyleSheet.create` anywhere. All styling is Tamagui props.
+- No `StyleSheet.create` for layout or styling. All styling is NativeWind `className`. Inline `style` only for runtime-dynamic values (progress widths, safe-area insets, RN nav `screenOptions`).

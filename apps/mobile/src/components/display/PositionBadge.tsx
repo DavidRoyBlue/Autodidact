@@ -1,4 +1,5 @@
-import { XStack } from 'tamagui';
+import { View } from 'react-native';
+import { cn } from '@/lib/utils';
 import { AppText } from '../typography/AppText';
 
 type PositionBadgeProps = {
@@ -8,17 +9,10 @@ type PositionBadgeProps = {
 
 export function PositionBadge({ position, completed }: PositionBadgeProps) {
   return (
-    <XStack
-      width="$md"
-      height="$md"
-      borderRadius="$xl"
-      backgroundColor={completed ? '$success' : '$surfaceHover'}
-      alignItems="center"
-      justifyContent="center"
-    >
+    <View className={cn('h-8 w-8 items-center justify-center rounded-full', completed ? 'bg-success' : 'bg-muted')}>
       <AppText variant="body" weight="bold" size="sm">
         {completed ? '✓' : String(position)}
       </AppText>
-    </XStack>
+    </View>
   );
 }

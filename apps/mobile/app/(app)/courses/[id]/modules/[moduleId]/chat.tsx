@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
-import { XStack, YStack, Spinner } from 'tamagui';
 import { apiFetch } from '@/api/client';
 import { useSSE } from '@/hooks/useSSE';
 import { useChatStore } from '@/stores/chat.store';
 import { Screen, AppText, Input, IconButton, ChatBubble } from '@/components';
 import type { ChatMessage } from '@autodidact/types';
+import { PRIMARY } from '@/lib/theme-colors';
 
 function UpArrow() {
-  return <AppText variant="body" weight="bold" color="$text">↑</AppText>;
+  return <AppText variant="body" weight="bold" className="text-foreground">↑</AppText>;
 }
 
 export default function ModuleChatScreen() {
@@ -66,10 +66,10 @@ export default function ModuleChatScreen() {
   if (creatingSession) {
     return (
       <Screen>
-        <YStack flex={1} alignItems="center" justifyContent="center" gap="$3">
-          <Spinner color="$primary" />
+        <View className="flex-1 items-center justify-center gap-3">
+          <ActivityIndicator color={PRIMARY} />
           <AppText variant="muted">Starting session...</AppText>
-        </YStack>
+        </View>
       </Screen>
     );
   }
@@ -80,7 +80,7 @@ export default function ModuleChatScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={90}
     >
-      <YStack flex={1} backgroundColor="$bg">
+      <View className="flex-1 bg-background">
         <FlatList
           ref={flatListRef}
           style={{ flex: 1 }}
@@ -93,16 +93,9 @@ export default function ModuleChatScreen() {
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
 
-        <XStack
-          padding="$3"
-          gap="$2"
-          borderTopWidth={1}
-          borderTopColor="$border"
-          backgroundColor="$surface"
-          alignItems="flex-end"
-        >
+        <View className="flex-row items-end gap-2 border-t border-border bg-card p-3">
           <Input
-            flex={1}
+            className="flex-1"
             placeholder="Ask a question or respond..."
             value={input}
             onChangeText={setInput}
@@ -117,8 +110,8 @@ export default function ModuleChatScreen() {
             disabled={!input.trim()}
             onPress={handleSend}
           />
-        </XStack>
-      </YStack>
+        </View>
+      </View>
     </KeyboardAvoidingView>
   );
 }
