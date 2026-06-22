@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useColorScheme } from 'nativewind';
 import { useAuthStore } from '@/stores/auth.store';
 import { supabase } from '@/lib/supabase';
+import { configureGoogleSignin } from '@/lib/social-auth';
 import { ErrorBoundary, ToastProvider } from '@/components';
 
 const queryClient = new QueryClient({
@@ -23,6 +24,11 @@ export default function RootLayout() {
   useEffect(() => {
     setColorScheme(rnScheme ?? 'light');
   }, [rnScheme, setColorScheme]);
+
+  // Configure the native Google Sign-In SDK once at startup (before any sign-in).
+  useEffect(() => {
+    configureGoogleSignin();
+  }, []);
 
   // On app launch, restore the Supabase in-memory session from our persisted tokens
   // so that autoRefreshToken can kick in without requiring a full sign-in.

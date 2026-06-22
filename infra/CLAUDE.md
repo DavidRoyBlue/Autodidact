@@ -67,6 +67,8 @@ terraform plan          # always review before applying
 terraform apply         # apply after reviewing plan output
 ```
 
+Terraform provisions and updates **infrastructure**. **Application code** deploys automatically on push to `master` (`.github/workflows/deploy.yml` builds the images, runs DB migrations, and `gcloud run deploy`s) — do not run `gcloud run deploy` by hand for an ordinary release. Full setup runbook: [`docs/gcp_infra_setup.md`](../docs/gcp_infra_setup.md).
+
 ---
 
 ## Key Decisions

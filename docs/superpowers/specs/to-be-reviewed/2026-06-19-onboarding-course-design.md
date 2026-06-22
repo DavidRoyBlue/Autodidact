@@ -1,7 +1,7 @@
 # Onboarding Course "Welcome to Autodidact" + Auto-Enroll — Design Spec
 
 **Date:** 2026-06-19
-**Status:** Draft (brainstorming) — pending review, then implementation plan
+**Status:** Draft (brainstorming) — open items resolved 2026-06-22 (D9 prod seed hook, D10 deep-link, `generated_by` nullability); pending review, then implementation plan
 **Position:** **Spec 3 of 4.** Depends on Spec 2 (the provisioning *onboarding hook* off `AuthGuard`/`ensureProvisioned`; the `handle_new_user` trigger; the `users` table) and Spec 1 (post-migrate seed lifecycle). Replaces the cold empty-state for every new user.
 
 > **Cross-refs:** Spec 2 [`2026-06-18-production-auth-design.md`](2026-06-18-production-auth-design.md) (D2′ hybrid provisioning leaves an onboarding hook; this spec fills it). Spec 1 [`2026-06-19-local-supabase-stack-design.md`](2026-06-19-local-supabase-stack-design.md) (seed runs in the post-migrate step). Bound by `fa73ba8` ([`packages/db/CLAUDE.md`](../../../packages/db/CLAUDE.md)): schema DDL via Drizzle migrations; **the onboarding content is seed *data*, via an idempotent seed script — not a migration.**
@@ -29,7 +29,7 @@ Every new user is **auto-enrolled into a single shared "Welcome to Autodidact" c
 ## Verified current state (foundation)
 
 - **`enrollUser(userId, courseId)`** (`services/api/src/modules/courses/courses.service.ts`) is **already idempotent** auto-enroll: `onConflictDoUpdate` on `enrollments`' `UNIQUE(user_id, course_id)` + inserts `module_progress` for every module (`position 0 → 'available'`, else `'locked'`) with `onConflictDoNothing`. **Reuse it as-is.**
-- **`courses`** has `is_public` (default TRUE), `status` (`pending|generating|ready|failed`), `slug`, `title`, `description`, `difficulty`, `blueprint` (jsonb), `topic_embedding`, `generated_by` (FK→`users.id`). **No onboarding/template flag.**
+- **`courses`** has `is_public` (default TRUE), `status` (`pending|generating|ready|failed`), `slug`, `title`, `description`, `difficulty`, `blueprint` (jsonb), `topic_embedding`, `generated_by` (FK→`users.id`, **nullable** — confirmed 2026-06-22: `courses.ts:19` has no `.notNull()` and `0001_initial.sql:34` is `generated_by UUID REFERENCES users(id)`, so the placeholder's `generated_by=NULL` is valid with no migration change). **No onboarding/template flag.**
 - **`getUserCourses(userId)`** returns enrolled courses (inner join) → drives the mobile list; new users currently get the empty state.
 - **Course generation** is async + LLM-driven + **non-deterministic**: `POST /courses` → embed+dedup → enqueue → worker → agent LangGraph (single LLM node, 3 retries) → modules + RAG chunks. The teacher-agent produces a course **about a topic**.
 - **No programmatic non-user generation path** exists except the test `seed.ts` helpers (direct DB inserts of a `status:'ready'` course + modules).
@@ -47,31 +47,38 @@ Every new user is **auto-enrolled into a single shared "Welcome to Autodidact" c
 - **D5 — Auto-enroll is APP-LAYER (in the Spec 2 onboarding hook), not in the DB trigger.** Although the trigger *could* insert the enrollment atomically, doing so would **couple every signup to the onboarding course existing** — a missing course would brick all signups. The app-layer hook **degrades gracefully** (log + skip if the course is absent) and keeps product logic out of the auth trigger (consistent with Spec 2's deliberate trigger=row / app=onboarding split).
 - **D6 — Fire-once, cheaply.** Add `users.onboarded_at timestamptz` (nullable). The hook enrolls + stamps `onboarded_at` on the first authenticated request where it's null; subsequent requests skip. A small in-process cache of onboarded ids avoids repeat reads (same approach Spec 2 noted). `enrollUser`'s idempotency is the safety net if the stamp races.
 - **D7 — The onboarding seed is PRODUCTION data** (must exist in prod and local), distinct from Spec 4's dev-only `test@autodidact.dev` seed. It runs in the local post-migrate step (Spec 1) **and** as a prod deploy/release step. Idempotent via D4's unique index.
+- **D9 — Prod seed runs as a dedicated GitHub Actions step, immediately after DB migrations and before Cloud Run deploy; a seed failure fails the deploy. (Decided 2026-06-22.)** `.github/workflows/deploy.yml` already runs migrations as a step (`pnpm --filter @autodidact/db db:migrate`, with `DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}`) before `gcloud run deploy`. Insert a `pnpm --filter @autodidact/db db:seed:onboarding` step (same `PROD_DATABASE_URL`) right after it. Chosen over folding into the migrate step (keeps failure attribution clean) and over a Terraform Cloud Run Job (none exists today; heavier than needed; `gcloud run deploy` by hand is forbidden per `infra/CLAUDE.md`). **Fail the deploy on seed error** (not `|| true`): a silent seed failure would leave auto-enroll skipping and every new user back on the cold empty state; the idempotent seed makes spurious failures unlikely.
+- **D10 — Deep-link into the onboarding course on first launch is INCLUDED, not optional. (Decided 2026-06-22.)** For a learning platform the gap between "course list with one item" and "landing inside the onboarding course" is meaningful at the exact hook moment — low cost, high first-impression value. Client-only `hasSeenOnboarding` flag in `auth.store`; lands on the course **detail** screen. See §5.
 
 ---
 
 ## Architecture / components
 
 ### 1. Schema (Drizzle schema + migration)
-- `courses.is_onboarding boolean not null default false` + partial unique index `where is_onboarding`.
+- `courses.is_onboarding boolean not null default false` + partial unique index `create unique index … on courses (is_onboarding) where is_onboarding`.
 - `users.onboarded_at timestamptz` (nullable).
-- Generated via `drizzle-kit`; the unique index is hand-authored SQL in the same migration if the DSL can't express the partial index.
+- `courses.generated_by` is **already nullable** (confirmed 2026-06-22) — no change needed for the placeholder's `generated_by=NULL`.
+- **Hand-authored SQL migration** in `packages/db/migrations/` (next ordinal, e.g. `0011_*.sql`): `db:generate:dev` is currently broken and the snapshot chain is incomplete (`packages/db/CLAUDE.md`), so author the `ALTER TABLE … ADD COLUMN` + partial unique index as plain SQL, mirroring the existing hand-written migrations. Add the columns to the Drizzle schema (`courses.ts`, `users.ts`) in the same commit.
 
 ### 2. Course content — placeholder now, curated later
 - **Now (ships with the mechanism, D2/D8):** a **placeholder** onboarding course — stub title, 1–2 stub modules with minimal valid `objectives`/`content_outline`, `is_onboarding=true`, `is_public=true`, `status:'ready'`, `generated_by=NULL`. Enough for the seed + auto-enroll + UI to work end-to-end. **No pipeline dependency.**
 - **Later (separate product task):** the real curated blueprint — generated once with a product-aware blueprint, reviewed, hand-edited, frozen as the seed; intended outline: (1) How learning works here, (2) a real chat-driven first lesson, (3) Tracking your progress, (4) the D3 hands-on "Generate your first course" CTA. Replaces the placeholder; **mechanism unchanged.** Lands in `packages/db` or a new `packages/content` (open item).
 
 ### 3. Seed script (idempotent, all environments)
-- `seedOnboardingCourse()` in `packages/db` (e.g. `pnpm db:seed:onboarding`): upsert the course by `is_onboarding`, then its modules. Idempotent; safe to re-run.
-- Wired into: the **local** post-migrate step (Spec 1's `setup.sh`/`db-reset.sh`, after `drizzle-kit migrate`) **and** a **prod** deploy/release step. Not via `supabase/seed.sql`.
+- `seedOnboardingCourse()` in `packages/db` (`src/seed/onboarding.ts`): upsert the course by `is_onboarding` (`onConflictDoUpdate`), then its modules. Idempotent; safe to re-run. Calls `getDb()` at call time, not at module top-level (`packages/db/CLAUDE.md`).
+- **Runner:** add a `db:seed:onboarding` script to `packages/db/package.json` that runs the file via `tsx` (already a repo devDep in `services/agent`; add it to `packages/db` devDeps). Add a root `db:seed:onboarding:dev` passthrough wrapped with `dotenv -e .env.dev`, mirroring the `migrate:dev` pattern.
+- Wired into: the **local** post-migrate step (Spec 1's `setup.sh`/`db-reset.sh`, after `drizzle-kit migrate`) **and** the **prod** deploy step (see **D9**). Not via `supabase/seed.sql`.
 
 ### 4. Auto-enroll hook (app layer, Spec 2's `ensureProvisioned`)
 - On an authenticated request where `users.onboarded_at IS NULL`: look up the onboarding course (`where is_onboarding`), call `enrollUser(user.id, onboardingCourseId)`, set `onboarded_at = now()`. If no onboarding course exists → **log + skip** (graceful; never block the request). Cache onboarded ids in-process.
 - Placement: an interceptor (cleaner) or the existing guard seam; an interceptor is preferred so the JWT-only guard stays lean.
 
-### 5. Mobile (minimal)
+### 5. Mobile (deep-link on first launch — INCLUDED)
 - No new screens required: the onboarding course shows up in `getUserCourses` immediately and flows through the existing course/module/chat UI. The cold empty-state effectively disappears (new users always have ≥1 course).
-- Optional polish (flag, not required): on first run, deep-link straight into the onboarding course instead of the create screen.
+- **First-launch deep-link (promoted from optional → included; D10).** On the first authenticated landing, route straight into the onboarding course detail instead of the create screen — the highest-leverage first impression for a learning platform.
+  - **Detect first launch** with a persisted `hasSeenOnboarding` flag in `auth.store.ts` (expo-secure-store, alongside the tokens/`isAnonymous` it already persists). Client-only — no backend contract.
+  - **Resolve the course id** from `getUserCourses` (on first launch the auto-enrolled onboarding course is the user's only/first course); expose `is_onboarding` on the `/courses` payload + mobile `Course` type so the client picks it deterministically rather than by position.
+  - **Navigate** with `router.replace(`/(app)/courses/${onboardingCourseId}`)` (course **detail** screen — matches the post-generation pattern in `src/hooks/useCourseGeneration.ts`), then set `hasSeenOnboarding = true`. Gate the redirect in the auth flow in `app/_layout.tsx` after session restore. Reinstall re-shows once (acceptable).
 
 ---
 
@@ -99,10 +106,12 @@ new user (real or anonymous)
 - **Auto-enroll (integration):** a fresh user's first authenticated request creates an enrollment + `module_progress` and stamps `onboarded_at`; second request is a no-op; missing-course path logs + skips without error.
 - **Anonymous:** an anonymous user is auto-enrolled; after upgrade the enrollment persists.
 - **Manual:** new account → `GET /courses` returns "Welcome to Autodidact" → open it → chat a module → final module generates a real course.
+- **Mobile first-launch (D10):** a fresh authenticated session lands on the onboarding course **detail** screen; `hasSeenOnboarding` is then set; a second launch lands on the normal course list, not the course.
+- **Prod deploy (D9):** the seed step runs after migrations on `master` deploys; a seed error fails the workflow before Cloud Run deploy.
 
 ## Risks / open items
 - **RAG for onboarding modules (later content task, not the placeholder):** if module chat requires `module_content_chunks` (embeddings) vs. just the outline, the *curated*-content seed must embed chunks once (a one-time OpenAI call). The placeholder needs none. Confirm during the content task.
 - **Per-request cost of the hook:** confirm the in-process cache + `onboarded_at` keeps the guard/interceptor effectively DB-free after first request.
-- **Where curated content lives** (`packages/db` vs a new `packages/content`) and the exact module copy — **plan item**.
-- **Prod seed trigger:** decide the exact deploy hook that runs `db:seed:onboarding` in prod.
+- **Where curated content lives** (`packages/db` vs a new `packages/content`) and the exact module copy — **plan item** (later content task; the placeholder seed lives in `packages/db/src/seed/`).
+- ~~**Prod seed trigger:** decide the exact deploy hook that runs `db:seed:onboarding` in prod.~~ **Resolved 2026-06-22 → D9** (dedicated GitHub Actions step after migrations, fail-the-deploy).
 - **D2 is the key review decision** — it intentionally does *not* LLM-generate the onboarding content (only the hands-on final module triggers real generation). Flag for sign-off, since earlier discussion floated teacher-agent generation.

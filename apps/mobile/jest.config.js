@@ -7,6 +7,9 @@ module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/jest-setup.ts'],
   moduleNameMapper: {
+    // global.css is a Metro/NativeWind build-time entry; stub it under Jest
+    // (checked before the @/ alias so `@/global.css` resolves to the stub).
+    '\\.css$': '<rootDir>/jest-css-stub.js',
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   // Transform ESM/Flow-published deps. pnpm nests packages under `.pnpm/`, so

@@ -10,6 +10,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: config.name ?? 'Autodidact',
   slug: config.slug ?? 'autodidact',
+  plugins: [
+    ...(config.plugins ?? []),
+    'expo-router',
+    '@react-native-google-signin/google-signin',
+  ],
   extra: {
     ...config.extra,
     apiBaseUrl:
@@ -22,5 +27,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supabasePublishableKey:
       process.env.SUPABASE_PUBLISHABLE_KEY ??
       (config.extra?.supabasePublishableKey as string | undefined),
+    // Google OAuth *Web* client ID (the audience the Supabase id-token exchange
+    // expects) — distinct from the Android client IDs of D6a (those bind by SHA-1
+    // in the Google Cloud console, not here). Facebook is enabled in the Supabase
+    // dashboard; the app only needs to know it's available.
+    googleWebClientId:
+      process.env.GOOGLE_WEB_CLIENT_ID ??
+      (config.extra?.googleWebClientId as string | undefined),
+    facebookEnabled:
+      (process.env.FACEBOOK_ENABLED ?? config.extra?.facebookEnabled) === 'true' ||
+      config.extra?.facebookEnabled === true,
   },
 });
