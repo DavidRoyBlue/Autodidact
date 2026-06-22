@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { Button as UIButton } from '@/components/ui/button';
 import { AppText } from '../typography/AppText';
+import { getThemeColors } from '@/lib/theme-colors';
 
 type ButtonProps = {
   variant?: 'primary' | 'danger' | 'ghost';
@@ -23,7 +24,8 @@ export function Button({
 }: ButtonProps) {
   const { colorScheme } = useColorScheme();
   const textClass = variant === 'ghost' ? 'text-foreground' : 'text-primary-foreground';
-  const indicatorColor = variant === 'ghost' ? (colorScheme === 'dark' ? '#f1f5f9' : '#0f172a') : '#f1f5f9';
+  const c = getThemeColors(colorScheme);
+  const indicatorColor = variant === 'ghost' ? c.foreground : c.primaryForeground;
   return (
     <UIButton
       variant={variant}

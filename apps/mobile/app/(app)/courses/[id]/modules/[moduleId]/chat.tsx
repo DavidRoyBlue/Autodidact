@@ -7,6 +7,7 @@ import { useSSE } from '@/hooks/useSSE';
 import { useChatStore } from '@/stores/chat.store';
 import { Screen, AppText, Input, IconButton, ChatBubble } from '@/components';
 import type { ChatMessage } from '@autodidact/types';
+import { PRIMARY } from '@/lib/theme-colors';
 
 function UpArrow() {
   return <AppText variant="body" weight="bold" className="text-foreground">↑</AppText>;
@@ -66,7 +67,7 @@ export default function ModuleChatScreen() {
     return (
       <Screen>
         <View className="flex-1 items-center justify-center gap-3">
-          <ActivityIndicator color="#6366f1" />
+          <ActivityIndicator color={PRIMARY} />
           <AppText variant="muted">Starting session...</AppText>
         </View>
       </Screen>

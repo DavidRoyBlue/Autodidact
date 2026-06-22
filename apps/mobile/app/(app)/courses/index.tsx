@@ -2,6 +2,7 @@ import { FlatList, RefreshControl, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUserCourses } from '@/api/courses';
 import { Screen, Card, AppText, Badge, EmptyState, SkeletonCard } from '@/components';
+import { PRIMARY } from '@/lib/theme-colors';
 
 type Course = {
   id: string;
@@ -37,7 +38,7 @@ export default function MyCoursesScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor="#6366f1"
+            tintColor={PRIMARY}
           />
         }
         ListEmptyComponent={

@@ -4,6 +4,7 @@ import { useCourse } from '@/api/courses';
 import { useProgress } from '@/api/progress';
 import { Screen, Heading, AppText, Card, ProgressBar, PositionBadge, SkeletonLine, SkeletonCard } from '@/components';
 import type { ModuleBlueprint } from '@autodidact/types';
+import { PRIMARY } from '@/lib/theme-colors';
 
 function LoadingSkeleton() {
   return (
@@ -54,7 +55,7 @@ export default function CourseDetailScreen() {
           <RefreshControl
             refreshing={courseRefetching || progressRefetching}
             onRefresh={handleRefresh}
-            tintColor="#6366f1"
+            tintColor={PRIMARY}
           />
         }
         ListHeaderComponent={
