@@ -136,6 +136,7 @@ The sign-in screen offers **Continue as guest** (`supabase.auth.signInAnonymousl
 - [UI system](docs/ui-system.md) — design tokens, themes, component library
 - [Data flow](docs/data-flow.md) — REST, SSE streaming, React Query
 - [State management](docs/state-management.md) — Zustand stores, persistence, patterns
+- [Social Sign-In setup](docs/social-sign-in.md) — Google + Facebook provider configuration, dev-build requirements
 
 ## Key Decisions
 
