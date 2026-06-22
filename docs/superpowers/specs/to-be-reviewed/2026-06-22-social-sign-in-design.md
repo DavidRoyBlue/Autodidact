@@ -56,13 +56,13 @@ The mobile sign-in screen offers only email/password and "continue as guest" (an
 
 ### Phase 1 — OAuth sign-in for new sessions
 
-**1a — Deps + native config.** Add `@react-native-google-signin/google-signin`, `expo-web-browser`, `expo-linking`, `expo-dev-client`. Register the Google config plugin + the `auth-callback` deep-link path on the `autodidact://` scheme in `app.config.ts`. Wire Google client IDs / Facebook app id via `extra` (env-driven, per Spec 1).
+**1a — Deps + native config.** Add `@react-native-google-signin/google-signin`, `expo-web-browser`, `expo-linking`, `expo-dev-client`. Register the Google config plugin + the `auth-callback` deep-link path on the `autodidact://` scheme in `app.config.ts`. Wire Google client IDs / Facebook app id via `extra` (env-driven, per Spec 1). **Call `GoogleSignin.configure({ webClientId: extra.googleWebClientId })` exactly once at app startup — in `app/_layout.tsx`** (alongside the existing session-restore / `onAuthStateChange` wiring), not inside the seam or the button handler. `webClientId` is the **Web** OAuth client ID (the audience the Supabase id-token exchange expects), distinct from the Android client IDs of D6a.
 
 **1b — Supabase client (`src/lib/supabase.ts`), per D3.** Add `flowType: 'pkce'` and a SecureStore `storage` adapter. Keep `persistSession: false`, `detectSessionInUrl: false`.
 
 **1c — The seam (`src/lib/social-auth.ts`), per D1.**
-- `signInWithGoogle()`: `GoogleSignin.signIn()` → ID token → `supabase.auth.signInWithIdToken({ provider:'google', token })`.
-- `signInWithFacebook()`: `signInWithOAuth({ provider:'facebook', options:{ redirectTo: makeRedirectUri({ scheme:'autodidact', path:'auth-callback' }), skipBrowserRedirect:true } })` → `WebBrowser.openAuthSessionAsync(url, redirectTo)` → parse `code` → `exchangeCodeForSession(code)`.
+- `signInWithGoogle()`: `await GoogleSignin.hasPlayServices()` (Android guard — surfaces a clean error on devices without Play Services) → `GoogleSignin.signIn()` → ID token → `supabase.auth.signInWithIdToken({ provider:'google', token })`. (`configure()` already ran at startup, per 1a.)
+- `signInWithFacebook()`: `signInWithOAuth({ provider:'facebook', options:{ redirectTo: makeRedirectUri({ scheme:'autodidact', path:'auth-callback' }), skipBrowserRedirect:true } })` → `WebBrowser.openAuthSessionAsync(url, redirectTo)`. **The callback URL comes back as `result.url` on a `result.type === 'success'`** — parse the `code` from *that* URL (`new URL(result.url).searchParams.get('code')`), then `exchangeCodeForSession(code)`. **Do NOT use `Linking.addEventListener`/`getInitialURL`** — `openAuthSessionAsync` returns the redirect synchronously to its caller, so no global deep-link listener is involved (a `type` of `cancel`/`dismiss` is the user-cancel path).
 - Both return a uniform result; the existing `onAuthStateChange` listener populates the store and routes into `(app)`. Handle user-cancel and error without crashing (mirror the existing guest/email error handling).
 
 **1d — UI (`app/(auth)/sign-in.tsx`).** Google + Facebook buttons as the headline. Email/password collapses behind a "use email instead" affordance. "Continue as guest" stays. No change to `app/_layout.tsx` precedence (a social session is just a session).
