@@ -139,6 +139,7 @@ export class CoursesService {
         description: courses.description,
         difficulty: courses.difficulty,
         status: courses.status,
+        isOnboarding: courses.isOnboarding,
         enrolledAt: enrollments.enrolledAt,
         completedAt: enrollments.completedAt,
       })
