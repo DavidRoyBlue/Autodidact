@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { YStack } from 'tamagui';
 import { useAuthStore } from '@/stores/auth.store';
 import { supabase } from '@/lib/supabase';
+import { linkWithGoogle, linkWithFacebook } from '@/lib/social-auth';
 import { Card, AppText, Input, Button } from '@/components';
 
 export function UpgradeAccountCard() {
@@ -13,6 +14,27 @@ export function UpgradeAccountCard() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [facebookLoading, setFacebookLoading] = useState(false);
+
+  const runLink = async (
+    fn: () => Promise<{ accessToken: string; refreshToken: string } | null>,
+    setBusy: (b: boolean) => void,
+    failTitle: string,
+  ) => {
+    setBusy(true);
+    try {
+      const session = await fn();
+      if (session) {
+        setSession(session.accessToken, session.refreshToken, false);
+        Alert.alert('Account saved', 'Your progress is now linked to your account.');
+      }
+    } catch (e) {
+      Alert.alert(failTitle, e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (!isAnonymous) return null;
 
@@ -46,6 +68,14 @@ export function UpgradeAccountCard() {
       <AppText variant="label">Save your progress</AppText>
       <AppText variant="muted">You're browsing as a guest. Add an email to keep your progress.</AppText>
       <YStack marginTop="$3" gap="$3">
+        <Button variant="primary" size="lg" loading={googleLoading}
+          onPress={() => runLink(linkWithGoogle, setGoogleLoading, 'Google link failed')}>
+          Continue with Google
+        </Button>
+        <Button variant="primary" size="lg" loading={facebookLoading}
+          onPress={() => runLink(linkWithFacebook, setFacebookLoading, 'Facebook link failed')}>
+          Continue with Facebook
+        </Button>
         <Input
           label="Email"
           placeholder="you@example.com"
