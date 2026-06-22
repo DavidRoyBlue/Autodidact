@@ -63,4 +63,11 @@ describe('OnboardingService.onboardOnce', () => {
     await service.onboardOnce('user-1');
     expect(mockSelect).not.toHaveBeenCalled();
   });
+
+  it('skips silently when the user is not provisioned (no cache, no enroll)', async () => {
+    mockSelect.mockReturnValueOnce(selectReturning([])); // user lookup returns no row
+    await expect(service.onboardOnce('ghost')).resolves.toBeUndefined();
+    expect(enrollUser).not.toHaveBeenCalled();
+    expect(mockSelect).toHaveBeenCalledTimes(1); // no course lookup performed
+  });
 });

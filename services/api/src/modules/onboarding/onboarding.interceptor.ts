@@ -12,6 +12,9 @@ export class OnboardingInterceptor implements NestInterceptor {
   constructor(private readonly onboarding: OnboardingService) {}
 
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
+    if (context.getType() !== 'http') {
+      return next.handle();
+    }
     const request = context.switchToHttp().getRequest<Request & { user?: AuthUser }>();
     const userId = request.user?.id;
     if (userId) {
