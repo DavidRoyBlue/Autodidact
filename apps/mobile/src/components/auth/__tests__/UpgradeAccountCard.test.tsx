@@ -1,4 +1,5 @@
 import { fireEvent, waitFor } from '@testing-library/react-native';
+import { Alert } from 'react-native';
 import { renderWithProviders } from '@/test-utils/render';
 
 const mockUpdateUser = jest.fn();
@@ -93,4 +94,19 @@ test('renders nothing for a non-anonymous user (social buttons absent)', () => {
   const { queryByText } = renderWithProviders(<UpgradeAccountCard />);
   expect(queryByText('Continue with Google')).toBeNull();
   expect(queryByText('Continue with Facebook')).toBeNull();
+});
+
+test('Google link error → shows Alert, session unchanged', async () => {
+  const alertSpy = jest.spyOn(Alert, 'alert');
+
+  useAuthStore.getState().setSession('at', 'rt', true);
+  mockLinkWithGoogle.mockRejectedValue(new Error('link failed'));
+  const { getByText } = renderWithProviders(<UpgradeAccountCard />);
+
+  fireEvent.press(getByText('Continue with Google'));
+
+  await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('Google link failed', 'link failed'));
+  expect(useAuthStore.getState().accessToken).toBe('at');
+
+  alertSpy.mockRestore();
 });
