@@ -11,17 +11,11 @@ React Native client for Autodidact — an AI-powered learning platform where use
 | Framework | Expo | 52 |
 | Runtime | React Native | 0.76 |
 | Routing | Expo Router | 4 |
-| UI library | Tamagui | 2.0.0-rc.41 |
+| UI / styling | NativeWind + React Native Reusables | 4.x |
 | Server state | TanStack Query | 5 |
 | Client state | Zustand | 5 |
 | Auth / realtime | Supabase | 2 |
 | SSE streaming | @microsoft/fetch-event-source | 2 |
-
-## Known dependency risk
-
-`tamagui` and `@tamagui/*` are pinned to `2.0.0-rc.41` (a release candidate).
-Renovate's `mobile` group is disabled for these — bump them manually, and move
-off the RC to the GA `2.0.0` release once it ships.
 
 ## Running
 
@@ -107,7 +101,7 @@ Claude can also do all of this when you ask it to "run the mobile app" — see t
 ```
 apps/mobile/
 ├── app/                        # Expo Router file-based routes
-│   ├── _layout.tsx             # Root: TamaguiProvider + QueryClient + auth guard
+│   ├── _layout.tsx             # Root: NativeWind dark-mode root View + QueryClient + auth guard
 │   ├── (auth)/sign-in.tsx      # Unauthenticated entry
 │   └── (app)/                  # Authenticated shell (tab navigator)
 │       ├── index.tsx           # Dashboard / home
@@ -117,8 +111,9 @@ apps/mobile/
 │           ├── index.tsx
 │           └── modules/[moduleId]/chat.tsx
 └── src/
-    ├── design/                 # Token → theme → typography → config (single source of truth)
+    ├── global.css              # CSS variables: design tokens (light :root + dark .dark)
     ├── components/             # Shared UI built on the design system
+    │   └── ui/                 # React Native Reusables copy-paste primitives (text, button, input, card, separator)
     ├── stores/                 # Zustand client state (auth, chat)
     ├── api/                    # React Query hooks + typed fetch wrapper
     ├── hooks/                  # Feature-level hooks (SSE, course generation)
@@ -140,7 +135,7 @@ The sign-in screen offers **Continue as guest** (`supabase.auth.signInAnonymousl
 ## Key Decisions
 
 - [ADR-003 — Mobile application platform](../../docs/architecture/ADRs/apps/mobile/ADR-003-mobile-application-platform.md)
-- [ADR-013 — Mobile UI system](../../docs/architecture/ADRs/apps/mobile/ADR-013-mobile-ui-system.md) (🚩)
+- [ADR-029 — Mobile UI system](../../docs/architecture/ADRs/apps/mobile/ADR-029-mobile-ui-system-nativewind.md) (NativeWind v4 + RNR; supersedes ADR-013)
 - [ADR-014 — Mobile navigation](../../docs/architecture/ADRs/apps/mobile/ADR-014-mobile-navigation.md)
 - [ADR-015 — Mobile state management](../../docs/architecture/ADRs/apps/mobile/ADR-015-mobile-state-management.md)
 - [ADR-011 — Real-time streaming transport](../../docs/architecture/ADRs/services/agent/ADR-011-realtime-streaming-transport.md)

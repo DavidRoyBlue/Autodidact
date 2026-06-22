@@ -40,10 +40,9 @@ This subtree does NOT own:
 - **Guard precedence (Spec 2 D8) is owned solely by [`app/_layout.tsx`](./app/_layout.tsx):** restore persisted session → session present (real OR anonymous) ⇒ `(app)` → DEV_AUTO_LOGIN slot (Spec 4, not yet implemented) → auth UI. Do not add competing redirect guards in other files.
 
 ### UI
-- Tamagui only — do not mix `StyleSheet.create`, Styled Components, or other styling libraries
-- All design tokens flow through [`src/design/`](./src/design/) — never add tokens outside this folder
-- Screens import only from `@/components`, `@/stores`, or `@/api` — no raw Tamagui primitives in screen files
-- `src/design/config.ts` must not be imported from other files within `src/design/` — creates a circular dependency
+- **NativeWind v4 only** for styling (`className`); React Native Reusables (RNR) primitives live in [`@/components/ui/`](./src/components/ui/). Do not mix `StyleSheet.create` or other styling libraries. Inline `style` only for runtime-dynamic values with no class equivalent (e.g. progress width %, safe-area insets, RN navigation `screenOptions`/`tintColor` colors, `ActivityIndicator` color prop).
+- **All design tokens are CSS variables in [`src/global.css`](./src/global.css)** consumed via [`tailwind.config.js`](./tailwind.config.js) — never hardcode hex/spacing values in components; add tokens there only.
+- Screens import only from `@/components`, `@/stores`, or `@/api` — no raw styled primitives in screen files; screens compose `@/components` + plain RN `View`/`Text` with `className`.
 
 ---
 
@@ -90,7 +89,7 @@ This subtree does NOT own:
 
 ## Entry points
 
-- App bootstrap: [`app/_layout.tsx`](./app/_layout.tsx) — TamaguiProvider, QueryClient, ErrorBoundary, ToastProvider, auth guard
+- App bootstrap: [`app/_layout.tsx`](./app/_layout.tsx) — NativeWind dark-mode root `View`, QueryClient, ErrorBoundary, ToastProvider, auth guard
 - Auth flow: [`app/(auth)/sign-in.tsx`](./app/(auth)/sign-in.tsx) — sign-in; links to sign-up; "Continue as guest" (anonymous sign-in)
 - New user registration: [`app/(auth)/sign-up.tsx`](./app/(auth)/sign-up.tsx)
 - Guest→account upgrade: [`src/components/auth/UpgradeAccountCard.tsx`](./src/components/auth/UpgradeAccountCard.tsx) — rendered on the profile screen for anonymous users only
@@ -128,13 +127,13 @@ Chat streaming flow:
   - Expo SDK 52 (managed workflow)
   - Expo Router 4 for all navigation (file-based routing under `app/`)
   - TanStack Query 5 (`@tanstack/react-query`) for all server state
-  - Tamagui 2 for UI components and styling
+  - NativeWind v4 + React Native Reusables for UI components and styling
   - Zustand 5 for client-only state (auth session, chat message buffer)
   - `useSSE` for chat streaming
   - `apiFetch` (from `src/api/client.ts`) as the base fetch wrapper
 - Do not use:
   - Direct `fetch()` calls in components
-  - `StyleSheet.create()` for layout or styling
+  - `StyleSheet.create()` for layout or styling (use `className` via NativeWind)
   - React Navigation for routing — Expo Router handles all routes; React Navigation is only used for tab bar `screenOptions` styling in `app/(app)/_layout.tsx`
 
 ---
@@ -146,7 +145,7 @@ Chat streaming flow:
 - SSE streaming protocol: [`src/hooks/useSSE.ts`](./src/hooks/useSSE.ts)
 - Auth session state: [`src/stores/auth.store.ts`](./src/stores/auth.store.ts)
 - Chat buffer state: [`src/stores/chat.store.ts`](./src/stores/chat.store.ts)
-- Design tokens, themes, typography: [`src/design/`](./src/design/) (single source of truth for all visual constants)
+- Design tokens, themes, typography: [`src/global.css`](./src/global.css) (CSS variables) + [`tailwind.config.js`](./tailwind.config.js) (single source of truth for all visual constants)
 - Supabase client singleton: [`src/lib/supabase.ts`](./src/lib/supabase.ts)
 
 ---
@@ -158,7 +157,7 @@ Chat streaming flow:
 - TanStack Query hooks live in `src/api/` alongside their typed fetch functions — hook and fetch in the same file
 - Screens orchestrate UI only — business logic belongs in `services/api`
 - Navigation params come from `useLocalSearchParams<{ id: string }>()` — not from route context or global state
-- Use `AppText` and `Heading` components for all text — they resolve the Tamagui typography scale; avoid raw `fontSize` props in screens
+- Use `AppText` and `Heading` components for all text — they resolve the NativeWind typography scale (`text-xs`…`text-h1`); avoid inline `fontSize` style props in screens
 
 ---
 
@@ -184,7 +183,7 @@ Chat streaming flow:
 
 - Do not import one store from another (`chat.store` ↔ `auth.store`) — cross-store reads go through `store.getState()` at the call site
 - Do not use navigation params as a substitute for server state — fetch fresh data from React Query
-- Do not add raw Tamagui primitives in screen files — wrap in `src/components/` first
+- Do not add raw styled primitives in screen files — wrap in `src/components/` first; use plain RN `View`/`Text` with `className` for one-off layout
 
 ---
 
@@ -234,8 +233,7 @@ eas submit --profile production --platform android   # upload to Google Play (ne
 - Unit-test pure logic directly: Zustand stores (`src/stores/`), `apiFetch`
   (`src/api/client.ts`), hooks via `renderHook`. Mock `expo-secure-store`,
   `expo-router`, `../lib/supabase`, and `fetch` at the seam.
-- Component tests render through the app's Tamagui config — use
-  `renderWithProviders` from `src/test-utils/render.tsx` (wraps `TamaguiProvider`).
+- Component tests use `renderWithProviders` from `src/test-utils/render.tsx` — it renders directly (no provider needed); NativeWind resolves classes via the babel transform.
 - `jest.mock()` factory variables must be prefixed `mock` (hoisting rule).
 - UI e2e is **Maestro** (`.maestro/`), manual/nightly against a device + a
   mock-provider backend — never the PR gate. See `.maestro/README.md`.
@@ -256,7 +254,7 @@ eas submit --profile production --platform android   # upload to Google Play (ne
 ## Key Decisions
 
 - [ADR-003 — Mobile application platform](../../docs/architecture/ADRs/apps/mobile/ADR-003-mobile-application-platform.md) (Expo + React Native)
-- [ADR-013 — Mobile UI system](../../docs/architecture/ADRs/apps/mobile/ADR-013-mobile-ui-system.md) (Tamagui — 🚩 reconsideration flag for NativeWind)
+- [ADR-029 — Mobile UI system](../../docs/architecture/ADRs/apps/mobile/ADR-029-mobile-ui-system-nativewind.md) (NativeWind v4 + React Native Reusables; supersedes ADR-013)
 - [ADR-014 — Mobile navigation](../../docs/architecture/ADRs/apps/mobile/ADR-014-mobile-navigation.md) (Expo Router)
 - [ADR-015 — Mobile state management](../../docs/architecture/ADRs/apps/mobile/ADR-015-mobile-state-management.md) (TanStack Query + Zustand)
 - [ADR-011 — Real-time streaming transport](../../docs/architecture/ADRs/services/agent/ADR-011-realtime-streaming-transport.md) (SSE — consumed by `useSSE`)
