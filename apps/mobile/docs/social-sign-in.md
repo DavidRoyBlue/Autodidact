@@ -176,7 +176,51 @@ This starts the Expo development server (Metro bundler). The app will hot-reload
 
 ---
 
+---
+
+## Phase 2 — guest → OAuth upgrade
+
+When a guest (anonymous) user reaches the profile screen, `UpgradeAccountCard` offers "Continue with Google" and "Continue with Facebook" buttons. Tapping either invokes the web `linkIdentity` flow via `linkWithGoogle()` or `linkWithFacebook()` (in [`src/lib/social-auth.ts`](../src/lib/social-auth.ts)), which links the OAuth provider to the existing guest account without requiring a password.
+
+### Prerequisites
+
+**Supabase Dashboard:** Enable **manual linking** in the auth settings.
+
+1. Go to your Supabase project → **Authentication** → **Settings**
+2. Under **Manage sign-up** → **Manual linking**, toggle **Enable manual linking** ON
+3. Save
+
+This permits `linkIdentity` calls from the client.
+
+### Configuration
+
+**Backend (`config.toml`):** The Supabase auth service must also have `enable_manual_linking = true` in its PostgREST config. This is set during initial setup and confirmed in the local dev environment.
+
+### How it works
+
+1. Guest user navigates to the profile screen
+2. `UpgradeAccountCard` appears (hidden for non-guests)
+3. User taps "Continue with Google" or "Continue with Facebook"
+4. The social auth flow runs (native Google sheet or web-PKCE Facebook browser)
+5. On success, `supabase.auth.linkIdentity(provider, { redirectTo: ... })` binds the provider to the existing guest session
+6. User is now linked — future sign-ins via that provider reach the same account
+7. The [`AFTER INSERT ON auth.identities` trigger (migration `0011`)](../../packages/db/migrations/0011_identity_link_sync.sql) ensures `public.users` is updated with the linked provider; this is defensive — the `sync_user_from_auth` column trigger (migration `0007`) also syncs the user, but the identity-link trigger adds belt-and-suspenders coverage
+
+### Production deployment
+
+1. **Database:** Run the identity-link trigger migration via:
+   ```bash
+   pnpm migrate:prod
+   ```
+2. **Supabase Dashboard:** Enable manual linking in the prod project's auth settings (same steps as above)
+
+After both steps, guests on production can upgrade to OAuth accounts.
+
+---
+
 ## See also
 
-- [`src/lib/social-auth.ts`](../src/lib/social-auth.ts) — seam implementation (Google native via `signInWithIdToken`, Facebook web-PKCE via `openAuthSessionAsync`)
+- [`src/lib/social-auth.ts`](../src/lib/social-auth.ts) — seam implementation (Google native via `signInWithIdToken`, Facebook web-PKCE via `openAuthSessionAsync`, OAuth linking via `linkIdentity`)
+- [`src/components/auth/UpgradeAccountCard.tsx`](../src/components/auth/UpgradeAccountCard.tsx) — upgrade UI for guests
+- [`packages/db/migrations/0011_identity_link_sync.sql`](../../packages/db/migrations/0011_identity_link_sync.sql) — identity-link sync trigger
 - [`apps/mobile/CLAUDE.md`](../CLAUDE.md) — Auth invariants and dev-build requirement
