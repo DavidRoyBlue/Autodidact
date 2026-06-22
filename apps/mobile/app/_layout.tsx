@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TamaguiProvider } from 'tamagui';
 import { useAuthStore } from '@/stores/auth.store';
 import { supabase } from '@/lib/supabase';
+import { configureGoogleSignin } from '@/lib/social-auth';
 import config from '@/design/config';
 import { ErrorBoundary, ToastProvider } from '@/components';
 
@@ -15,6 +16,11 @@ export default function RootLayout() {
   const { accessToken, refreshToken, setSession, clearSession } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
+
+  // Configure the native Google Sign-In SDK once at startup (before any sign-in).
+  useEffect(() => {
+    configureGoogleSignin();
+  }, []);
 
   // On app launch, restore the Supabase in-memory session from our persisted tokens
   // so that autoRefreshToken can kick in without requiring a full sign-in.
