@@ -77,7 +77,7 @@ function AuthGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     const inAuthGroup = segments[0] === '(auth)';
     if (!accessToken && !inAuthGroup) {
-      // Spec 4 DEV_AUTO_LOGIN slot goes here (before the redirect to auth UI). Preserve verbatim.
+      // Spec 4 DEV_AUTO_LOGIN slot goes here (before the redirect to auth UI).
       router.replace('/(auth)/sign-in');
     } else if (accessToken && inAuthGroup) {
       router.replace('/(app)');
