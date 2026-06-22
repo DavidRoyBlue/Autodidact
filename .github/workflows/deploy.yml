@@ -77,6 +77,11 @@ jobs:
           DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
         run: pnpm --filter @autodidact/db db:migrate
 
+      - name: Seed onboarding course
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: pnpm --filter @autodidact/db db:seed:onboarding
+
       - name: Deploy Cloud Run services
         run: |
           set -euo pipefail
