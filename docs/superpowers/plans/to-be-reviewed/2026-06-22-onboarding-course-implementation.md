@@ -965,7 +965,9 @@ import { useUserCourses, type Course } from '@/api/courses';
 
 - [ ] **Step 7: Add the first-launch deep-link in `app/_layout.tsx`**
 
-Replace `apps/mobile/app/_layout.tsx` with (session-restore effects stay in `RootLayout`; the redirect logic moves into an inner `AuthGate` rendered **inside** `QueryClientProvider` so it can read the courses query — the redirect owner stays this file, satisfying the `apps/mobile/CLAUDE.md` invariant):
+Replace `apps/mobile/app/_layout.tsx` with (session-restore effects stay in `RootLayout`; the redirect logic moves into an inner `AuthGate` rendered **inside** `QueryClientProvider` so it can read the courses query — the redirect owner stays this file, satisfying the `apps/mobile/CLAUDE.md` invariant).
+
+> **Preserve the existing DEV_AUTO_LOGIN slot exactly as it is today — do not drop it.** The current `_layout.tsx` carries the D8 precedence comment block and a `// Spec 4 DEV_AUTO_LOGIN slot goes here` comment inside the auth-precedence effect; both are the seam for the unattended dev auto-login workflow. Only their *location* changes (they move into `AuthGate` as effect #1, verbatim) — their content must be kept byte-for-byte. The code below shows them in place:
 
 ```typescript
 import { useEffect, type ReactNode } from 'react';
@@ -1030,10 +1032,18 @@ function AuthGate({ children }: { children: ReactNode }) {
   const segments = useSegments();
   const { data: courses } = useUserCourses();
 
-  // 1. Auth precedence: no session → auth UI; session present on an auth screen → app.
+  // 1. Canonical auth-flow precedence (Spec 2, D8 — this file is the single owner):
+  //   a. Persisted session restored in RootLayout → autoRefresh keeps it alive.
+  //   b. Session present (real OR anonymous) → route into (app).
+  //   c. No session + __DEV__ + extra.devAutoLogin → DEV_AUTO_LOGIN slot (Spec 4).
+  //      Spec 4 implements this slot; it takes precedence over the guest path in
+  //      dev so the two never both fire. Intentionally NOT implemented yet.
+  //   d. Otherwise → auth UI ((auth) group), which offers real sign-in/up AND
+  //      "Continue as guest" (signInAnonymously).
   useEffect(() => {
     const inAuthGroup = segments[0] === '(auth)';
     if (!accessToken && !inAuthGroup) {
+      // Spec 4 DEV_AUTO_LOGIN slot goes here (before the redirect to auth UI). Preserve verbatim.
       router.replace('/(auth)/sign-in');
     } else if (accessToken && inAuthGroup) {
       router.replace('/(app)');
@@ -1046,8 +1056,8 @@ function AuthGate({ children }: { children: ReactNode }) {
     if (!accessToken || hasSeenOnboarding) return;
     if (segments[0] === '(auth)') return;
     if (!courses) return; // wait for GET /courses (auto-enroll runs server-side on that request)
-    const onboarding = courses.find((c) => c.isOnboarding) ?? courses[0];
-    if (!onboarding) return; // no course yet (e.g. seed missing) — retry on the next launch
+    const onboarding = courses.find((c) => c.isOnboarding);
+    if (!onboarding) return; // no onboarding course found (e.g. seed missing) — retry on the next launch
     setHasSeenOnboarding(true);
     router.replace(`/(app)/courses/${onboarding.id}`);
   }, [accessToken, hasSeenOnboarding, courses, segments, router, setHasSeenOnboarding]);
