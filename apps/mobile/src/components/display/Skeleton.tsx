@@ -1,21 +1,10 @@
-import { styled, YStack } from 'tamagui';
+import { View } from 'react-native';
+import { cn } from '@/lib/utils';
 
-const SkeletonBase = styled(YStack, {
-  name: 'Skeleton',
-  backgroundColor: '$surfaceHover',
-  borderRadius: '$sm',
-  opacity: 0.5,
-});
+export function SkeletonLine({ className }: { className?: string }) {
+  return <View className={cn('h-4 w-full rounded-sm bg-muted opacity-50', className)} />;
+}
 
-export const SkeletonLine = styled(SkeletonBase, {
-  name: 'SkeletonLine',
-  width: '100%',
-  height: 16,
-});
-
-export const SkeletonCard = styled(SkeletonBase, {
-  name: 'SkeletonCard',
-  width: '100%',
-  height: 80,
-  borderRadius: '$md',
-});
+export function SkeletonCard({ className }: { className?: string }) {
+  return <View className={cn('h-20 w-full rounded-md bg-muted opacity-50', className)} />;
+}

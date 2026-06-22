@@ -48,6 +48,16 @@ CREATE TABLE IF NOT EXISTS auth.users (
   is_anonymous boolean NOT NULL DEFAULT false,
   raw_user_meta_data jsonb NOT NULL DEFAULT '{}'::jsonb
 );
+
+-- Stub of GoTrue's auth.identities for tests. Columns mirror what
+-- handle_identity_linked (0011) reads. Lets the trigger install and be
+-- exercised by inserting identity rows directly.
+CREATE TABLE IF NOT EXISTS auth.identities (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  identity_data jsonb NOT NULL DEFAULT '{}'::jsonb,
+  provider text NOT NULL DEFAULT 'email'
+);
 `;
 
 // Resolves from this file's dir in both vitest (src/) and built (dist/) contexts:

@@ -140,12 +140,12 @@ The entire client surface. Talks only to `services/api` (REST + SSE). Handles au
 **Functional** (UI is mature; **not** "production ready" by this report's bar because there are no automated tests and no release/EAS build config).
 
 #### Implementation
-Expo SDK 52, Expo Router 4 file-based routing. Screens: auth (sign-in/up), home (topic → create → poll job), my-courses list, course detail (module list with locked/completed states), and module chat (SSE token-by-token). State: TanStack Query (server) + Zustand (auth in expo-secure-store, in-memory chat buffer). API layer (`src/api/client.ts`) injects bearer tokens with 401 refresh. Design system fully migrated to Tamagui v2 runtime tokens (dark theme only). Evidence: `apps/mobile/app/**`, `src/api/`, `src/stores/`, `src/design/`.
+Expo SDK 52, Expo Router 4 file-based routing. Screens: auth (sign-in/up), home (topic → create → poll job), my-courses list, course detail (module list with locked/completed states), and module chat (SSE token-by-token). State: TanStack Query (server) + Zustand (auth in expo-secure-store, in-memory chat buffer). API layer (`src/api/client.ts`) injects bearer tokens with 401 refresh. Design system: NativeWind v4 + React Native Reusables; tokens as CSS variables in `src/global.css`; system-driven light + dark theming (supersedes Tamagui — see ADR-029). Evidence: `apps/mobile/app/**`, `src/api/`, `src/stores/`, `src/global.css`.
 
 #### Infrastructure
 - **Auth:** Supabase (`supabaseUrl`, publishable key from `app.json`).
 - **API:** `API_BASE_URL` from `app.json` (defaults to `http://localhost:3000/v1`).
-- Tamagui 2.0.0-rc.41 (pinned RC), TanStack Query 5, Zustand 5, RN 0.76.
+- NativeWind v4 + React Native Reusables (replaced Tamagui 2.0.0-rc.41), TanStack Query 5, Zustand 5, RN 0.76.
 
 #### Readiness
 | Area | Status |
@@ -159,7 +159,7 @@ Expo SDK 52, Expo Router 4 file-based routing. Screens: auth (sign-in/up), home 
 
 #### Known Issues
 - No automated tests (architectural choice) → regressions only caught manually.
-- Tamagui pinned to a release candidate; editing tokens requires clearing `$TMPDIR/metro-cache` + `apps/mobile/.tamagui` (see `[[project_tamagui_token_cache]]`).
+- Tamagui removed (migrated to NativeWind v4 + React Native Reusables, ADR-029); the token-cache issue (`$TMPDIR/metro-cache` clearing on every token edit) was a migration trigger and is no longer relevant.
 - Dark theme only; `module_progress.chatSessionId` is a reserved Phase-2 column, unpopulated.
 
 #### Next Step
@@ -305,7 +305,7 @@ The immediate objective appears to be: **get the mobile app building cleanly on 
 10. Retry/backoff or circuit breaker between all services.
 11. pgvector index tuning + queue capacity planning for scale.
 12. Light theme for mobile; populate the reserved `chatSessionId` (Phase 2).
-13. Revisit deferred ADRs (Tamagui → NativeWind, Supabase Auth → alternative) once usage data exists. (BullMQ → Cloud Tasks executed in ADR-027.)
+13. Revisit deferred ADRs (Supabase Auth → alternative) once usage data exists. (BullMQ → Cloud Tasks executed in ADR-027; Tamagui → NativeWind executed in ADR-029.)
 
 ---
 

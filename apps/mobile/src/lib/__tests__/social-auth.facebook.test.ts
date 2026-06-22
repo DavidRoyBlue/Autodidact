@@ -25,9 +25,8 @@ jest.mock('expo-web-browser', () => ({
   openAuthSessionAsync: (...a: unknown[]) => mockOpenAuthSessionAsync(...a),
 }));
 jest.mock('expo-linking', () => ({
-  // @ts-ignore - mock type mismatch
+  // @ts-expect-error - mock type mismatch
   createURL: (...a: unknown[]) => mockCreateURL(...a),
-  // @ts-ignore - mock type mismatch
   parse: (...a: unknown[]) => mockParse(...a),
 }));
 jest.mock('expo-constants', () => ({ expoConfig: { extra: {} } }));

@@ -1,32 +1,36 @@
-import { styled, Text } from 'tamagui';
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { Text } from '@/components/ui/text';
+import { cn } from '@/lib/utils';
 
-export const AppText = styled(Text, {
-  name: 'AppText',
-  color: '$text',
-
+const textVariants = cva('', {
   variants: {
     variant: {
-      body:    { color: '$text',      fontSize: '$3' },
-      muted:   { color: '$textMuted', fontSize: '$3' },
-      caption: { color: '$textMuted', fontSize: '$2' },
-      label:   { color: '$textMuted', fontSize: '$1', fontWeight: '600', textTransform: 'uppercase' },
-      error:   { color: '$danger',    fontSize: '$2' },
+      body: 'text-md text-foreground',
+      muted: 'text-md text-muted-foreground',
+      caption: 'text-sm text-muted-foreground',
+      label: 'text-xs font-semibold uppercase text-muted-foreground',
+      error: 'text-sm text-destructive',
     },
     size: {
-      xs: { fontSize: '$1' },
-      sm: { fontSize: '$2' },
-      md: { fontSize: '$3' },
-      lg: { fontSize: '$4' },
-      xl: { fontSize: '$5' },
+      xs: 'text-xs',
+      sm: 'text-sm',
+      md: 'text-md',
+      lg: 'text-lg',
+      xl: 'text-xl',
     },
     weight: {
-      regular:  { fontWeight: '400' },
-      semibold: { fontWeight: '600' },
-      bold:     { fontWeight: '700' },
+      regular: 'font-normal',
+      semibold: 'font-semibold',
+      bold: 'font-bold',
     },
-  } as const,
-
-  defaultVariants: {
-    variant: 'body',
   },
+  defaultVariants: { variant: 'body' },
 });
+
+type AppTextProps = React.ComponentPropsWithoutRef<typeof Text> &
+  VariantProps<typeof textVariants>;
+
+export function AppText({ variant, size, weight, className, ...props }: AppTextProps) {
+  return <Text className={cn(textVariants({ variant, size, weight }), className)} {...props} />;
+}

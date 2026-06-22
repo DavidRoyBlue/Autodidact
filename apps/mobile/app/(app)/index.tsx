@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
-import { XStack, YStack } from 'tamagui';
+import { Alert, View } from 'react-native';
 import { useCreateCourse } from '@/api/courses';
 import { useCourseGeneration } from '@/hooks/useCourseGeneration';
 import { Screen, Heading, AppText, Input, Button, Chip } from '@/components';
@@ -40,7 +39,7 @@ export default function HomeScreen() {
 
   return (
     <Screen scroll>
-      <YStack gap="$6" paddingTop="$6">
+      <View className="gap-6 pt-6">
         <Heading size="h1">What do you want to learn?</Heading>
 
         <Input
@@ -51,9 +50,9 @@ export default function HomeScreen() {
           maxLength={200}
         />
 
-        <YStack gap="$2">
+        <View className="gap-2">
           <AppText variant="label">Difficulty</AppText>
-          <XStack gap="$3">
+          <View className="flex-row gap-3">
             {difficulties.map((d) => (
               <Chip
                 key={d}
@@ -62,8 +61,8 @@ export default function HomeScreen() {
                 onPress={() => setDifficulty(d)}
               />
             ))}
-          </XStack>
-        </YStack>
+          </View>
+        </View>
 
         <Button
           variant="primary"
@@ -75,8 +74,8 @@ export default function HomeScreen() {
           {isGenerating ? `Building course — ${STATUS_LABELS[status ?? ''] ?? '...'}` : 'Start Learning'}
         </Button>
 
-        {failed && <AppText variant="error" textAlign="center">Course generation failed. Please try again.</AppText>}
-      </YStack>
+        {failed && <AppText variant="error" className="text-center">Course generation failed. Please try again.</AppText>}
+      </View>
     </Screen>
   );
 }

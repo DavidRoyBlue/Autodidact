@@ -8,3 +8,16 @@ jest.mock('expo-secure-store', () => ({
   setItemAsync: jest.fn().mockResolvedValue(undefined),
   deleteItemAsync: jest.fn().mockResolvedValue(undefined),
 }));
+
+// NativeWind's runtime stylesheet isn't initialized under Jest (no Metro CSS
+// pipeline), so `setColorScheme` throws "without using darkMode: class" even
+// though tailwind.config sets darkMode:'class'. Stub the hook; only `_layout`
+// calls setColorScheme (at real runtime it works — device-verified).
+jest.mock('nativewind', () => ({
+  ...jest.requireActual('nativewind'),
+  useColorScheme: () => ({
+    colorScheme: 'dark',
+    setColorScheme: jest.fn(),
+    toggleColorScheme: jest.fn(),
+  }),
+}));

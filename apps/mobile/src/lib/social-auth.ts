@@ -33,6 +33,20 @@ export async function signInWithGoogle(): Promise<SocialSession | null> {
   return { accessToken: session.access_token, refreshToken: session.refresh_token };
 }
 
+// Shared: complete a web OAuth/link flow opened in the in-app browser. The redirect
+// (with ?code=) is RETURNED as result.url on success — NOT delivered via a Linking listener.
+async function exchangeViaWebBrowser(authUrl: string, redirectTo: string): Promise<SocialSession | null> {
+  const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectTo);
+  if (result.type !== 'success') return null; // cancel / dismiss
+  const code = Linking.parse(result.url).queryParams?.code;
+  if (typeof code !== 'string') throw new Error('OAuth callback returned no code');
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) throw new Error(error.message);
+  const session = data.session;
+  if (!session?.access_token || !session?.refresh_token) throw new Error('No session from OAuth flow');
+  return { accessToken: session.access_token, refreshToken: session.refresh_token };
+}
+
 /** Facebook web OAuth (PKCE). Returns null if the user dismisses; throws on failure. */
 export async function signInWithFacebook(): Promise<SocialSession | null> {
   const redirectTo = Linking.createURL('auth-callback');
@@ -42,18 +56,29 @@ export async function signInWithFacebook(): Promise<SocialSession | null> {
   });
   if (error) throw new Error(error.message);
   if (!data?.url) throw new Error('Facebook sign-in returned no authorization URL');
+  return exchangeViaWebBrowser(data.url, redirectTo);
+}
 
-  // openAuthSessionAsync RETURNS the redirect to its caller (result.url on success).
-  // Do NOT use Linking.addEventListener / getInitialURL — no global listener is involved.
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (result.type !== 'success') return null; // cancel / dismiss
+/** Link a Google identity to the current account (web OAuth). Returns null if dismissed; throws on failure. */
+export async function linkWithGoogle(): Promise<SocialSession | null> {
+  const redirectTo = Linking.createURL('auth-callback');
+  const { data, error } = await supabase.auth.linkIdentity({
+    provider: 'google',
+    options: { redirectTo, skipBrowserRedirect: true },
+  });
+  if (error) throw new Error(error.message);
+  if (!data?.url) throw new Error('Google link returned no authorization URL');
+  return exchangeViaWebBrowser(data.url, redirectTo);
+}
 
-  const code = Linking.parse(result.url).queryParams?.code;
-  if (typeof code !== 'string') throw new Error('Facebook callback returned no code');
-
-  const { data: sess, error: exErr } = await supabase.auth.exchangeCodeForSession(code);
-  if (exErr) throw new Error(exErr.message);
-  const session = sess.session;
-  if (!session?.access_token || !session?.refresh_token) throw new Error('No session from Facebook sign-in');
-  return { accessToken: session.access_token, refreshToken: session.refresh_token };
+/** Link a Facebook identity to the current account (web OAuth). Returns null if dismissed; throws on failure. */
+export async function linkWithFacebook(): Promise<SocialSession | null> {
+  const redirectTo = Linking.createURL('auth-callback');
+  const { data, error } = await supabase.auth.linkIdentity({
+    provider: 'facebook',
+    options: { redirectTo, skipBrowserRedirect: true },
+  });
+  if (error) throw new Error(error.message);
+  if (!data?.url) throw new Error('Facebook link returned no authorization URL');
+  return exchangeViaWebBrowser(data.url, redirectTo);
 }

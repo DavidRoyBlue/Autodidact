@@ -39,9 +39,10 @@ Sort within each section by ADR number.
 
 ### Apps — Mobile
 - [ADR-003 — Mobile application platform](./apps/mobile/ADR-003-mobile-application-platform.md)
-- [ADR-013 — Mobile UI system](./apps/mobile/ADR-013-mobile-ui-system.md)
+- [ADR-013 — Mobile UI system](./apps/mobile/ADR-013-mobile-ui-system.md) *(⬛ superseded by ADR-029)*
 - [ADR-014 — Mobile navigation](./apps/mobile/ADR-014-mobile-navigation.md)
 - [ADR-015 — Mobile state management](./apps/mobile/ADR-015-mobile-state-management.md)
+- [ADR-029 — Mobile UI system — NativeWind + React Native Reusables](./apps/mobile/ADR-029-mobile-ui-system-nativewind.md)
 
 ### Services
 - [ADR-004 — REST API framework](./services/api/ADR-004-rest-api-framework.md)
@@ -69,8 +70,9 @@ ADRs whose honest analysis concluded that a *different* tool would be a better
 fit, but where we are staying with the current choice for legacy/inertia/cost
 reasons. Each entry names the trigger condition under which we should migrate.
 
-- [ADR-013 — Mobile UI system](./apps/mobile/ADR-013-mobile-ui-system.md): would-be-better → **NativeWind** (lighter, more idiomatic for our RN-only app; Tamagui's cross-platform compile-time win doesn't pay off without a web target). Trigger: planned UI refresh, sustained Tamagui RC churn, or measurable bundle-weight impact on launch.
 - [ADR-020 — Authentication strategy](./cross-cutting/ADR-020-authentication-strategy.md): would-be-better → **Better Auth** (TS-native, Drizzle-integrated, no vendor lock-in). Trigger: Supabase Auth incident >2h, MAU costs >$200/mo, custom-session feature need, or a planned auth refresh.
+
+*(ADR-013 — Mobile UI system reconsideration flag resolved: migrated to NativeWind v4 in ADR-029, 2026-06-22.)*
 
 ## Conventions
 

@@ -1,12 +1,14 @@
+import '@/global.css';
 import { useEffect, type ReactNode } from 'react';
+import { View } from 'react-native';
+import { useColorScheme as useRNColorScheme } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { TamaguiProvider } from 'tamagui';
+import { useColorScheme } from 'nativewind';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUserCourses } from '@/api/courses';
 import { supabase } from '@/lib/supabase';
 import { configureGoogleSignin } from '@/lib/social-auth';
-import config from '@/design/config';
 import { ErrorBoundary, ToastProvider } from '@/components';
 
 const queryClient = new QueryClient({
@@ -15,13 +17,20 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const { accessToken, refreshToken, setSession, clearSession } = useAuthStore();
+  const { colorScheme, setColorScheme } = useColorScheme();
+  const rnScheme = useRNColorScheme();
+
+  useEffect(() => {
+    setColorScheme(rnScheme ?? 'light');
+  }, [rnScheme, setColorScheme]);
 
   // Configure the native Google Sign-In SDK once at startup (before any sign-in).
   useEffect(() => {
     configureGoogleSignin();
   }, []);
 
-  // On app launch, restore the Supabase in-memory session from our persisted tokens.
+  // On app launch, restore the Supabase in-memory session from our persisted tokens
+  // so that autoRefreshToken can kick in without requiring a full sign-in.
   useEffect(() => {
     if (accessToken && refreshToken) {
       void supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
@@ -41,7 +50,7 @@ export default function RootLayout() {
   }, [setSession, clearSession]);
 
   return (
-    <TamaguiProvider config={config} defaultTheme="dark">
+    <View className={colorScheme === 'dark' ? 'dark flex-1' : 'flex-1'}>
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
           <AuthGate>
@@ -50,7 +59,7 @@ export default function RootLayout() {
         </ErrorBoundary>
         <ToastProvider />
       </QueryClientProvider>
-    </TamaguiProvider>
+    </View>
   );
 }
 
@@ -71,7 +80,7 @@ function AuthGate({ children }: { children: ReactNode }) {
   //   b. Session present (real OR anonymous) → route into (app).
   //   c. No session + __DEV__ + extra.devAutoLogin → DEV_AUTO_LOGIN slot (Spec 4).
   //      Spec 4 implements this slot; it takes precedence over the guest path in
-  //      dev so the two never both fire. Intentionally NOT implemented yet.
+  //      dev so the two never both fire. Intentionally NOT implemented in B1.
   //   d. Otherwise → auth UI ((auth) group), which offers real sign-in/up AND
   //      "Continue as guest" (signInAnonymously).
   useEffect(() => {
@@ -84,14 +93,14 @@ function AuthGate({ children }: { children: ReactNode }) {
     }
   }, [accessToken, segments, router]);
 
-  // 2. First-launch deep-link (D10): once authenticated and inside (app), if onboarding has
-  // never been shown, jump straight into the onboarding course's detail screen.
+  // 2. First-launch deep-link (D10): once authenticated and inside (app), if onboarding
+  // has never been shown, jump straight into the onboarding course's detail screen.
   useEffect(() => {
     if (!accessToken || hasSeenOnboarding) return;
     if (segments[0] === '(auth)') return;
     if (!courses) return; // wait for GET /courses (auto-enroll runs server-side on that request)
     const onboarding = courses.find((c) => c.isOnboarding);
-    if (!onboarding) return; // no onboarding course found (e.g. seed missing) — retry on the next launch
+    if (!onboarding) return; // no onboarding course found (e.g. seed missing) — retry next launch
     setHasSeenOnboarding(true);
     router.replace(`/(app)/courses/${onboarding.id}`);
   }, [accessToken, hasSeenOnboarding, courses, segments, router, setHasSeenOnboarding]);

@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { YStack } from 'tamagui';
 import { supabase } from '@/lib/supabase';
 import { Screen, Heading, AppText, Input, Button } from '@/components';
 
@@ -30,7 +29,7 @@ export default function SignUpScreen() {
   if (confirmed) {
     return (
       <Screen>
-        <YStack flex={1} justifyContent="center" gap="$4">
+        <View className="flex-1 justify-center gap-4">
           <Heading size="h1">Check your email</Heading>
           <AppText variant="muted" size="lg">
             We sent a confirmation link to {email}. Open it to activate your account.
@@ -38,20 +37,20 @@ export default function SignUpScreen() {
           <Button variant="ghost" size="lg" onPress={() => router.replace('/(auth)/sign-in')}>
             Back to sign in
           </Button>
-        </YStack>
+        </View>
       </Screen>
     );
   }
 
   return (
     <Screen>
-      <YStack flex={1} justifyContent="center" gap="$4">
-        <YStack gap="$2" marginBottom="$4">
+      <View className="flex-1 justify-center gap-4">
+        <View className="gap-2 mb-4">
           <Heading size="h1">Create account</Heading>
           <AppText variant="muted" size="lg">Start learning anything, one module at a time.</AppText>
-        </YStack>
+        </View>
 
-        <YStack gap="$3">
+        <View className="gap-3">
           <Input
             label="Email"
             placeholder="you@example.com"
@@ -75,7 +74,7 @@ export default function SignUpScreen() {
             secureTextEntry
             error={confirmPassword && password !== confirmPassword ? 'Passwords do not match' : undefined}
           />
-        </YStack>
+        </View>
 
         <Button
           variant="primary"
@@ -90,7 +89,7 @@ export default function SignUpScreen() {
         <Button variant="ghost" size="sm" onPress={() => router.back()}>
           Already have an account? Sign in
         </Button>
-      </YStack>
+      </View>
     </Screen>
   );
 }

@@ -1,4 +1,4 @@
--- 0011_onboarding.sql
+-- 0013_onboarding.sql
 -- Spec 3 — onboarding course mechanism.
 -- Hand-authored SQL (db:generate is broken; see packages/db/CLAUDE.md). The schema
 -- files courses.ts / users.ts are updated in the same commit to remain the source of truth.

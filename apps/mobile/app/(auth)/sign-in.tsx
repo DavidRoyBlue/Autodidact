@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { YStack } from 'tamagui';
 import { useAuthStore } from '@/stores/auth.store';
 import { supabase } from '@/lib/supabase';
 import { signInWithGoogle, signInWithFacebook } from '@/lib/social-auth';
@@ -62,11 +61,11 @@ export default function SignInScreen() {
 
   return (
     <Screen>
-      <YStack flex={1} justifyContent="center" gap="$4">
-        <YStack gap="$2" marginBottom="$6">
+      <View className="flex-1 justify-center gap-4">
+        <View className="gap-2 mb-6">
           <Heading size="h1">Autodidact</Heading>
           <AppText variant="muted" size="lg">Learn anything, one module at a time.</AppText>
-        </YStack>
+        </View>
 
         <Button variant="primary" size="lg" loading={googleLoading}
           onPress={() => runSocial(signInWithGoogle, setGoogleLoading, 'Google sign-in failed')}>
@@ -78,7 +77,7 @@ export default function SignInScreen() {
         </Button>
 
         {showEmail ? (
-          <YStack gap="$3">
+          <View className="gap-3">
             <Input label="Email" placeholder="you@example.com" value={email}
               onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
             <Input label="Password" placeholder="Password" value={password}
@@ -89,7 +88,7 @@ export default function SignInScreen() {
             <Button variant="ghost" size="sm" onPress={() => router.push('/(auth)/sign-up')}>
               Don't have an account? Sign up
             </Button>
-          </YStack>
+          </View>
         ) : (
           <Button variant="ghost" size="sm" onPress={() => setShowEmail(true)}>
             Use email instead
@@ -99,7 +98,7 @@ export default function SignInScreen() {
         <Button variant="ghost" size="sm" loading={guestLoading} onPress={handleGuest}>
           Continue as guest
         </Button>
-      </YStack>
+      </View>
     </Screen>
   );
 }

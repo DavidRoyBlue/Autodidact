@@ -2,10 +2,9 @@
 
 ## Status
 
-🚩 Accepted with reconsideration flag
+⬛ Superseded by [ADR-029](./ADR-029-mobile-ui-system-nativewind.md)
 Date: 2026-05-10
-
-🚩 Reconsideration flag: NativeWind would be a lighter, more idiomatic fit for our React-Native-only mobile app. Tamagui's biggest differentiator (excellent compile-time optimization for cross-platform RN + web) doesn't pay off because we have no web app. Staying with Tamagui because the existing UI code is written against it. Migration trigger: a planned UI refresh, sustained Tamagui RC churn, or measurable evidence the bundle weight affects user-perceived launch time.
+Superseded: 2026-06-22 — NativeWind migration triggered by sustained Tamagui RC churn + planned UI refresh (the two flags from this ADR's reconsideration block).
 
 ## Context
 

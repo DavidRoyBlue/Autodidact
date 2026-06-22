@@ -7,13 +7,16 @@ module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/jest-setup.ts'],
   moduleNameMapper: {
+    // global.css is a Metro/NativeWind build-time entry; stub it under Jest
+    // (checked before the @/ alias so `@/global.css` resolves to the stub).
+    '\\.css$': '<rootDir>/jest-css-stub.js',
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   // Transform ESM/Flow-published deps. pnpm nests packages under `.pnpm/`, so
   // the negative lookahead must optionally skip that segment and match package
   // dir prefixes (scopes are `+`-encoded, e.g. `@react-native+js-polyfills@…`).
   transformIgnorePatterns: [
-    'node_modules/(?!(?:\\.pnpm/)?(?:jest-)?(@?react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@unimodules|unimodules|sentry-expo|native-base|react-native-svg|@tamagui|tamagui|uuid|@autodidact))',
+    'node_modules/(?!(?:\\.pnpm/)?(?:jest-)?(@?react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@unimodules|unimodules|sentry-expo|native-base|react-native-svg|nativewind|react-native-css-interop|uuid|@autodidact))',
   ],
   testMatch: [
     '<rootDir>/src/**/__tests__/**/*.test.{ts,tsx}',

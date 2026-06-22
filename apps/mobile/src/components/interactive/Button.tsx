@@ -1,35 +1,9 @@
 import type { ReactNode } from 'react';
-import { styled, XStack, Spinner } from 'tamagui';
+import { ActivityIndicator, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
+import { Button as UIButton } from '@/components/ui/button';
 import { AppText } from '../typography/AppText';
-
-const ButtonFrame = styled(XStack, {
-  name: 'Button',
-  alignItems: 'center',
-  justifyContent: 'center',
-  borderRadius: '$md',
-  pressStyle: { opacity: 0.75 },
-
-  variants: {
-    variant: {
-      primary: { backgroundColor: '$primary' },
-      danger:  { backgroundColor: '$danger' },
-      ghost:   { backgroundColor: 'transparent', borderWidth: 1, borderColor: '$border' },
-    },
-    size: {
-      sm: { paddingHorizontal: '$3', paddingVertical: '$2', height: 36 },
-      md: { paddingHorizontal: '$4', paddingVertical: '$3', height: 44 },
-      lg: { paddingHorizontal: '$4', paddingVertical: '$4', height: 52 },
-    },
-    disabled: {
-      true: { opacity: 0.4 },
-    },
-  } as const,
-
-  defaultVariants: {
-    variant: 'primary',
-    size: 'md',
-  },
-});
+import { getThemeColors } from '@/lib/theme-colors';
 
 type ButtonProps = {
   variant?: 'primary' | 'danger' | 'ghost';
@@ -48,21 +22,25 @@ export function Button({
   onPress,
   children,
 }: ButtonProps) {
+  const { colorScheme } = useColorScheme();
+  const textClass = variant === 'ghost' ? 'text-foreground' : 'text-primary-foreground';
+  const c = getThemeColors(colorScheme);
+  const indicatorColor = variant === 'ghost' ? c.foreground : c.primaryForeground;
   return (
-    <ButtonFrame
+    <UIButton
       variant={variant}
       size={size}
       disabled={disabled || loading}
       onPress={disabled || loading ? undefined : onPress}
     >
       {loading ? (
-        <XStack gap="$2" alignItems="center">
-          <Spinner size="small" color="$text" />
-          <AppText weight="semibold" color="$text">{children}</AppText>
-        </XStack>
+        <View className="flex-row items-center gap-2">
+          <ActivityIndicator size="small" color={indicatorColor} />
+          <AppText weight="semibold" className={textClass}>{children}</AppText>
+        </View>
       ) : (
-        <AppText weight="semibold" color="$text">{children}</AppText>
+        <AppText weight="semibold" className={textClass}>{children}</AppText>
       )}
-    </ButtonFrame>
+    </UIButton>
   );
 }
