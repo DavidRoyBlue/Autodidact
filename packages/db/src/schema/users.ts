@@ -7,6 +7,7 @@ export const users = pgTable('users', {
   isAnonymous: boolean('is_anonymous').notNull().default(false),
   displayName: text('display_name'),
   avatarUrl: text('avatar_url'),
+  onboardedAt: timestamp('onboarded_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
