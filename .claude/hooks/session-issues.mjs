@@ -38,12 +38,19 @@ function run() {
       { env: { ...process.env, ISSUES_SYNC_NESTED: "1" } });
   } catch { /* fall through to create-and-close */ }
 
-  const match = (answer.match(/\d+/) || [])[0];
-  if (match && /^\d+$/.test(answer.trim())) {
-    sh("gh", ["issue", "comment", match, "--body", `Addressed in a session:\n\n${summary}`]);
-    sh("gh", ["issue", "close", match]);
-    process.stderr.write(`[session-issues] Closed matched #${match}\n`);
-  } else {
+  const match = /^\s*(\d+)\s*$/.test(answer) ? answer.trim() : null;
+  let recorded = false;
+  if (match) {
+    try {
+      sh("gh", ["issue", "comment", match, "--body", `Addressed in a session:\n\n${summary}`]);
+      sh("gh", ["issue", "close", match]);
+      process.stderr.write(`[session-issues] Closed matched #${match}\n`);
+      recorded = true;
+    } catch {
+      process.stderr.write(`[session-issues] match-close failed for #${match}, falling back to create\n`);
+    }
+  }
+  if (!recorded) {
     const firstLine = summary.split("\n").find((l) => l.trim()) ?? "Session";
     const url = sh("gh", ["issue", "create", "--title", `Session: ${firstLine.slice(0, 70)}`,
       "--body", summary, "--label", "ready"]);
