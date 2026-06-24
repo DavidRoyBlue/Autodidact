@@ -19,6 +19,15 @@
             "command": ".claude/hooks/suggest-plan-review.sh"
           }
         ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/bkd/Projects/Autodidact/.claude/hooks/issues-sync.mjs"
+          }
+        ]
       }
     ],
     "SessionStart": [
