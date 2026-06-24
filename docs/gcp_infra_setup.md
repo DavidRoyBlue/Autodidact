@@ -385,7 +385,7 @@ In **GitHub → repo → Settings → Secrets and variables → Actions**:
 | Variable | Value |
 |---|---|
 | `GCP_PROJECT_ID` | your project id |
-| `GCP_REGION` | `us-central1` (optional; defaults to this) |
+| `GCP_REGION` | `northamerica-northeast1` (optional; defaults to this) |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | the full provider resource name from 5.1 |
 | `GCP_SERVICE_ACCOUNT` | `autodidact-run@<project>.iam.gserviceaccount.com` |
 

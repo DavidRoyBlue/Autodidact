@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  GAR_LOCATION: ${{ vars.GCP_REGION || 'us-central1' }}
+  GAR_LOCATION: ${{ vars.GCP_REGION || 'northamerica-northeast1' }}
   GAR_REPOSITORY: autodidact
   PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
 
