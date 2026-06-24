@@ -6,6 +6,12 @@
 module.exports = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['<rootDir>/jest-setup.ts'],
+  // jest-expo's first-render module transform (RN + NativeWind) is heavy; on the
+  // 2-core CI runners it starves workers enough that the first test in a suite can
+  // blow past jest's 5s default before its first `await` resolves — a flaky timeout,
+  // not a logic failure. Raise the ceiling; fast tests still finish in ms, so this
+  // only absorbs cold-start contention.
+  testTimeout: 30000,
   moduleNameMapper: {
     // global.css is a Metro/NativeWind build-time entry; stub it under Jest
     // (checked before the @/ alias so `@/global.css` resolves to the stub).
