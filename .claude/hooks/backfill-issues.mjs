@@ -40,7 +40,8 @@ for (const file of listFiles()) {
   if (n) { adopted++; }
   else {
     const url = sh("gh", ["issue", "create", "--title", title, "--body", body, "--label", label]);
-    n = url.split("/").pop();
+    n = (url.trim().match(/\/issues\/(\d+)/) || [])[1];
+    if (!n) { console.log(`backfill: could not parse issue number from ${url}, skipping ${base}`); continue; }
     if (L.isDonePath(file)) sh("gh", ["issue", "close", n, "-c", "Created already complete."]);
     created++;
     await sleep(1000); // rate-limit politeness

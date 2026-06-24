@@ -54,7 +54,8 @@ function run() {
     const firstLine = summary.split("\n").find((l) => l.trim()) ?? "Session";
     const url = sh("gh", ["issue", "create", "--title", `Session: ${firstLine.slice(0, 70)}`,
       "--body", summary, "--label", "ready"]);
-    const n = url.split("/").pop();
+    const n = (url.trim().match(/\/issues\/(\d+)/) || [])[1];
+    if (!n) { process.stderr.write(`[session-issues] could not parse issue number from: ${url}\n`); return; }
     sh("gh", ["issue", "close", n, "-c", "Session record — completed."]);
     process.stderr.write(`[session-issues] Recorded #${n}\n`);
   }
