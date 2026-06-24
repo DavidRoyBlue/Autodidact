@@ -2,8 +2,7 @@
 // .claude/hooks/issues-sync.mjs — PostToolUse(Write): create+link a GitHub issue for new superpowers files.
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { basename } from "node:path";
 import * as L from "./lib/issues.mjs";
 
 const sh = (cmd, args, opts = {}) =>
@@ -49,7 +48,8 @@ function run() {
   let n = adoptByTitle(title);
   if (!n) {
     const url = sh("gh", ["issue", "create", "--title", title, "--body", body, "--label", label]);
-    n = url.split("/").pop();
+    n = (url.trim().match(/\/issues\/(\d+)/) || [])[1];
+    if (!n) { process.stderr.write(`[issues-sync] could not parse issue number from: ${url}\n`); return; }
     if (L.isDonePath(filePath)) {
       sh("gh", ["issue", "close", n, "-c", "Created already complete."]);
     }
