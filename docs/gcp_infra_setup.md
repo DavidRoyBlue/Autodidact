@@ -71,7 +71,7 @@ pipeline are ready to run.
 | `infra/environments/prod/variables.tf` | Where `project_id`, `region`, `service_account_name` are declared |
 | `infra/backend.tf` | The GCS state bucket name (`autodidact-terraform-state`) |
 | `infra/modules/` | Reusable building blocks — read-only, you normally don't edit these |
-| `.github/workflows/deploy.yml` | The CI/CD pipeline that builds images + deploys on push to `master` |
+| `.github/workflows/deploy.yml` | The CI/CD pipeline that builds images + deploys on push to `production` (see §5) |
 | `packages/env/src/schema.ts` | Canonical list of env vars each service expects (cross-check) |
 
 ---
@@ -302,12 +302,37 @@ What this creates:
 
 ## 5. CI/CD — let GitHub Actions build and deploy (`.github/workflows/deploy.yml`)
 
-The Deploy workflow triggers on **every push to `master`** (and manual
+The Deploy workflow triggers on **every push to `production`** (and manual
 dispatch). It: lint → typecheck → test → build 3 Docker images → push to
 Artifact Registry → run DB migrations → `gcloud run deploy` each service.
 
 It authenticates to GCP via **Workload Identity Federation** (no JSON key file
 to download or leak).
+
+#### Branching & deploys
+
+| Branch | Role | Auto-deploys to GCP? |
+|---|---|---|
+| `master` | Active development. The default branch you push day-to-day. | **No.** Never triggers a Cloud Run deploy. |
+| `production` | Release branch. The only branch the Deploy workflow watches. | **Yes** — every push redeploys all three Cloud Run services. |
+
+GitHub Actions is the **only** deploy path — there is no Cloud Run source-connect
+or Cloud Build trigger.
+
+**Promote a release** (development → production):
+
+```bash
+git merge master production   # bring master's commits onto production
+git push origin production    # → triggers the full build + deploy
+```
+
+(Or open a GitHub PR `master → production` and merge it.) Manual deploys are still
+available any time via **Actions → Deploy → Run workflow** (`workflow_dispatch`).
+
+> **First promotion warning:** the first push to `production` that carries this
+> updated workflow will trigger a full deploy of all three services (build → push →
+> migrate → deploy). Merely *creating* the `production` branch does not deploy — only
+> a push to `production` does.
 
 ### 5.1 Set up Workload Identity Federation (one time)
 
@@ -376,8 +401,9 @@ manual gate before prod deploys.
 
 ### 5.3 Deploy
 
-Push to `master` (or use **Actions → Deploy → Run workflow**). Watch it build,
-push images, migrate, and deploy.
+Push to `production` (e.g. `git merge master production && git push origin
+production`), or use **Actions → Deploy → Run workflow**. Watch it build, push
+images, migrate, and deploy.
 
 ---
 
@@ -442,7 +468,7 @@ api/worker Cloud Run logs for that error first.
 | Create the project, SA, state bucket, enable APIs | **gcloud CLI** (Step 2) |
 | Create / update keys & config | **Secret Manager** via gcloud (Step 3) |
 | Provision queues, registry, Cloud Run | **Terraform** in `infra/environments/prod/` (Step 4) |
-| Build images & deploy | **GitHub Actions** `deploy.yml`, push to `master` (Step 5) |
+| Build images & deploy | **GitHub Actions** `deploy.yml`, push to `production` (Step 5) |
 | Get the DB URL, secret key, Supabase URL | **Supabase dashboard** → Project Settings |
 | Get the LLM key | **OpenAI dashboard** → API keys |
 | See queue retry/backoff config | `infra/modules/cloud-tasks/main.tf` |
