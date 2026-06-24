@@ -103,6 +103,14 @@ export async function withTestDatabase(): Promise<TestDatabase> {
 
   const pool = new Pool({ connectionString: container.getConnectionUri() });
 
+  // When container.stop() shuts Postgres down, any still-open connection receives a
+  // FATAL 57P01 (admin_shutdown). Without a pool 'error' listener, pg re-emits it as
+  // an unhandled error and Vitest fails the run even though every test passed. Swallow
+  // only that shutdown code; re-throw anything else so real idle-client errors surface.
+  pool.on('error', (err: Error & { code?: string }) => {
+    if (err.code !== '57P01') throw err;
+  });
+
   try {
     // Schema-aware client so consumers get the relational query API (db.query.*),
     // matching the production client in @autodidact/db.
