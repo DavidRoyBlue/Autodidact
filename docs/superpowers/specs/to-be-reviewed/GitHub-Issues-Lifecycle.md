@@ -97,6 +97,8 @@ The file body keeps only `**Date:**` / `**Status:**` (existing convention) and, 
 
 **D9 — No issue auto-close on PR merge cascade.** CC includes `Closes #N` in PR bodies for the deepest relevant issue (the plan, not the spec). GitHub auto-closes that issue on merge. The spec closes manually, or when all its plan sub-issues are closed (CC instruction). Cascading auto-close up the hierarchy is not worth the complexity.
 
+**D10 — Idempotent creation; the map is a cache, not a correctness dependency.** Before creating any issue (both the PostToolUse hook and backfill), search existing issues for an exact-title match and adopt it if found. This means a missing, stale, or never-committed `.claude/issue-map.json` can at worst trigger a harmless re-scan — never duplicate issues. Consequence: there is **no** "remember to commit the map" rule in `CLAUDE.md` — that would reintroduce CC-maintained bookkeeping (the anti-pattern removed in D3). Instead the hook `git add`s the map (Phase 3 step 11) so it rides along with normal commits, and GitHub itself is the dedup backstop. Caveat: title collisions between two different files would adopt the same issue — acceptable given the `YYYY-MM-DD-kebab-case` naming invariant makes H1 titles effectively unique.
+
 ---
 
 ## Phase 0 — Verify (do this before touching anything)
@@ -237,33 +239,41 @@ Read stdin → { tool_name, tool_input: { file_path, content }, tool_response, c
 6. Body: first non-heading, non-bold-metadata paragraph, truncated to 500 chars.
    If none, use the title.
 
-7. Create the issue:
+7. Idempotency guard (so a lost/uncommitted map can never cause duplicates — see D10):
+   Search existing issues for an exact-title match before creating:
+   EXISTING=$(gh issue list --state all --search "in:title \"$TITLE\"" \
+     --json number,title --jq ".[] | select(.title == \"$TITLE\") | .number" | head -n1)
+   If EXISTING is non-empty → N=$EXISTING (adopt it), skip creation, jump to step 10.
+
+8. Create the issue:
    RESULT=$(gh issue create --title "$TITLE" --body "$BODY" --label "$LABEL")
    Parse issue number N from the returned URL.
 
-8. If folder is /_done/ → gh issue close N -c "Created already complete."
+9. If folder is /_done/ and the issue is open → gh issue close N -c "Created already complete."
 
-9. If file content contains "**Parent:** <name>":
-   parentIssue = map[<name>]?.issue
-   If parentIssue exists, link via GraphQL:
+10. If file content contains "**Parent:** <name>":
+    parentIssue = map[<name>]?.issue
+    If parentIssue exists, link via GraphQL:
 
-   gh api graphql -f query='
-     mutation($parentId: ID!, $childId: ID!) {
-       addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) {
-         issue { number }
-       }
-     }
-   ' -f parentId="$(gh issue view <parentIssue> --json id -q .id)" \
-     -f childId="$(gh issue view N --json id -q .id)"
+    gh api graphql -f query='
+      mutation($parentId: ID!, $childId: ID!) {
+        addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) {
+          issue { number }
+        }
+      }
+    ' -f parentId="$(gh issue view <parentIssue> --json id -q .id)" \
+      -f childId="$(gh issue view N --json id -q .id)"
 
-   If parentIssue is missing, log "parent <name> not yet linked, skipping" (backfill repairs it).
+    If parentIssue is missing, log "parent <name> not yet linked, skipping" (backfill repairs it).
 
-10. Record in the map and write it back:
+11. Record in the map and write it back:
     map[basename] = { issue: N, parent: <name> || null }
     Persist .claude/issue-map.json (pretty-printed, sorted keys for clean diffs).
-    NOTE: the only file this hook writes is the sidecar — never the source .md file.
+    Then stage it so it rides along with the next commit: git add .claude/issue-map.json
+    NOTE: the only files this hook touches are the sidecar (write) and its git index entry
+    (stage) — never the source .md file, and it never creates a commit.
 
-11. Log to stderr: [issues-sync] Created #N: TITLE
+12. Log to stderr: [issues-sync] Linked #N: TITLE
 
 Exit 0 always — never block CC.
 ```
@@ -326,11 +336,15 @@ CC runs this once, manually, after all other phases are verified working.
 2. Process specs/sub-specs first, then plans/sub-plans (parents before children).
 3. For each file:
    a. Title from H1; label from folder (Phase 3 step 5).
-   b. If a **Parent:** field exists, confirm the parent is already in the map.
-   c. Create the issue, record it in the map, set the sub-issue link if a parent exists.
-   d. Files in /_done/ → create then immediately close.
-   e. Pause 1s between creates to avoid GitHub rate limiting.
-4. Report: N issues created, M files skipped (already in the map).
+   b. Idempotency guard (D10): search existing issues by exact title; if one exists, adopt
+      its number into the map instead of creating a new one. This makes backfill safe to
+      re-run and harmless if the map was never committed.
+   c. If a **Parent:** field exists, confirm the parent is already in the map.
+   d. Create the issue (or adopt the existing one), record it in the map, set the sub-issue
+      link if a parent exists.
+   e. Files in /_done/ → create then immediately close.
+   f. Pause 1s between creates to avoid GitHub rate limiting.
+4. Report: N issues created, A adopted (already existed on GitHub), M skipped (already in the map).
 ```
 
 ---
@@ -351,6 +365,8 @@ CC runs this once, manually, after all other phases are verified working.
 
 - [ ] Writing a new spec file in `to-be-reviewed/` → issue created within seconds, an entry appears in `.claude/issue-map.json`, label `ready` on the issue, **and the .md file is byte-for-byte unchanged**
 - [ ] Writing the same file a second time (full rewrite) → **no second issue** is created (basename already in the map)
+- [ ] Deleting `.claude/issue-map.json` and re-writing an already-issued file → the existing issue is **adopted** by exact-title match, not duplicated (D10)
+- [ ] After issue creation, `.claude/issue-map.json` is **staged** (`git add`) and ready to ride the next commit; the hook never creates a commit itself
 - [ ] Writing a plan file with `**Parent:** <spec-filename.md>` → issue created and appears as a sub-issue of the spec's issue in GitHub
 - [ ] Checking off all boxes in a plan → CC looks up the issue in the sidecar and closes it
 - [ ] Freeform session (no superpowers-tree Write in the transcript) → Stop hook matches-and-closes or creates-and-closes a session-record issue
