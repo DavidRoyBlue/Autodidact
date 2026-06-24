@@ -1,7 +1,7 @@
 # Social Sign-In (Google + Facebook) — Design Spec
 
 **Date:** 2026-06-22
-**Status:** Draft (brainstormed + approved) — pending review, then implementation plan
+**Status:** In progress (as of 2026-06-24) — both phases code-complete on `master` but not yet shipped or verified. Plans: [Phase 1](../../plans/in-progress/2026-06-22-social-sign-in-phase1-oauth-sign-in.md), [Phase 2](../../plans/in-progress/2026-06-22-social-sign-in-phase2-guest-oauth-upgrade.md). Remaining = owner-gated OAuth provider config + prod migration apply (`0011`/`0012`) + real-device verification; see `note-to-self.md`.
 **Position:** Auth track, builds on **Spec 2** (production auth). Makes Google + Facebook the **primary** sign-in methods in the mobile app; email/password and anonymous guest are kept. Closes the OAuth gap that **Plan B1 explicitly deferred** ("OAuth `linkIdentity` upgrade … deferred until OAuth sign-in is added" — ADR-028 follow-up).
 
 > **Cross-refs:** Spec 2 `2026-06-18-production-auth-design.md` (provisioning trigger, JWKS verification, anonymous flow); [ADR-028](../../../architecture/ADRs/cross-cutting/ADR-028-production-auth-provisioning.md) (provider-agnostic provisioning; the open `linkIdentity` / `auth.identities` follow-up); [ADR-020](../../../architecture/ADRs/cross-cutting/ADR-020-authentication-strategy.md) (Supabase Auth). The `apps/mobile` invariant: the app talks only to `services/api` for protected data.

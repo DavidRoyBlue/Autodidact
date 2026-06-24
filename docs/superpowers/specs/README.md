@@ -42,7 +42,8 @@ A spec's **status is the subfolder it lives in** — this is the single source o
 
 | Spec | Related plan |
 |---|---|
-| [2026-06-18 — Production Auth](in-progress/2026-06-18-production-auth-design.md) (Spec 2/4) | Plans A/B1/B2/C1 [done](../plans/_done/); [C2 to-be-reviewed](../plans/to-be-reviewed/2026-06-20-prod-auth-phase3-policy-config-hardening.md) |
+| [2026-06-18 — Production Auth](in-progress/2026-06-18-production-auth-design.md) (Spec 2/4) | Plans A/B1/B2/C1 [done](../plans/_done/); [C2 in-progress](../plans/in-progress/2026-06-20-prod-auth-phase3-policy-config-hardening.md) (Phase 3 GoTrue hardening owner-gated) |
+| [2026-06-22 — Social Sign-In (Google + Facebook)](in-progress/2026-06-22-social-sign-in-design.md) | [Phase 1](../plans/in-progress/2026-06-22-social-sign-in-phase1-oauth-sign-in.md) + [Phase 2](../plans/in-progress/2026-06-22-social-sign-in-phase2-guest-oauth-upgrade.md) (code merged; provider config + verification owner-gated) |
 
 ### ⚪ Done
 

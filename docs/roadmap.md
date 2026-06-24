@@ -25,6 +25,15 @@
 - [ ] EAS build + store-submission path for Mobile
 - [ ] Real Mobile test coverage (E2E, not just light unit tests)
 
+### Auth & mobile styling (since 2026-06)
+
+> Detail + per-phase checklists: `docs/superpowers/` (specs + plans) and `note-to-self.md` (repo root). This is a status digest, not the source of truth.
+
+- [x] Production auth — provisioning/identity triggers, anonymous sign-in, stale-anonymous cleanup, Data-API lockdown + RLS policy hardening live on prod (Spec 2 Phases 0–2; migrations `0006`–`0009`)
+- [x] Mobile styling — Tamagui → NativeWind v4 migration shipped, light + dark themes (PR #37)
+- [ ] Production auth Phase 3 — policy migration `0010` applied to prod; **owner-gated**: GoTrue dashboard hardening (email confirmation, HIBP, TOTP MFA, anon rate-limit) + flip anonymous sign-in ON in prod
+- [ ] Social sign-in (Google + Facebook) — OAuth sign-in + guest→OAuth upgrade code merged to `master`; **owner-gated**: provider config + prod migrations `0011`/`0012` + real-device verification
+
 ## Owner-only — decisions & credentials (David)
 
 > No agent can complete these: they need product calls, real accounts, secrets,
@@ -40,6 +49,8 @@
 - [ ] Populate Secret Manager with real values (see `docs/todo.md` → ENV setup)
 - [ ] Google Play Developer account for Android beta submission
 - [ ] Run the actual deploy + smoke test against real infra
+- [ ] Configure Google + Facebook OAuth providers (Supabase dashboard; Google Cloud Web client + dev/prod Android SHA-1 client IDs; Facebook app) — unblocks social sign-in
+- [ ] Apply auth migrations `0011`/`0012` to prod + enable manual-linking + GoTrue hardening (prod DB is at `0010`)
 
 ## Phase 2 — Polish
 - [ ] Course generation progress indicator (WebSocket or SSE to mobile during generation)

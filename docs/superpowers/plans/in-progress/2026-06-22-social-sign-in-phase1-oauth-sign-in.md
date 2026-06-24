@@ -1,5 +1,7 @@
 # Social Sign-In Phase 1 (Google + Facebook) Implementation Plan
 
+> Status (2026-06-24): IN PROGRESS — code complete on `master`, not yet shipped. All Phase-1 code is merged: the `social-auth.ts` seam (`configureGoogleSignin`/`signInWithGoogle`/`signInWithFacebook`), PKCE + SecureStore adapter on the supabase client, startup wiring, the Google/Facebook headline sign-in UI (email demoted, guest kept), and the setup runbook. Remaining work is **owner-gated config + real-device verification**: configure the OAuth providers (Supabase dashboard; Google Cloud Web client + **two** Android client IDs for dev/prod SHA-1; Facebook app) and run sign-in end-to-end on a custom EAS dev build. The flows are unit-verified against mocks only. Authoritative checklist: [`note-to-self.md`](../../../../note-to-self.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add Google (native) and Facebook (web-PKCE) as the headline sign-in methods on the mobile auth screen, keeping email/password (demoted) and "continue as guest".
@@ -8,7 +10,7 @@
 
 **Tech Stack:** Expo SDK 52, React Native 0.76.3, `@supabase/supabase-js` ^2.46, `@react-native-google-signin/google-signin`, `expo-web-browser`, `expo-linking`, `expo-dev-client`; Jest (jest-expo) + `@testing-library/react-native`.
 
-**Source spec:** `docs/superpowers/specs/to-be-reviewed/2026-06-22-social-sign-in-design.md` (Phase 1).
+**Source spec:** `docs/superpowers/specs/in-progress/2026-06-22-social-sign-in-design.md` (Phase 1).
 
 ## Global Constraints
 

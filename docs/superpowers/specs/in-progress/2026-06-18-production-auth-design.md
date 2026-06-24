@@ -1,7 +1,7 @@
 # Production-Ready Auth — Design Spec
 
 **Date:** 2026-06-18
-**Status:** Draft — revised 2026-06-19 (Spec 2 of 4; rev 2 folds in the cross-spec critique fixes). Original decisions are preserved; superseded ones are marked inline. Ready for implementation-plan writing after review.
+**Status:** In progress (as of 2026-06-24) — Phases 0–2 shipped to prod (Plans A/B1/B2/C1, migrations `0006`–`0009`); Phase 3 partially shipped (Plan C2: migration `0010` merged + on prod, but the GoTrue dashboard hardening + flipping anon ON in prod are owner-gated and outstanding — see [Plan C2](../../plans/in-progress/2026-06-20-prod-auth-phase3-policy-config-hardening.md) and `note-to-self.md`). Original decisions preserved; superseded ones marked inline.
 **Scope:** Functional correctness + security hardening of production auth.
 
 > **Decomposition (agreed 2026-06-19).** The work splits into four sequenced specs:

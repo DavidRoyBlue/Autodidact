@@ -1,5 +1,7 @@
 # Production Auth (Spec 2) — Plan C2: Policy & Config Hardening (Phase 3)
 
+> Status (2026-06-24): IN PROGRESS — migration shipped, GoTrue hardening outstanding. Migration `0010_policy_hardening.sql` is merged and applied to prod (`drizzle.__drizzle_migrations` id 10; security advisors clear). Still **owner-gated on the prod dashboard / Management API**: email confirmation, password policy + leaked-password (HIBP), TOTP MFA, the anonymous-signup IP rate-limit, and then flipping `enable_anonymous_sign_ins` ON in prod (B1's release gate — order: rate-limits first, then anon ON). Authoritative checklist: [`note-to-self.md`](../../../../note-to-self.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the deprecated `auth.role()` predicate with structural `TO authenticated` scoping; scope every app-table RLS policy `TO authenticated` (currently `TO public`); and harden GoTrue via `supabase/config.toml` (email confirmation, password policy + leaked-password/HIBP protection, anonymous-signup IP rate-limit on **local**, redirect allow-list, and **TOTP MFA enablement**). **No CAPTCHA** — it is poor UX for the phone app and explicitly not wanted; IP rate-limit + B2's stale-anonymous cleanup are the anonymous-abuse mitigations. Production anonymous sign-in is **ENABLED** in this plan — *after* the prod rate-limits are tuned (order matters), satisfying B1's release gate.
@@ -8,7 +10,7 @@
 
 **Tech Stack:** Drizzle hand-authored SQL migration (`packages/db/migrations/`, registered in `meta/_journal.json`); `supabase/config.toml` (GoTrue settings); Supabase MCP `get_advisors` / `execute_sql` / `apply_migration` for prod verification + apply; Vitest for the RLS defense-in-depth assertion.
 
-**Source spec:** `docs/superpowers/specs/2026-06-18-production-auth-design.md` (Spec 2), **Phase 3** / decision **D4′** (+ D5 anonymous, D7 `is_anonymous()`). This is **Plan C2**; the Data-API lockdown (Phase 2 / D3) is **Plan C1** (`2026-06-20-prod-auth-phase2-data-api-lockdown.md`) and **must land first**. Builds on **Plan A** (`is_anonymous()` helper, identity contract) and **B1** (which enabled `enable_anonymous_sign_ins = true` on the **local** stack only and gated prod anonymous release on this plan's anonymous-abuse mitigations — now IP rate-limit + B2 cleanup, no CAPTCHA).
+**Source spec:** `docs/superpowers/specs/in-progress/2026-06-18-production-auth-design.md` (Spec 2), **Phase 3** / decision **D4′** (+ D5 anonymous, D7 `is_anonymous()`). This is **Plan C2**; the Data-API lockdown (Phase 2 / D3) is **Plan C1** (`2026-06-20-prod-auth-phase2-data-api-lockdown.md`) and **must land first**. Builds on **Plan A** (`is_anonymous()` helper, identity contract) and **B1** (which enabled `enable_anonymous_sign_ins = true` on the **local** stack only and gated prod anonymous release on this plan's anonymous-abuse mitigations — now IP rate-limit + B2 cleanup, no CAPTCHA).
 
 > **Prod project (CONFIRMED):** `cbzdsoojfhpsexuyeyxt`. After C1 this plan adds **id 10 / `0010`** to `drizzle.__drizzle_migrations`.
 

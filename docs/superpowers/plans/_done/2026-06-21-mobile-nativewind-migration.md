@@ -1,5 +1,7 @@
 # Mobile NativeWind + React Native Reusables Migration — Implementation Plan
 
+> Completed: 2026-06-23 — fully shipped on `master` (PR #37). Tamagui removed; NativeWind v4 + RNR primitives + light/dark token system (`tailwind.config.js`, `src/global.css`) are live. Client-only change, no owner-gated follow-up. (Per the folder convention, the in-file `- [ ]` boxes below were not back-filled — trust the `_done/` folder + git history.)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace Tamagui with NativeWind v4 + React Native Reusables (RNR) as the styling/UI-primitive system for `apps/mobile`, preserving the current dark theme exactly and adding a system-driven light theme.

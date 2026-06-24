@@ -1,5 +1,7 @@
 # Social Sign-In Phase 2 (Guest → OAuth Upgrade) Implementation Plan
 
+> Status (2026-06-24): IN PROGRESS — code complete on `master`, not yet shipped. All Phase-2 code is merged: the defensive identity-link sync trigger (migration `0011`) plus its guard refinement (`0012`, which scopes the sync to anon→real upgrades only — note this plan was written for `0011` alone), `linkWithGoogle()`/`linkWithFacebook()`, local `enable_manual_linking=true`, and the `UpgradeAccountCard` Google/Facebook upgrade buttons. Remaining work is **owner-gated + real-device verification**: apply `0011`+`0012` to prod (prod DB is at `0010`), enable manual linking + the OAuth providers in the prod dashboard, and verify a real guest→OAuth upgrade preserves the UUID + progress. The flow is unit-verified against mocks only. Authoritative checklist: [`note-to-self.md`](../../../../note-to-self.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax.
 
 **Goal:** Let an anonymous guest upgrade to a permanent account by linking a Google or Facebook identity (`linkIdentity`), preserving their UUID + progress, with `public.users` guaranteed in sync via a defensive trigger.
@@ -8,7 +10,7 @@
 
 **Tech Stack:** `@supabase/supabase-js` (`linkIdentity`, `exchangeCodeForSession`), `expo-web-browser`, `expo-linking` (Phase 1 deps); Drizzle hand-authored SQL migration; Jest (jest-expo) + `@testing-library/react-native`; `@autodidact/test-support` (Testcontainers) for the trigger test.
 
-**Source spec:** `docs/superpowers/specs/to-be-reviewed/2026-06-22-social-sign-in-design.md` (Phase 2 / D5). Builds on Phase 1 (the `social-auth.ts` seam, already on master) and Spec 2 (provisioning triggers, `sync_user_from_auth`).
+**Source spec:** `docs/superpowers/specs/in-progress/2026-06-22-social-sign-in-design.md` (Phase 2 / D5). Builds on Phase 1 (the `social-auth.ts` seam, already on master) and Spec 2 (provisioning triggers, `sync_user_from_auth`).
 
 ## Global Constraints
 
