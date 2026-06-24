@@ -71,6 +71,11 @@ step "Running database migrations"
 dotenv -e .env.dev -- ./scripts/migrate.sh
 ok "Migrations applied"
 
+# ── Seed onboarding course ─────────────────────────────────────────────────────
+step "Seeding the onboarding course"
+dotenv -e .env.dev -- pnpm --filter @autodidact/db db:seed:onboarding
+ok "Onboarding course seeded"
+
 # ── Build ─────────────────────────────────────────────────────────────────────
 step "Building all packages (one-time, required for dev)"
 pnpm build

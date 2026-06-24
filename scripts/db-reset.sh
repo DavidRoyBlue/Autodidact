@@ -33,4 +33,8 @@ step "Applying Drizzle migrations"
 "$SCRIPT_DIR/migrate.sh"
 ok "Migrations applied"
 
+step "Seeding the onboarding course"
+pnpm --filter @autodidact/db db:seed:onboarding
+ok "Onboarding course seeded"
+
 echo -e "\n${GREEN}${BOLD}Local database reset complete.${NC}"

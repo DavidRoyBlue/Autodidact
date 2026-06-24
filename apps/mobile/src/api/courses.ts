@@ -1,14 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from './client';
+import { useAuthStore } from '../stores/auth.store';
+
+export type Course = {
+  id: string;
+  title: string;
+  description: string;
+  difficulty: string;
+  status: string;
+  isOnboarding: boolean;
+  enrolledAt: string;
+  completedAt: string | null;
+};
 
 export function useUserCourses() {
+  const accessToken = useAuthStore((s) => s.accessToken);
   return useQuery({
     queryKey: ['courses'],
-    queryFn: async () => {
+    queryFn: async (): Promise<Course[]> => {
       const res = await apiFetch('/courses');
       if (!res.ok) throw new Error('Failed to fetch courses');
-      return res.json();
+      return res.json() as Promise<Course[]>;
     },
+    enabled: !!accessToken, // never fetch /courses on the auth screens (avoids a 401 that clears the session)
   });
 }
 
