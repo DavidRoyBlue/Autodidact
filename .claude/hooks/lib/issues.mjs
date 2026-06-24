@@ -2,9 +2,13 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 
 export const SUPERPOWERS_ROOT = "docs/superpowers";
+export const STATUS_FOLDERS = ["to-be-reviewed", "in-progress", "_done", "plan-in-action"];
 
 export function isSuperpowersFile(filePath) {
-  return filePath.includes(`${SUPERPOWERS_ROOT}/`) && filePath.endsWith(".md");
+  if (!filePath.endsWith(".md")) return false;
+  if (!filePath.includes(`${SUPERPOWERS_ROOT}/`)) return false;
+  if (filePath.endsWith("/README.md")) return false;
+  return STATUS_FOLDERS.some((f) => filePath.includes(`/${f}/`));
 }
 
 export function labelForPath(filePath) {

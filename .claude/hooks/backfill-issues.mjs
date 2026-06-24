@@ -12,7 +12,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function listFiles() {
   // specs first, then plans → parents before children
   const out = sh("git", ["ls-files", "docs/superpowers/specs", "docs/superpowers/plans"]);
-  return out.split("\n").filter((p) => p.endsWith(".md"))
+  return out.split("\n").filter((p) => L.isSuperpowersFile(p))
     .sort((a, b) => (a.includes("/specs/") ? 0 : 1) - (b.includes("/specs/") ? 0 : 1));
 }
 function adoptByTitle(title) {

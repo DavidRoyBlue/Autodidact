@@ -8,8 +8,12 @@ import * as L from "./issues.mjs";
 test("isSuperpowersFile: only .md under docs/superpowers", () => {
   assert.equal(L.isSuperpowersFile("/r/docs/superpowers/specs/to-be-reviewed/a.md"), true);
   assert.equal(L.isSuperpowersFile("/r/docs/superpowers/plans/in-progress/b.md"), true);
+  assert.equal(L.isSuperpowersFile("/r/docs/superpowers/specs/plan-in-action/a.md"), true);
   assert.equal(L.isSuperpowersFile("/r/docs/architecture/x.md"), false);
   assert.equal(L.isSuperpowersFile("/r/docs/superpowers/specs/a.txt"), false);
+  assert.equal(L.isSuperpowersFile("/r/docs/superpowers/specs/README.md"), false);
+  assert.equal(L.isSuperpowersFile("/r/docs/superpowers/specs/2026-01-01-x.md"), false);
+  assert.equal(L.isSuperpowersFile("/r/docs/superpowers/plans/2026-01-01-x.review.md"), false);
 });
 
 test("labelForPath: folder → label", () => {
