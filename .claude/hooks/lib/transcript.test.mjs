@@ -35,3 +35,9 @@ test("extractSummary: last N assistant text messages, newest-last, joined", () =
   assert.ok(s.includes("second") && s.includes("third"));
   assert.ok(!s.includes("first"));
 });
+
+test("extractSummary includes string-content assistant messages", () => {
+  const stringMsg = line({ type: "assistant", message: { role: "assistant", content: "plain string summary" } });
+  const s = T.extractSummary(T.parseTranscript(stringMsg));
+  assert.ok(s.includes("plain string summary"));
+});
