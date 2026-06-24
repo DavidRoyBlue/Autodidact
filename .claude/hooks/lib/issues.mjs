@@ -34,7 +34,7 @@ export function bodyFromContent(content, title) {
     cur.push(line);
   }
   if (cur.length) paras.push(cur.join(" ").trim());
-  const skip = (p) => p.startsWith("#") || p.startsWith("**") || p.startsWith(">") || p.startsWith("---");
+  const skip = (p) => p.startsWith("#") || (p.startsWith("**") && p.includes(":**")) || p.startsWith(">") || p.startsWith("---");
   for (const p of paras) {
     if (!skip(p)) return p.slice(0, 500);
   }

@@ -33,6 +33,11 @@ test("bodyFromContent: first prose paragraph, skips headings/metadata/callouts",
   const content = "# Title\n\n**Date:** 2026-06-24\n**Parent:** p.md\n\n> a callout\n\nThe real first paragraph.\n\nSecond.";
   assert.equal(L.bodyFromContent(content, "Title"), "The real first paragraph.");
   assert.equal(L.bodyFromContent("# Only Title", "Only Title"), "Only Title");
+  // Verify bold-opening prose is NOT skipped (only bold metadata fields are)
+  assert.equal(
+    L.bodyFromContent("# T\n\n**Bold intro** then the rest of the sentence.", "T"),
+    "**Bold intro** then the rest of the sentence."
+  );
 });
 
 test("parentFromContent: filename or null", () => {
