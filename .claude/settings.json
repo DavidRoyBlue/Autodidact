@@ -41,6 +41,14 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "node /home/bkd/Projects/Autodidact/.claude/hooks/session-issues.mjs" }
+        ]
+      }
     ]
   }
 }
