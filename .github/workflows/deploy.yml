@@ -20,11 +20,14 @@ env:
   PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
 
 jobs:
-  deploy:
-    name: Build, migrate, and deploy
+  # Validate the commit and publish the images. Branch promotion to `production`
+  # is the human gate; this job proves the build is deployable before the deploy
+  # job touches the prod DB or Cloud Run. A failure here is unambiguously a
+  # code/build problem.
+  ci:
+    name: Lint, typecheck, test, build & push
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: production
 
     steps:
       - name: Checkout
@@ -71,6 +74,33 @@ jobs:
           docker push "${REGISTRY}/agent:latest"
           docker push "${REGISTRY}/worker:${SHA_TAG}"
           docker push "${REGISTRY}/worker:latest"
+
+  # Migrate the prod DB and roll out the images published by `ci`. Runs only
+  # after ci succeeds, so a failure here is unambiguously a migration/deploy
+  # problem, not a build problem. Images are referenced by ${GITHUB_SHA}, which
+  # is identical across both jobs in the same run.
+  deploy:
+    name: Migrate & deploy to Cloud Run
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
 
       - name: Run database migrations
         env:
