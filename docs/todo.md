@@ -47,11 +47,11 @@
 - [ ] Add LLM cost/token controls in the Agent
 
 ### 4. Ship the client
-- [ ] Add EAS build + store-submission path for Mobile
+- [x] EAS build config for Mobile (`apps/mobile/eas.json`: development/preview/production) — Play Store submission still pending
 - [ ] Add real Mobile test coverage (E2E, not just light unit tests)
 
 ## Open questions (block the above)
 - [ ] Staging environment, or does `master` deploy straight to prod (`deploy.yml`)?
 - [ ] Acceptable LLM spend ceiling, and how enforced?
 - [ ] First beta target: iOS, Android, or both — which distribution channel?
-- [ ] BullMQ/Memorystore vs. Cloud Tasks for prod job durability (ADR-007 🚩)?
+- [x] BullMQ/Memorystore vs. Cloud Tasks for prod job durability → resolved: Cloud Tasks (ADR-027, supersedes ADR-007)

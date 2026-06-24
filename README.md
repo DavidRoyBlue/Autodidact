@@ -16,6 +16,7 @@ AI-native learning platform that generates structured courses and teaches them t
 ### Frontend
 - Expo + React Native + TypeScript
 - Expo Router
+- NativeWind v4 + React Native Reusables
 - TanStack Query
 - Zustand
 
@@ -112,9 +113,18 @@ implemented option and ignores the env var. They live under "RESERVED" in
 
 ## Deploying
 
-Production runs on GCP Cloud Run and deploys automatically on push to `master`
-(`.github/workflows/deploy.yml`). For first-time infra setup, Terraform, secrets,
-and running prod DB migrations, see the [GCP setup runbook](docs/gcp_infra_setup.md).
+**Backend.** Production runs on GCP Cloud Run and deploys automatically on push to
+`master` (`.github/workflows/deploy.yml`): the pipeline gates on lint/typecheck/test,
+builds the three service images, runs DB migrations, then `gcloud run deploy`s each
+service. For first-time infra setup, Terraform, secrets, and running prod DB
+migrations, see the [GCP setup runbook](docs/gcp_infra_setup.md).
+
+**Mobile.** The Expo app is built and released with EAS (`apps/mobile/eas.json`),
+which defines three profiles: `development` (dev client → local backend), `preview`
+(internal APK → prod Cloud Run API), and `production` (Play Store AAB → prod Cloud
+Run API). The backend URL and Supabase keys are injected per profile and resolved at
+runtime via `apps/mobile/app.config.ts`. See
+[`apps/mobile/README.md`](apps/mobile/README.md) for build and run details.
 
 ## Documentation
 

@@ -8,7 +8,7 @@
 - [x] Worker service (async course generation, embeddings)
 - [x] API service (auth, courses, chat SSE, progress)
 - [x] Mobile app (home, course list, course detail, module chat)
-- [x] Infrastructure (Terraform, Cloud Run, Memorystore)
+- [x] Infrastructure (Terraform, Cloud Run, Cloud Tasks)
 - [x] CI/CD (GitHub Actions)
 
 ## Phase 1.5 — Deploy & operate (MVP hardening)
@@ -22,7 +22,7 @@
 - [ ] Wire error tracking / OTEL backend
 - [ ] API rate limiting
 - [ ] LLM cost/token controls in the Agent
-- [ ] EAS build + store-submission path for Mobile
+- [ ] EAS build + store-submission path for Mobile — *build config done (`apps/mobile/eas.json`, 3 profiles); Play Store submission pending*
 - [ ] Real Mobile test coverage (E2E, not just light unit tests)
 
 ### Auth & mobile styling (since 2026-06)

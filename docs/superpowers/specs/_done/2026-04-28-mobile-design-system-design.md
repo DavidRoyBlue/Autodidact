@@ -1,5 +1,9 @@
 # Mobile Design System — Spec
 
+> ⚠️ **Superseded.** This Tamagui-based design system was replaced by the NativeWind v4 + React
+> Native Reusables migration on 2026-06-22 ([ADR-029](../../../architecture/ADRs/apps/mobile/ADR-029-mobile-ui-system-nativewind.md);
+> plan `../../plans/_done/2026-06-21-mobile-nativewind-migration.md`). Kept as a historical record — Tamagui is no longer in the app.
+
 **Date:** 2026-04-28
 **Scope:** `apps/mobile`
 **Goal:** Production-ready, modular UI layer with a single source of truth for all visual values. Full migration of all existing screens to Tamagui.

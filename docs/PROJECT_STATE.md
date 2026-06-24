@@ -4,6 +4,13 @@
 > Generated 2026-06-05 from source code, tests, and config on branch `fix/mobile-tamagui-v2-runtime-tokens` (commit `96ebc6a`).
 > Where code and docs disagreed, code won. Assumptions are marked **[ASSUMPTION]**.
 
+> ⚠️ **Historical snapshot (2026-06-05) — do not read as current state.** Since this
+> was generated: the mobile **EAS build config now exists** (`apps/mobile/eas.json`,
+> three profiles), so every "no EAS build config" / "no release pipeline" note below
+> is outdated; and the NativeWind migration shipped (ADR-029), so the "Current
+> Objective" Tamagui-stabilization section is obsolete. For the current build & deploy
+> picture, trust the root `README.md`, `apps/mobile/CLAUDE.md`, and `docs/stack.md`.
+
 ---
 
 ## Vision
