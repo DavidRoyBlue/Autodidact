@@ -8,7 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "AUTODIDACT_API_BASE_URL": "http://localhost:3000/v1"
+        "AUTODIDACT_API_BASE_URL": "http://localhost:3000/v1",
+        "GOOGLE_WEB_CLIENT_ID": "232057392869-226j0moceo2m8kbhkhjo8i6bb10iullb.apps.googleusercontent.com"
       }
     },
     "preview": {
@@ -17,7 +18,8 @@
         "buildType": "apk"
       },
       "env": {
-        "AUTODIDACT_API_BASE_URL": "https://autodidact-api-3tynnutnpq-nn.a.run.app/v1"
+        "AUTODIDACT_API_BASE_URL": "https://autodidact-api-3tynnutnpq-nn.a.run.app/v1",
+        "GOOGLE_WEB_CLIENT_ID": "232057392869-226j0moceo2m8kbhkhjo8i6bb10iullb.apps.googleusercontent.com"
       }
     },
     "production": {
@@ -26,7 +28,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "AUTODIDACT_API_BASE_URL": "https://autodidact-api-3tynnutnpq-nn.a.run.app/v1"
+        "AUTODIDACT_API_BASE_URL": "https://autodidact-api-3tynnutnpq-nn.a.run.app/v1",
+        "GOOGLE_WEB_CLIENT_ID": "232057392869-226j0moceo2m8kbhkhjo8i6bb10iullb.apps.googleusercontent.com"
       }
     }
   },
