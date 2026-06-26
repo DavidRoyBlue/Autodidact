@@ -19,6 +19,15 @@
             "command": ".claude/hooks/suggest-plan-review.sh"
           }
         ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/bkd/Projects/Autodidact/.claude/hooks/issues-sync.mjs"
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -30,6 +39,14 @@
             "command": "code-review-graph status",
             "timeout": 10
           }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "node /home/bkd/Projects/Autodidact/.claude/hooks/session-issues.mjs" }
         ]
       }
     ]

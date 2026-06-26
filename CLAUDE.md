@@ -300,3 +300,22 @@ The graph gives structure, not implementation. Read source for what code actuall
 ### Maintenance
 
 Hooks auto-update on edit/commit. If stale, run `code-review-graph status`; re-run install if hooks aren't firing.
+
+## GitHub Issues
+
+Issue creation and labelling are automated by `.claude/hooks/issues-sync.mjs`. The filename→issue
+link lives in `.claude/issue-map.json` — never write an `**Issue:**` field into files.
+
+### When creating a spec or plan that belongs to a parent
+Add `**Parent:** <parent-filename.md>` to the file body alongside `**Date:**`, before writing.
+The hook resolves that filename to the parent issue and sets the sub-issue relationship. Use the
+parent's filename, not an issue number.
+
+### When all checkboxes in a plan file are checked off
+1. Look up the plan's issue number in `.claude/issue-map.json` (keyed by filename).
+2. Close it: `gh issue close #N -c "All tasks complete."`
+3. If the plan has a parent and every sibling plan under it is also closed, close the parent too.
+4. Include `Closes #N` in the PR body for the deepest relevant issue (the plan, not the spec).
+
+Do not manually create issues, edit labels, or close issues on folder moves — the hook and the
+folder location handle status.
