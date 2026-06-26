@@ -42,11 +42,10 @@ Done plans are never deleted; they record how and why something was built. Their
 
 ### 🟡 In progress
 
-> Code for all three is merged to `master`; what remains is owner-gated config + real-device/prod verification. See `note-to-self.md` (repo root) for the authoritative checklist.
+> Code for both is merged to `master`; what remains is owner-gated config + real-device/prod verification. See `note-to-self.md` (repo root) for the authoritative checklist.
 
 | Plan | Notes |
 |---|---|
-| [2026-06-20 — Prod Auth Plan C2: Policy & Config Hardening](in-progress/2026-06-20-prod-auth-phase3-policy-config-hardening.md) (Spec 2/4, Phase 3 / D4') | Migration `0010` merged + on prod; GoTrue dashboard hardening + anon-ON-in-prod outstanding |
 | [2026-06-22 — Social Sign-In Phase 1: OAuth Sign-In](in-progress/2026-06-22-social-sign-in-phase1-oauth-sign-in.md) (Google native + Facebook web-PKCE) | Code merged; OAuth provider config + dev-build verification owner-gated |
 | [2026-06-22 — Social Sign-In Phase 2: Guest→OAuth Upgrade](in-progress/2026-06-22-social-sign-in-phase2-guest-oauth-upgrade.md) (`0011`+`0012`, `linkIdentity`) | Code merged; prod migration apply + manual-linking + verification owner-gated |
 
@@ -70,6 +69,7 @@ Done plans are never deleted; they record how and why something was built. Their
 | [2026-06-20 — Prod Auth Plan B1: Anonymous Sign-In & Mobile Lifecycle](_done/2026-06-20-prod-auth-planB1-anonymous-mobile.md) (Spec 2/4, Phase 1d/1f) | 2026-06-20 |
 | [2026-06-20 — Prod Auth Plan B2: Stale-Anonymous Cleanup Job](_done/2026-06-20-prod-auth-planB2-stale-anon-cleanup.md) (Spec 2/4, Phase 1e) | 2026-06-20 (Cloud Scheduler wiring deferred to infra) |
 | [2026-06-20 — Prod Auth Plan C1: Data-API Lockdown](_done/2026-06-20-prod-auth-phase2-data-api-lockdown.md) (Spec 2/4, Phase 2 / D3) | migration 0009 landed (commit e310078) |
+| [2026-06-20 — Prod Auth Plan C2: Policy & Config Hardening](_done/2026-06-20-prod-auth-phase3-policy-config-hardening.md) (Spec 2/4, Phase 3 / D4') | 2026-06-26 — `0010` on prod; prod GoTrue hardening applied (confirmation, password/HIBP, TOTP MFA, anon rate-limit, anon ON). Closes #50 |
 
 > Review-pipeline byproducts (`*.diff.md`, `*.parallel.md`, `*.review.md`) are left at the folder root next to this index; they are transient artifacts, not plans.
 

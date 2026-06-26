@@ -1,7 +1,7 @@
 # Production-Ready Auth — Design Spec
 
 **Date:** 2026-06-18
-**Status:** In progress (as of 2026-06-24) — Phases 0–2 shipped to prod (Plans A/B1/B2/C1, migrations `0006`–`0009`); Phase 3 partially shipped (Plan C2: migration `0010` merged + on prod, but the GoTrue dashboard hardening + flipping anon ON in prod are owner-gated and outstanding — see [Plan C2](../../plans/in-progress/2026-06-20-prod-auth-phase3-policy-config-hardening.md) and `note-to-self.md`). Original decisions preserved; superseded ones marked inline.
+**Status:** ⚪ Done — shipped to prod 2026-06-26 (issue #50 closed). All four phases delivered: Phases 0–2 (Plans A/B1/B2/C1, migrations `0006`–`0009`) and Phase 3 (Plan C2: migration `0010` + GoTrue hardening) — the owner-gated prod GoTrue settings (email confirmation, password/HIBP, TOTP MFA, anon IP rate-limit, `enable_anonymous_sign_ins` ON) were applied to prod `cbzdsoojfhpsexuyeyxt` on 2026-06-26. See [Plan C2](../../plans/_done/2026-06-20-prod-auth-phase3-policy-config-hardening.md). Original decisions preserved; superseded ones marked inline.
 **Scope:** Functional correctness + security hardening of production auth.
 
 > **Decomposition (agreed 2026-06-19).** The work splits into four sequenced specs:

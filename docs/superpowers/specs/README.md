@@ -42,7 +42,6 @@ A spec's **status is the subfolder it lives in** — this is the single source o
 
 | Spec | Related plan |
 |---|---|
-| [2026-06-18 — Production Auth](in-progress/2026-06-18-production-auth-design.md) (Spec 2/4) | Plans A/B1/B2/C1 [done](../plans/_done/); [C2 in-progress](../plans/in-progress/2026-06-20-prod-auth-phase3-policy-config-hardening.md) (Phase 3 GoTrue hardening owner-gated) |
 | [2026-06-22 — Social Sign-In (Google + Facebook)](in-progress/2026-06-22-social-sign-in-design.md) | [Phase 1](../plans/in-progress/2026-06-22-social-sign-in-phase1-oauth-sign-in.md) + [Phase 2](../plans/in-progress/2026-06-22-social-sign-in-phase2-guest-oauth-upgrade.md) (code merged; provider config + verification owner-gated) |
 
 ### ⚪ Done
@@ -53,6 +52,7 @@ A spec's **status is the subfolder it lives in** — this is the single source o
 | [2026-06-01 — Test Overhaul](_done/2026-06-01-test-overhaul-design.md) | [Phases 0–3](../plans/_done/) |
 | [2026-06-11 — ESM Migration](_done/2026-06-11-esm-migration-design.md) | [2026-06-11 — ESM Migration](../plans/_done/2026-06-11-esm-migration.md) |
 | [2026-06-13 — Chat SSE Disconnect Fix](_done/2026-06-13-chat-sse-disconnect-fix-design.md) | [2026-06-13 — Chat SSE Disconnect Fix](../plans/_done/2026-06-13-chat-sse-disconnect-fix.md) |
+| [2026-06-18 — Production Auth](_done/2026-06-18-production-auth-design.md) (Spec 2/4) | Plans [A/B1/B2/C1/C2 done](../plans/_done/) — shipped to prod 2026-06-26 (issue #50) |
 | [2026-06-19 — Local Supabase Stack](_done/2026-06-19-local-supabase-stack-design.md) (Spec 1/4) | [2026-06-19 — Local Supabase Stack](../plans/_done/2026-06-19-local-supabase-stack.md) |
 | [2026-06-19 — DEV_AUTO_LOGIN](_done/2026-06-19-dev-auto-login-design.md) (Spec 4/4) | _shipped in `apps/mobile/app/_layout.tsx` (no standalone plan)_ |
 

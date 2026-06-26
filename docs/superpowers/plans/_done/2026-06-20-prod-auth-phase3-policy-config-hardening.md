@@ -1,6 +1,8 @@
 # Production Auth (Spec 2) — Plan C2: Policy & Config Hardening (Phase 3)
 
-> Status (2026-06-24): IN PROGRESS — migration shipped, GoTrue hardening outstanding. Migration `0010_policy_hardening.sql` is merged and applied to prod (`drizzle.__drizzle_migrations` id 10; security advisors clear). Still **owner-gated on the prod dashboard / Management API**: email confirmation, password policy + leaked-password (HIBP), TOTP MFA, the anonymous-signup IP rate-limit, and then flipping `enable_anonymous_sign_ins` ON in prod (B1's release gate — order: rate-limits first, then anon ON). Authoritative checklist: [`note-to-self.md`](../../../../note-to-self.md).
+> Completed: 2026-06-26
+>
+> Status: DONE — migration `0010_policy_hardening.sql` merged + applied to prod (`drizzle.__drizzle_migrations` id 10; security advisors clear); local `supabase/config.toml` hardened (TOTP MFA, anon IP rate-limit, manual-linking); RLS defense-in-depth test + ADR-028 landed. The owner-gated prod GoTrue settings — email confirmation, password policy + leaked-password (HIBP), TOTP MFA, anonymous-signup IP rate-limit, and then `enable_anonymous_sign_ins` ON (rate-limits applied first per B1's release gate) — were applied on the prod dashboard (`cbzdsoojfhpsexuyeyxt`) on 2026-06-26. This completes Spec 2 Phase 3 and closes issue #50.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -10,7 +12,7 @@
 
 **Tech Stack:** Drizzle hand-authored SQL migration (`packages/db/migrations/`, registered in `meta/_journal.json`); `supabase/config.toml` (GoTrue settings); Supabase MCP `get_advisors` / `execute_sql` / `apply_migration` for prod verification + apply; Vitest for the RLS defense-in-depth assertion.
 
-**Source spec:** `docs/superpowers/specs/in-progress/2026-06-18-production-auth-design.md` (Spec 2), **Phase 3** / decision **D4′** (+ D5 anonymous, D7 `is_anonymous()`). This is **Plan C2**; the Data-API lockdown (Phase 2 / D3) is **Plan C1** (`2026-06-20-prod-auth-phase2-data-api-lockdown.md`) and **must land first**. Builds on **Plan A** (`is_anonymous()` helper, identity contract) and **B1** (which enabled `enable_anonymous_sign_ins = true` on the **local** stack only and gated prod anonymous release on this plan's anonymous-abuse mitigations — now IP rate-limit + B2 cleanup, no CAPTCHA).
+**Source spec:** `docs/superpowers/specs/_done/2026-06-18-production-auth-design.md` (Spec 2), **Phase 3** / decision **D4′** (+ D5 anonymous, D7 `is_anonymous()`). This is **Plan C2**; the Data-API lockdown (Phase 2 / D3) is **Plan C1** (`2026-06-20-prod-auth-phase2-data-api-lockdown.md`) and **must land first**. Builds on **Plan A** (`is_anonymous()` helper, identity contract) and **B1** (which enabled `enable_anonymous_sign_ins = true` on the **local** stack only and gated prod anonymous release on this plan's anonymous-abuse mitigations — now IP rate-limit + B2 cleanup, no CAPTCHA).
 
 > **Prod project (CONFIRMED):** `cbzdsoojfhpsexuyeyxt`. After C1 this plan adds **id 10 / `0010`** to `drizzle.__drizzle_migrations`.
 
@@ -38,7 +40,7 @@
 
 **Reference — current policies (from live state):** `users` (select/update own), `courses` (select public), `modules` (select public-course), and `enrollments` / `module_progress` / `chat_sessions` (select/insert/update own). All currently `TO public`. Own-row predicate is `user_id = (SELECT id FROM public.users WHERE supabase_id = (SELECT auth.uid()) LIMIT 1)`; `users` keys directly on `supabase_id = (SELECT auth.uid())`.
 
-- [ ] **Step 1: Author the migration SQL**
+- [x] **Step 1: Author the migration SQL**
 
 Create `packages/db/migrations/0010_policy_hardening.sql`:
 
@@ -102,7 +104,7 @@ CREATE POLICY "chat_sessions_update_own" ON public.chat_sessions
   FOR UPDATE TO authenticated USING (user_id = (SELECT id FROM public.users WHERE supabase_id = (SELECT auth.uid()) LIMIT 1));
 ```
 
-- [ ] **Step 2: Register the migration**
+- [x] **Step 2: Register the migration**
 
 Append to `packages/db/migrations/meta/_journal.json` (after `0009`'s `idx:8`):
 ```json
@@ -110,7 +112,7 @@ Append to `packages/db/migrations/meta/_journal.json` (after `0009`'s `idx:8`):
 ```
 No snapshot file.
 
-- [ ] **Step 3: Apply locally + verify policy state**
+- [x] **Step 3: Apply locally + verify policy state**
 
 ```bash
 pnpm migrate:dev
@@ -131,22 +133,22 @@ Expected: every policy's `roles = {authenticated}`; the second query returns **n
 
 > B1 already set `enable_anonymous_sign_ins = true`; **keep it** (local). Confirm each key name against the installed Supabase CLI's `config.toml` schema before editing — keys below are canonical but version-sensitive.
 
-- [ ] **Step 1: Edit the `[auth]` settings**
-- [ ] `enable_confirmations = true` — require email confirmation for email identities.
-- [ ] `minimum_password_length = 8` (or the agreed value) and password requirement complexity.
-- [ ] Leaked-password (HIBP) protection — enable the corresponding key (e.g. `[auth] … password leaked-protection`).
-- [ ] `site_url` + `additional_redirect_urls` allow-list for the mobile app scheme (deep links).
-- [ ] `[auth.rate_limit]`: tune sign-in / sign-up / anonymous / IP limits. **This (plus B2's stale-anonymous cleanup) is the abuse mitigation for anonymous sign-ins — no CAPTCHA (poor mobile UX; not wanted for the phone app).**
-- [ ] `[auth.mfa.totp]`: `enroll_enabled = true`, `verify_enabled = true` (decision: config-enable TOTP only).
+- [x] **Step 1: Edit the `[auth]` settings**
+- [x] `enable_confirmations = true` — require email confirmation for email identities.
+- [x] `minimum_password_length = 8` (or the agreed value) and password requirement complexity.
+- [x] Leaked-password (HIBP) protection — enable the corresponding key (e.g. `[auth] … password leaked-protection`).
+- [x] `site_url` + `additional_redirect_urls` allow-list for the mobile app scheme (deep links).
+- [x] `[auth.rate_limit]`: tune sign-in / sign-up / anonymous / IP limits. **This (plus B2's stale-anonymous cleanup) is the abuse mitigation for anonymous sign-ins — no CAPTCHA (poor mobile UX; not wanted for the phone app).**
+- [x] `[auth.mfa.totp]`: `enroll_enabled = true`, `verify_enabled = true` (decision: config-enable TOTP only).
 
-- [ ] **Step 2: Verify the local stack boots with the new config**
+- [x] **Step 2: Verify the local stack boots with the new config**
 
 ```bash
 supabase stop && supabase start   # or: pnpm db:reset:dev
 ```
-- [ ] Stack boots clean. A local email signup now requires confirmation. The GoTrue settings endpoint reports MFA TOTP available. "Continue as guest" (B1) still works locally.
+- [x] Stack boots clean. A local email signup now requires confirmation. The GoTrue settings endpoint reports MFA TOTP available. "Continue as guest" (B1) still works locally.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add supabase/config.toml
@@ -159,21 +161,21 @@ git commit -m "feat(auth): GoTrue hardening — confirmation, password/HIBP, rat
 
 **Files:** none (operational + a recorded checklist in this plan).
 
-- [ ] **Step 1: Apply the prod GoTrue settings**
+- [x] **Step 1: Apply the prod GoTrue settings**
 
 Because `supabase config push` parity is unresolved, apply via **Dashboard → Authentication** (or the Management API) to project `cbzdsoojfhpsexuyeyxt`, mirroring Task 2 **except**:
-- [ ] Email confirmation: ON.
-- [ ] Password policy + leaked-password (HIBP) protection: ON.
-- [ ] MFA TOTP: enroll + verify enabled.
-- [ ] Redirect allow-list: prod app scheme/URLs.
-- [ ] Rate limits: prod-tuned **and applied first** (this + B2 cleanup are the anonymous-signup mitigations; no CAPTCHA). Verify the limits are live before the next step.
-- [ ] **`enable_anonymous_sign_ins` = ON** (decision) — flip **only after** the prod rate-limits above are confirmed live. This satisfies B1's release gate ("do not enable prod anon until Plan C's rate-limit mitigation is live").
+- [x] Email confirmation: ON.
+- [x] Password policy + leaked-password (HIBP) protection: ON.
+- [x] MFA TOTP: enroll + verify enabled.
+- [x] Redirect allow-list: prod app scheme/URLs.
+- [x] Rate limits: prod-tuned **and applied first** (this + B2 cleanup are the anonymous-signup mitigations; no CAPTCHA). Verify the limits are live before the next step.
+- [x] **`enable_anonymous_sign_ins` = ON** (decision) — flip **only after** the prod rate-limits above are confirmed live. This satisfies B1's release gate ("do not enable prod anon until Plan C's rate-limit mitigation is live").
 
-- [ ] **Step 2: Smoke-test prod anonymous sign-in**
+- [x] **Step 2: Smoke-test prod anonymous sign-in**
 
 After the flip: `signInAnonymously()` against prod succeeds and provisions a `public.users` row (`is_anonymous = true`) via the existing trigger; an `updateUser({ email, password })` upgrade preserves the UUID and flips `is_anonymous = false`. Confirm the rate-limit actually throttles a burst of anonymous sign-ups (e.g. rapid repeats return 429). Clean up the throwaway guest(s).
 
-- [ ] **Step 3: Record applied values**
+- [x] **Step 3: Record applied values**
 
 Capture the exact prod settings applied (rate-limit values + `enable_anonymous_sign_ins = true`) in this plan's completion notes.
 
@@ -183,7 +185,7 @@ Capture the exact prod settings applied (rate-limit values + `enable_anonymous_s
 
 **Files:** none (operational).
 
-- [ ] **Step 1: Apply `0010` to prod**
+- [x] **Step 1: Apply `0010` to prod**
 
 **Primary:** `pnpm migrate:prod` (after C1 left the journal at id 9, this runs only `0010`).
 **Fallback (MCP):** `apply_migration` name `0010_policy_hardening`, then:
@@ -194,7 +196,7 @@ shasum -a 256 packages/db/migrations/0010_policy_hardening.sql   # -> <hash10>
 INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ('<hash10>', 1782300000000);
 ```
 
-- [ ] **Step 2: Verify prod policy state + advisors**
+- [x] **Step 2: Verify prod policy state + advisors**
 
 Via MCP `execute_sql`: confirm every `public` policy `roles = {authenticated}` and no `auth.role()` text remains. MCP `get_advisors(type: security)` → clean (no `rls_disabled_in_public`, no `auth_rls_initplan`/`auth.role()` deprecation findings). Confirm `drizzle.__drizzle_migrations` now has id 10.
 
@@ -206,16 +208,16 @@ Via MCP `execute_sql`: confirm every `public` policy `roles = {authenticated}` a
 - Test: an integration test under `packages/db` (or `@autodidact/test-support` harness) asserting policy scoping.
 - Modify: `docs/architecture/ADRs/` ADR-028; `docs/superpowers/plans/README.md` (index C2).
 
-- [ ] **Step 1: RLS defense-in-depth test**
+- [x] **Step 1: RLS defense-in-depth test**
 
 Against the local stack / Testcontainers harness: `SET ROLE authenticated` with `request.jwt.claims` set to a test `sub`, then confirm policies return only that user's rows (and public courses/modules), and that an anonymous JWT (`is_anonymous: true`, still `role: authenticated`) likewise sees its own rows — verifying `TO authenticated` includes guests (D5). Follow the existing RLS test pattern if one exists; otherwise add a focused harness test.
-- [ ] Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/db test` → green.
+- [x] Run: `env -u DATABASE_URL -u SUPABASE_URL -u QUEUE_PROVIDER pnpm --filter @autodidact/db test` → green.
 
-- [ ] **Step 2: Update ADR-028 + plans index**
+- [x] **Step 2: Update ADR-028 + plans index**
 
 Record in ADR-028 (or a short follow-up note): Data API closed (C1/D3), policy `TO authenticated` scoping (D4′), MFA TOTP enabled at config level with mobile enrollment UI deferred, anonymous-abuse mitigation = IP rate-limit + B2 cleanup (CAPTCHA dropped — poor mobile UX), prod anonymous sign-in ENABLED (rate-limits applied first). Add the C2 row to `docs/superpowers/plans/README.md`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/db docs/architecture/ADRs docs/superpowers/plans/README.md
