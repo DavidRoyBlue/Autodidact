@@ -20,10 +20,22 @@ function adoptByTitle(title) {
   const f = JSON.parse(out).find((i) => i.title === title);
   return f ? String(f.number) : null;
 }
+function nodeId(issueNumber) {
+  return sh("gh", ["issue", "view", String(issueNumber), "--json", "id", "-q", ".id"]);
+}
+function linkSubIssue(parentNumber, childNumber) {
+  sh("gh", ["api", "graphql", "-f", `query=
+    mutation($parentId: ID!, $childId: ID!) {
+      addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) { issue { number } }
+    }`,
+    "-f", `parentId=${nodeId(parentNumber)}`,
+    "-f", `childId=${nodeId(childNumber)}`]);
+}
 
 const repoRoot = sh("git", ["rev-parse", "--show-toplevel"]);
 const map = L.readMap(repoRoot);
-let created = 0, adopted = 0, skipped = 0;
+let created = 0, adopted = 0, skipped = 0, linked = 0;
+const toLink = []; // basenames processed this run that declare a parent
 
 for (const file of listFiles()) {
   const base = basename(file);
@@ -48,6 +60,24 @@ for (const file of listFiles()) {
   }
   map[base] = { issue: Number(n), parent: parent || null };
   L.writeMap(repoRoot, map);
+  if (parent) toLink.push(base);
 }
+
+// Second pass: link sub-issues now that every issue this run exists in the map.
+// Only links files touched this run, so idempotent re-runs don't re-attempt existing links.
+for (const base of toLink) {
+  const parentEntry = map[map[base].parent];
+  if (!parentEntry?.issue) {
+    console.log(`backfill: parent ${map[base].parent} of ${base} not in map, skipping link`);
+    continue;
+  }
+  try {
+    linkSubIssue(parentEntry.issue, map[base].issue);
+    linked++;
+  } catch (e) {
+    console.log(`backfill: link ${base} → ${map[base].parent} failed (${e.message.split("\n")[0]})`);
+  }
+}
+
 if (!DRY) sh("git", ["add", ".claude/issue-map.json"], { cwd: repoRoot });
-console.log(`backfill: ${created} created, ${adopted} adopted, ${skipped} skipped`);
+console.log(`backfill: ${created} created, ${adopted} adopted, ${skipped} skipped, ${linked} linked`);
