@@ -1,0 +1,79 @@
+name: Project status sync
+
+# Seeds the Autodidact project board's Status field from issue labels:
+#   label "ready"       -> Status "Ready"
+#   label "in-progress" -> Status "In progress"
+# Seeds only items whose Status is empty or "Backlog", so it never overrides
+# manual board triage. Requires a repo secret PROJECT_PAT — a PAT (classic:
+# scopes `repo` + `project`) with write access to the user project — because the
+# default GITHUB_TOKEN cannot write user-owned Projects V2. Without the secret
+# the job is a no-op (see the guard in the first step).
+
+on:
+  issues:
+    types: [opened, labeled, reopened]
+
+concurrency:
+  group: project-status-sync-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_PAT }}
+      OWNER: ${{ github.repository_owner }}
+      PROJECT_NUMBER: "4"
+      ISSUE_NODE_ID: ${{ github.event.issue.node_id }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+    steps:
+      - name: Seed project Status from label
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "PROJECT_PAT secret not set — skipping (no-op)."; exit 0
+          fi
+
+          # 1. Pick target Status from labels (in-progress wins over ready). No match -> nothing to do.
+          labels=$(jq -r '.issue.labels[].name' "$GITHUB_EVENT_PATH")
+          if   grep -qx "in-progress" <<<"$labels"; then target="In progress"
+          elif grep -qx "ready"       <<<"$labels"; then target="Ready"
+          else echo "Issue #$ISSUE_NUMBER has no ready/in-progress label — skipping."; exit 0
+          fi
+
+          # 2. Resolve project id, Status field id, and the target option id (by name, for robustness).
+          read -r PROJECT_ID FIELD_ID OPT_ID < <(
+            gh api graphql -f login="$OWNER" -F number="$PROJECT_NUMBER" -f query='
+              query($login:String!, $number:Int!){
+                user(login:$login){ projectV2(number:$number){
+                  id
+                  field(name:"Status"){ ... on ProjectV2SingleSelectField { id options { id name } } }
+                } } }' \
+              --jq ".data.user.projectV2 | .id, .field.id, (.field.options[] | select(.name==\"$target\") | .id)" \
+            | paste -sd' '
+          )
+          if [ -z "${OPT_ID:-}" ]; then echo "No '$target' option on the board's Status field — aborting."; exit 1; fi
+
+          # 3. Ensure the issue is on the board (idempotent: returns the existing item if already added).
+          ITEM_ID=$(gh api graphql -f projectId="$PROJECT_ID" -f contentId="$ISSUE_NODE_ID" -f query='
+            mutation($projectId:ID!, $contentId:ID!){
+              addProjectV2ItemById(input:{projectId:$projectId, contentId:$contentId}){ item { id } } }' \
+            --jq '.data.addProjectV2ItemById.item.id')
+
+          # 4. Seed only if the item is untriaged (no Status, or Backlog) — never override manual moves.
+          CUR=$(gh api graphql -f itemId="$ITEM_ID" -f query='
+            query($itemId:ID!){ node(id:$itemId){ ... on ProjectV2Item {
+              fieldValueByName(name:"Status"){ ... on ProjectV2ItemFieldSingleSelectValue { name } } } } }' \
+            --jq '.data.node.fieldValueByName.name // ""')
+          if [ -n "$CUR" ] && [ "$CUR" != "Backlog" ]; then
+            echo "Issue #$ISSUE_NUMBER already in '$CUR' — leaving manual triage untouched."; exit 0
+          fi
+
+          # 5. Set the Status.
+          gh api graphql -f projectId="$PROJECT_ID" -f itemId="$ITEM_ID" -f fieldId="$FIELD_ID" -f optId="$OPT_ID" -f query='
+            mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optId:String!){
+              updateProjectV2ItemFieldValue(input:{
+                projectId:$projectId, itemId:$itemId, fieldId:$fieldId,
+                value:{ singleSelectOptionId:$optId } }){ projectV2Item { id } } }' >/dev/null
+          echo "Issue #$ISSUE_NUMBER → Status '$target'."
