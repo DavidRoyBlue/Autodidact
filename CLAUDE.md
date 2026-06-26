@@ -58,6 +58,10 @@ Copy `.env.example` → `.env.dev` (`pnpm setup` does this). Minimum required to
 
 See `.env.example` for all vars and provider-swap options (`LLM_PROVIDER`, `CHECKPOINTER`, etc.).
 
+## New branch / worktree setup
+When starting work in a new worktree, symlink env files from the main workspace:
+ln -sf $(git rev-parse --show-superproject-working-tree || git rev-parse --show-toplevel)/.env.dev .env.dev
+
 ---
 
 ## Production & deployment
