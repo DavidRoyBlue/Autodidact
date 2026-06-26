@@ -1,1 +1,134 @@
-{}
+{
+  "2026-04-28-mobile-design-system-design.md": {
+    "issue": 43,
+    "parent": null
+  },
+  "2026-04-28-mobile-design-system.md": {
+    "issue": 54,
+    "parent": null
+  },
+  "2026-04-29-fix-vitest-hoisting.md": {
+    "issue": 55,
+    "parent": null
+  },
+  "2026-04-29-jwks-auth.md": {
+    "issue": 56,
+    "parent": null
+  },
+  "2026-05-14-sync-main-session-start-hook.md": {
+    "issue": 44,
+    "parent": null
+  },
+  "2026-06-01-test-overhaul-design.md": {
+    "issue": 45,
+    "parent": null
+  },
+  "2026-06-01-test-overhaul-phase-0-foundation.md": {
+    "issue": 57,
+    "parent": null
+  },
+  "2026-06-01-test-overhaul-phase-1-backend-integration.md": {
+    "issue": 58,
+    "parent": null
+  },
+  "2026-06-01-test-overhaul-phase-2-api-e2e.md": {
+    "issue": 59,
+    "parent": null
+  },
+  "2026-06-01-test-overhaul-phase-3-cross-service-e2e.md": {
+    "issue": 60,
+    "parent": null
+  },
+  "2026-06-02-cicd-dependency-fixes.md": {
+    "issue": 61,
+    "parent": null
+  },
+  "2026-06-11-esm-migration-design.md": {
+    "issue": 46,
+    "parent": null
+  },
+  "2026-06-11-esm-migration.md": {
+    "issue": 62,
+    "parent": null
+  },
+  "2026-06-13-chat-sse-disconnect-fix-design.md": {
+    "issue": 47,
+    "parent": null
+  },
+  "2026-06-13-chat-sse-disconnect-fix.md": {
+    "issue": 63,
+    "parent": null
+  },
+  "2026-06-18-production-auth-design.md": {
+    "issue": 50,
+    "parent": null
+  },
+  "2026-06-19-dev-auto-login-design.md": {
+    "issue": 48,
+    "parent": null
+  },
+  "2026-06-19-local-supabase-stack-design.md": {
+    "issue": 49,
+    "parent": null
+  },
+  "2026-06-19-local-supabase-stack.md": {
+    "issue": 64,
+    "parent": null
+  },
+  "2026-06-19-onboarding-course-design.md": {
+    "issue": 52,
+    "parent": null
+  },
+  "2026-06-19-prod-auth-1-provisioning.md": {
+    "issue": 65,
+    "parent": null
+  },
+  "2026-06-20-prod-auth-phase2-data-api-lockdown.md": {
+    "issue": 66,
+    "parent": null
+  },
+  "2026-06-20-prod-auth-phase3-policy-config-hardening.md": {
+    "issue": 70,
+    "parent": null
+  },
+  "2026-06-20-prod-auth-planB1-anonymous-mobile.md": {
+    "issue": 67,
+    "parent": null
+  },
+  "2026-06-20-prod-auth-planB2-stale-anon-cleanup.md": {
+    "issue": 68,
+    "parent": null
+  },
+  "2026-06-21-mobile-nativewind-migration.md": {
+    "issue": 69,
+    "parent": null
+  },
+  "2026-06-22-onboarding-course-implementation.md": {
+    "issue": 73,
+    "parent": null
+  },
+  "2026-06-22-social-sign-in-design.md": {
+    "issue": 51,
+    "parent": null
+  },
+  "2026-06-22-social-sign-in-phase1-oauth-sign-in.md": {
+    "issue": 71,
+    "parent": null
+  },
+  "2026-06-22-social-sign-in-phase2-guest-oauth-upgrade.md": {
+    "issue": 72,
+    "parent": null
+  },
+  "2026-06-24-github-issues-session-handler.md": {
+    "issue": 74,
+    "parent": "GitHub-Issues-Lifecycle.md"
+  },
+  "2026-06-24-github-issues-structured-sync.md": {
+    "issue": 75,
+    "parent": "GitHub-Issues-Lifecycle.md"
+  },
+  "GitHub-Issues-Lifecycle.md": {
+    "issue": 53,
+    "parent": null
+  }
+}
