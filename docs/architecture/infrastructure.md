@@ -118,22 +118,27 @@ terraform apply -var="project_id=YOUR_PROJECT"
 
 ## CI/CD Pipeline
 
-GitHub Actions handles validation on pull requests and full deployment on push to `master`.
+GitHub Actions validates every pull request (`ci.yml`) and deploys when `master` is
+promoted to the `production` branch (`deploy.yml`). Pushing to `master` does not deploy;
+promotion to `production` is the human release gate.
 
 ```
-pull request / push to master
+pull request (ci.yml)
   ├── lint + typecheck (all packages)
   └── test (all packages)
 
-push to master / manual deploy dispatch
+push to production / manual deploy dispatch (deploy.yml)
+  ci job:
   ├── lint + typecheck (all packages)
   ├── test (all packages)
-  ├── Docker build + push → Artifact Registry
-  │     (api, agent, worker — parallel)
+  └── Docker build + push → Artifact Registry
+        (api, agent, worker)
+  deploy job (needs: ci, environment: production):
   ├── pnpm --filter @autodidact/db db:migrate
   │     (runs against production DATABASE_URL)
+  ├── pnpm --filter @autodidact/db db:seed:onboarding
   └── Cloud Run deploy
-        (api, agent, worker — parallel)
+        (api, agent, worker)
 ```
 
 **Authentication**: Workload Identity Federation — GitHub Actions authenticates to GCP without service account key files. The federation is configured in Terraform and bound to the `autodidact-run` service account.

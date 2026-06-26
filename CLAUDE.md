@@ -69,7 +69,7 @@ ln -sf $(git rev-parse --show-superproject-working-tree || git rev-parse --show-
 Production runs on **GCP** (project `autodidact-494819`, region `northamerica-northeast1`): Cloud Run ×3 (api public, agent internal, worker scale-to-zero), Cloud Tasks queues, Artifact Registry, and GCP Secret Manager — all defined as Terraform IaC under `infra/` (remote state in GCS). The hosted prod DB is the Supabase project reached via its transaction pooler (port 6543).
 
 - **Full setup runbook:** [`docs/gcp_infra_setup.md`](docs/gcp_infra_setup.md) — GCP bootstrap, Terraform apply, Secret Manager, Workload Identity Federation. Read this before touching prod infra.
-- **Deploy:** push to `master` → `.github/workflows/deploy.yml` builds the three images, runs DB migrations, and `gcloud run deploy`s — authenticated via Workload Identity Federation (no key files). No manual step for an ordinary release.
+- **Deploy:** promoting `master` → the `production` branch (`git push origin master:production`) triggers `.github/workflows/deploy.yml`. Its `ci` job lints/typechecks/tests and builds & pushes the three images; its `deploy` job (`environment: production`) then runs DB migrations, seeds the onboarding course, and `gcloud run deploy`s — authenticated via Workload Identity Federation (no key files). Pushing to `master` does **not** deploy; PRs are validated separately by `.github/workflows/ci.yml`. Promotion to `production` is the human release gate.
 - **Prod secrets:** `infra/secrets.env` is the single source (seeds Secret Manager via `scripts/gcp-bootstrap.sh`); never committed. There is **no `.env.prod`**.
 - **Prod DB tools** (run locally, sparingly — CI already migrates on deploy):
 

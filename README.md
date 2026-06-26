@@ -113,11 +113,14 @@ implemented option and ignores the env var. They live under "RESERVED" in
 
 ## Deploying
 
-**Backend.** Production runs on GCP Cloud Run and deploys automatically on push to
-`master` (`.github/workflows/deploy.yml`): the pipeline gates on lint/typecheck/test,
-builds the three service images, runs DB migrations, then `gcloud run deploy`s each
-service. For first-time infra setup, Terraform, secrets, and running prod DB
-migrations, see the [GCP setup runbook](docs/gcp_infra_setup.md).
+**Backend.** Production runs on GCP Cloud Run and deploys when `master` is promoted to
+the `production` branch (`git push origin master:production`), which triggers
+`.github/workflows/deploy.yml`: the `ci` job gates on lint/typecheck/test and builds &
+pushes the three service images, then the `deploy` job runs DB migrations, seeds the
+onboarding course, and `gcloud run deploy`s each service. Pushing to `master` does not
+deploy — PRs are validated by `.github/workflows/ci.yml`, and promotion to `production`
+is the human release gate. For first-time infra setup, Terraform, secrets, and running
+prod DB migrations, see the [GCP setup runbook](docs/gcp_infra_setup.md).
 
 **Mobile.** The Expo app is built and released with EAS (`apps/mobile/eas.json`),
 which defines three profiles: `development` (dev client → local backend), `preview`
