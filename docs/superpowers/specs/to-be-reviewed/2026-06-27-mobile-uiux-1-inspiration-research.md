@@ -29,11 +29,15 @@ A reference doc committed to the repo (proposed: `apps/mobile/docs/ui-inspiratio
 
 ## Tasks
 
-- [ ] Survey 4–6 reference learning/habit apps; capture annotated patterns per surface (home, browse, lesson/chat, progress, empty states)
-- [ ] Collect 3–5 "start in the action" home-screen patterns with pros/cons for our model
-- [ ] Evaluate 2–3 NativeWind/RNR-compatible component-kit or template directions (license + stack-fit + adoption cost)
-- [ ] Write the curated reference doc and recommend a direction
-- [ ] Hand off: link the reference into Part 3 (IA) and Part 4 (design)
+- [x] Survey 4–6 reference learning/habit apps; capture annotated patterns per surface (home, browse, lesson/chat, progress, empty states)
+- [x] Collect 3–5 "start in the action" home-screen patterns with pros/cons for our model
+- [x] Evaluate 2–3 NativeWind/RNR-compatible component-kit or template directions (license + stack-fit + adoption cost)
+- [x] Write the curated reference doc and recommend a direction
+- [x] Hand off: link the reference into Part 3 (IA) and Part 4 (design)
+
+## Deliverable
+
+[`apps/mobile/docs/ui-inspiration.md`](../../../../apps/mobile/docs/ui-inspiration.md) — annotated per-surface pattern catalogue (Duolingo, Brilliant, Khan Academy, Sololearn, Headspace, Mimo), a 5-pattern "start in the action" home shortlist, and three component/template directions with a recommendation (RNR full catalog + tweakcn HSL tokens; gluestack-ui v2 as a donor only). Handoff notes for Parts 3–5 are in the doc.
 
 ## Done when
 
