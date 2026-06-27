@@ -131,6 +131,10 @@
     "issue": 82,
     "parent": "2026-06-22-social-sign-in-phase1-oauth-sign-in.md"
   },
+  "2026-06-26-social-sign-in-finish-config-and-verification.md": {
+    "issue": 83,
+    "parent": "2026-06-22-social-sign-in-design.md"
+  },
   "GitHub-Issues-Lifecycle.md": {
     "issue": 53,
     "parent": null
