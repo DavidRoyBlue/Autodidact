@@ -1,11 +1,25 @@
 #!/usr/bin/env node
-// .claude/hooks/session-issues.mjs — Stop: record freeform/standalone sessions as (born-closed) issues.
+// .claude/hooks/session-issues.mjs — Stop: record each freeform session as a born-closed issue,
+// nested as a sub-issue under the closest related open issue when one exists (parent stays open),
+// otherwise standalone. Never closes an existing open issue.
 import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { parseTranscript, hasSuperpowersWrite, extractSummary } from "./lib/transcript.mjs";
 
 const sh = (cmd, args, opts = {}) =>
   execFileSync(cmd, args, { encoding: "utf8", ...opts }).trim();
+
+function nodeId(issueNumber) {
+  return sh("gh", ["issue", "view", String(issueNumber), "--json", "id", "-q", ".id"]);
+}
+function linkSubIssue(parentNumber, childNumber) {
+  sh("gh", ["api", "graphql", "-f", `query=
+    mutation($parentId: ID!, $childId: ID!) {
+      addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) { issue { number } }
+    }`,
+    "-f", `parentId=${nodeId(parentNumber)}`,
+    "-f", `childId=${nodeId(childNumber)}`]);
+}
 
 function run() {
   // Recursion guard: the claude -p call below sets this; bail if we are that nested call.
@@ -27,11 +41,11 @@ function run() {
   const openIssues = sh("gh", ["issue", "list", "--state", "open", "--json", "number,title",
     "--jq", '.[] | "\\(.number): \\(.title)"']);
 
-  // Ask claude -p (Haiku) which open issue, if any, this session addressed.
+  // Ask claude -p (Haiku) which open issue this session's work most naturally belongs UNDER.
   const prompt =
     `Session output:\n${summary}\n\nOpen issues:\n${openIssues || "(none)"}\n\n` +
-    `Return ONLY the number of the single open issue most clearly addressed by this session, ` +
-    `or the word null if none matches well.`;
+    `Which ONE open issue does this session's work most naturally belong under as a sub-task? ` +
+    `Return ONLY that issue's number, or the word null if none is a good fit.`;
   let answer = "null";
   try {
     answer = sh("claude", ["-p", "--model", "claude-haiku-4-5", prompt],
@@ -39,25 +53,25 @@ function run() {
   } catch { /* fall through to create-and-close */ }
 
   const match = /^\s*(\d+)\s*$/.test(answer) ? answer.trim() : null;
-  let recorded = false;
+
+  // Always record the freeform session as its own born-closed issue.
+  const firstLine = summary.split("\n").find((l) => l.trim()) ?? "Session";
+  const url = sh("gh", ["issue", "create", "--title", `Session: ${firstLine.slice(0, 70)}`,
+    "--body", summary, "--label", "ready"]);
+  const n = (url.trim().match(/\/issues\/(\d+)/) || [])[1];
+  if (!n) { process.stderr.write(`[session-issues] could not parse issue number from: ${url}\n`); return; }
+  sh("gh", ["issue", "close", n, "-c", "Session record — completed."]);
+
+  // If a related open issue exists, nest the record under it (the parent stays open).
   if (match) {
     try {
-      sh("gh", ["issue", "comment", match, "--body", `Addressed in a session:\n\n${summary}`]);
-      sh("gh", ["issue", "close", match]);
-      process.stderr.write(`[session-issues] Closed matched #${match}\n`);
-      recorded = true;
+      linkSubIssue(match, n);
+      process.stderr.write(`[session-issues] Recorded #${n} as sub-issue of #${match}\n`);
     } catch {
-      process.stderr.write(`[session-issues] match-close failed for #${match}, falling back to create\n`);
+      process.stderr.write(`[session-issues] Recorded #${n} (could not nest under #${match})\n`);
     }
-  }
-  if (!recorded) {
-    const firstLine = summary.split("\n").find((l) => l.trim()) ?? "Session";
-    const url = sh("gh", ["issue", "create", "--title", `Session: ${firstLine.slice(0, 70)}`,
-      "--body", summary, "--label", "ready"]);
-    const n = (url.trim().match(/\/issues\/(\d+)/) || [])[1];
-    if (!n) { process.stderr.write(`[session-issues] could not parse issue number from: ${url}\n`); return; }
-    sh("gh", ["issue", "close", n, "-c", "Session record — completed."]);
-    process.stderr.write(`[session-issues] Recorded #${n}\n`);
+  } else {
+    process.stderr.write(`[session-issues] Recorded standalone #${n}\n`);
   }
 }
 
