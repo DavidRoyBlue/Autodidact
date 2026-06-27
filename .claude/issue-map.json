@@ -127,13 +127,41 @@
     "issue": 75,
     "parent": "GitHub-Issues-Lifecycle.md"
   },
+  "2026-06-26-social-sign-in-finish-config-and-verification.md": {
+    "issue": 83,
+    "parent": "2026-06-22-social-sign-in-design.md"
+  },
   "2026-06-26-social-sign-in-phase1-provider-config.md": {
     "issue": 82,
     "parent": "2026-06-22-social-sign-in-phase1-oauth-sign-in.md"
   },
-  "2026-06-26-social-sign-in-finish-config-and-verification.md": {
-    "issue": 83,
-    "parent": "2026-06-22-social-sign-in-design.md"
+  "2026-06-27-mobile-ui-ux-overhaul.md": {
+    "issue": 85,
+    "parent": null
+  },
+  "2026-06-27-mobile-uiux-1-inspiration-research.md": {
+    "issue": 97,
+    "parent": "2026-06-27-mobile-ui-ux-overhaul.md"
+  },
+  "2026-06-27-mobile-uiux-2-current-app-audit.md": {
+    "issue": 98,
+    "parent": "2026-06-27-mobile-ui-ux-overhaul.md"
+  },
+  "2026-06-27-mobile-uiux-3-information-architecture.md": {
+    "issue": 99,
+    "parent": "2026-06-27-mobile-ui-ux-overhaul.md"
+  },
+  "2026-06-27-mobile-uiux-4-screen-design.md": {
+    "issue": 100,
+    "parent": "2026-06-27-mobile-ui-ux-overhaul.md"
+  },
+  "2026-06-27-mobile-uiux-5-design-system-foundation.md": {
+    "issue": 101,
+    "parent": "2026-06-27-mobile-ui-ux-overhaul.md"
+  },
+  "2026-06-27-mobile-uiux-6-implementation-roadmap.md": {
+    "issue": 102,
+    "parent": "2026-06-27-mobile-ui-ux-overhaul.md"
   },
   "GitHub-Issues-Lifecycle.md": {
     "issue": 53,
