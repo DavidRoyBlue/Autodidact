@@ -1,6 +1,6 @@
 # Social Sign-In Phase 1 (Google + Facebook) Implementation Plan
 
-> Status (2026-06-24): IN PROGRESS — code complete on `master`, not yet shipped. All Phase-1 code is merged: the `social-auth.ts` seam (`configureGoogleSignin`/`signInWithGoogle`/`signInWithFacebook`), PKCE + SecureStore adapter on the supabase client, startup wiring, the Google/Facebook headline sign-in UI (email demoted, guest kept), and the setup runbook. Remaining work is **owner-gated config + real-device verification**: configure the OAuth providers (Supabase dashboard; Google Cloud Web client + **two** Android client IDs for dev/prod SHA-1; Facebook app) and run sign-in end-to-end on a custom EAS dev build. The flows are unit-verified against mocks only. Authoritative checklist: [`note-to-self.md`](../../../../note-to-self.md).
+> Status (2026-06-24): IN PROGRESS — code complete on `master`, not yet shipped. All Phase-1 code is merged: the `social-auth.ts` seam (`configureGoogleSignin`/`signInWithGoogle`/`signInWithFacebook`), PKCE + SecureStore adapter on the supabase client, startup wiring, the Google/Facebook headline sign-in UI (email demoted, guest kept), and the setup runbook. Remaining work is **owner-gated config + real-device verification**: configure the OAuth providers (Supabase dashboard; Google Cloud Web client + **two** Android client IDs for dev/prod SHA-1; Facebook app) and run sign-in end-to-end on a custom EAS dev build. The flows are unit-verified against mocks only. All task checkboxes below are checked to reflect code-complete reality. The remaining owner-gated config + device-verification steps are tracked as a sub-issue: [`2026-06-26-social-sign-in-phase1-provider-config.md`](./2026-06-26-social-sign-in-phase1-provider-config.md). Authoritative checklist: [`note-to-self.md`](../../../../note-to-self.md).
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -33,7 +33,7 @@
 **Interfaces:**
 - Produces: installed `@react-native-google-signin/google-signin`, `expo-web-browser`, `expo-linking`, `expo-dev-client`; `Constants.expoConfig.extra.googleWebClientId` and `.facebookEnabled` resolvable at runtime.
 
-- [ ] **Step 1: Install the dependencies**
+- [x] **Step 1: Install the dependencies**
 
 ```bash
 # SDK-pinned Expo packages
@@ -42,7 +42,7 @@ pnpm --filter @autodidact/mobile exec expo install expo-web-browser expo-linking
 pnpm --filter @autodidact/mobile add @react-native-google-signin/google-signin
 ```
 
-- [ ] **Step 2: Register the config plugin + provider IDs in `app.config.ts`**
+- [x] **Step 2: Register the config plugin + provider IDs in `app.config.ts`**
 
 Replace the `export default` block in `apps/mobile/app.config.ts` so it adds the Google plugin and the new `extra` keys (env-driven, mirroring the existing Supabase keys):
 
@@ -84,7 +84,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
 > If `expo-router` is already auto-included via the `main: "expo-router/entry"` field and listing it errors as a duplicate, drop the `'expo-router'` line — only `'@react-native-google-signin/google-signin'` is required here.
 
-- [ ] **Step 3: Add the env keys to `.env.example`**
+- [x] **Step 3: Add the env keys to `.env.example`**
 
 Append to the repo-root `.env.example` (and your local `.env.dev`):
 
@@ -94,7 +94,7 @@ GOOGLE_WEB_CLIENT_ID=
 FACEBOOK_ENABLED=false
 ```
 
-- [ ] **Step 4: Verify typecheck + deps resolve**
+- [x] **Step 4: Verify typecheck + deps resolve**
 
 Run: `pnpm --filter @autodidact/mobile typecheck`
 Expected: passes. Confirm imports resolve:
@@ -103,7 +103,7 @@ node -e "require.resolve('@react-native-google-signin/google-signin',{paths:['ap
 ```
 Expected: `deps resolve`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/mobile/package.json apps/mobile/app.config.ts pnpm-lock.yaml .env.example
@@ -122,7 +122,7 @@ git commit -m "feat(mobile): add social-signin deps + Google config plugin + pro
 - Produces: `pkceStorage` (exported `{ getItem, setItem, removeItem }` delegating to `expo-secure-store`); the `supabase` client created with `flowType: 'pkce'` and `storage: pkceStorage`.
 - Consumes: `expo-secure-store` (already globally mocked in `jest-setup.ts`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/mobile/src/lib/__tests__/supabase.test.ts`:
 
@@ -151,12 +151,12 @@ describe('pkceStorage adapter (supabase-js PKCE/flow state)', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `pnpm --filter @autodidact/mobile test supabase`
 Expected: FAIL — `pkceStorage` is not exported.
 
-- [ ] **Step 3: Implement — add the adapter + PKCE to the client**
+- [x] **Step 3: Implement — add the adapter + PKCE to the client**
 
 Replace `apps/mobile/src/lib/supabase.ts` with:
 
@@ -193,12 +193,12 @@ export const supabase = createClient(
 );
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `pnpm --filter @autodidact/mobile test supabase`
 Expected: PASS (3 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/mobile/src/lib/supabase.ts apps/mobile/src/lib/__tests__/supabase.test.ts
@@ -220,7 +220,7 @@ git commit -m "feat(mobile): PKCE flow + SecureStore adapter on supabase client 
   - `signInWithGoogle(): Promise<SocialSession | null>` — `null` = user cancelled; throws `Error` on real failure.
 - Consumes: `@react-native-google-signin/google-signin`, `@/lib/supabase` (`supabase`), `expo-constants`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/mobile/src/lib/__tests__/social-auth.google.test.ts`:
 
@@ -286,12 +286,12 @@ test('signInWithGoogle throws when the token exchange errors', async () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `pnpm --filter @autodidact/mobile test social-auth.google`
 Expected: FAIL — `../social-auth` has no exports.
 
-- [ ] **Step 3: Implement the Google half of the seam**
+- [x] **Step 3: Implement the Google half of the seam**
 
 Create `apps/mobile/src/lib/social-auth.ts`:
 
@@ -332,12 +332,12 @@ export async function signInWithGoogle(): Promise<SocialSession | null> {
 
 > **Version note (verify against the installed SDK):** the v13+ `@react-native-google-signin` API returns `{ type, data: { idToken } }` and ships `isSuccessResponse`. If `pnpm` resolved an older major, adapt the response destructuring (older returns `{ idToken }` directly) — the *test mock* encodes the expected shape, so keep mock and impl in lockstep.
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `pnpm --filter @autodidact/mobile test social-auth.google`
 Expected: PASS (4 tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/mobile/src/lib/social-auth.ts apps/mobile/src/lib/__tests__/social-auth.google.test.ts
@@ -356,7 +356,7 @@ git commit -m "feat(mobile): social-auth seam — configureGoogleSignin + native
 - Produces: `signInWithFacebook(): Promise<SocialSession | null>` — `null` = user cancelled; throws on failure.
 - Consumes: `@/lib/supabase` (`signInWithOAuth`, `exchangeCodeForSession`), `expo-web-browser` (`openAuthSessionAsync`), `expo-linking` (`createURL`, `parse`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/mobile/src/lib/__tests__/social-auth.facebook.test.ts`:
 
@@ -424,12 +424,12 @@ test('signInWithFacebook throws when signInWithOAuth errors', async () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `pnpm --filter @autodidact/mobile test social-auth.facebook`
 Expected: FAIL — `signInWithFacebook` is not exported.
 
-- [ ] **Step 3: Implement the Facebook half of the seam**
+- [x] **Step 3: Implement the Facebook half of the seam**
 
 Append to `apps/mobile/src/lib/social-auth.ts` (add the two imports at the top):
 
@@ -465,12 +465,12 @@ export async function signInWithFacebook(): Promise<SocialSession | null> {
 }
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `pnpm --filter @autodidact/mobile test social-auth`
 Expected: PASS (Google + Facebook suites green).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/mobile/src/lib/social-auth.ts apps/mobile/src/lib/__tests__/social-auth.facebook.test.ts
@@ -488,7 +488,7 @@ git commit -m "feat(mobile): social-auth seam — web-PKCE signInWithFacebook (o
 **Interfaces:**
 - Consumes: `configureGoogleSignin` (Task 3).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/mobile/app/__tests__/root-layout.configure.test.tsx`:
 
@@ -513,12 +513,12 @@ test('configures Google Sign-In once at startup', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `pnpm --filter @autodidact/mobile test root-layout.configure`
 Expected: FAIL — `configureGoogleSignin` is never called.
 
-- [ ] **Step 3: Implement — call it once on mount**
+- [x] **Step 3: Implement — call it once on mount**
 
 In `apps/mobile/app/_layout.tsx`, add the import and a one-time effect (place the effect next to the existing session-restore effect):
 
@@ -533,13 +533,13 @@ import { configureGoogleSignin } from '@/lib/social-auth';
   }, []);
 ```
 
-- [ ] **Step 4: Run the test + full suite**
+- [x] **Step 4: Run the test + full suite**
 
 Run: `pnpm --filter @autodidact/mobile test root-layout.configure`
 Expected: PASS.
 Run: `pnpm --filter @autodidact/mobile test` — no regressions.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/mobile/app/_layout.tsx apps/mobile/app/__tests__/root-layout.configure.test.tsx
@@ -557,7 +557,7 @@ git commit -m "feat(mobile): configure Google Sign-In at app startup"
 **Interfaces:**
 - Consumes: `signInWithGoogle`, `signInWithFacebook` (Tasks 3/4); `useAuthStore().setSession` (`(at, rt, isAnonymous=false)`).
 
-- [ ] **Step 1: Write the failing tests (extend the existing file)**
+- [x] **Step 1: Write the failing tests (extend the existing file)**
 
 Add to `apps/mobile/app/(auth)/__tests__/sign-in.test.tsx` — mock the seam and assert the buttons drive it (mirror the existing `mock`-prefixed pattern):
 
@@ -606,12 +606,12 @@ test('email/password is hidden until "Use email instead" is pressed', () => {
 
 > Add `mockSignInWithGoogle.mockReset(); mockSignInWithFacebook.mockReset();` to the existing `beforeEach`. Confirm the `Input` component forwards `label` as an accessibility label; if it doesn't, assert on the placeholder text (`getByPlaceholderText('you@example.com')`) instead.
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `pnpm --filter @autodidact/mobile test sign-in`
 Expected: FAIL — no "Continue with Google" button; email always visible.
 
-- [ ] **Step 3: Implement the screen**
+- [x] **Step 3: Implement the screen**
 
 Replace `apps/mobile/app/(auth)/sign-in.tsx` with (Google + Facebook headline; email/password behind a toggle; guest kept):
 
@@ -725,14 +725,14 @@ export default function SignInScreen() {
 
 > If `Button` has no `secondary` variant, use `primary`. Check `@/components` Button variants before relying on `secondary`.
 
-- [ ] **Step 4: Run the tests + full suite**
+- [x] **Step 4: Run the tests + full suite**
 
 Run: `pnpm --filter @autodidact/mobile test sign-in`
 Expected: PASS (existing guest/email tests + new Google/Facebook/toggle tests).
 Run: `pnpm --filter @autodidact/mobile test && pnpm --filter @autodidact/mobile typecheck`
 Expected: all green.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add "apps/mobile/app/(auth)/sign-in.tsx" "apps/mobile/app/(auth)/__tests__/sign-in.test.tsx"
@@ -747,7 +747,7 @@ git commit -m "feat(mobile): Google/Facebook headline sign-in; email demoted; gu
 - Modify: `apps/mobile/README.md` (or create `apps/mobile/docs/social-sign-in.md` and link it)
 - Modify: `apps/mobile/CLAUDE.md` (one line under the Auth invariants pointing to the seam + dev-build requirement)
 
-- [ ] **Step 1: Write the setup runbook**
+- [x] **Step 1: Write the setup runbook**
 
 Document, concretely:
 - **Supabase dashboard** → Authentication → Providers: enable **Google** (paste the Web client ID + secret) and **Facebook** (App ID + secret). Add `autodidact://auth-callback` to the **Redirect URLs** allow-list.
@@ -763,11 +763,11 @@ Document, concretely:
   ```
   Day-to-day JS iteration stays on fast-refresh; rebuild only when native deps change.
 
-- [ ] **Step 2: Add the CLAUDE.md pointer**
+- [x] **Step 2: Add the CLAUDE.md pointer**
 
 Under `apps/mobile/CLAUDE.md` → Auth invariants, add one line: social sign-in goes through `src/lib/social-auth.ts` (Google native via `signInWithIdToken`, Facebook web-PKCE via `openAuthSessionAsync`); the app must run on a **custom dev build** (not Expo Go); guest→OAuth upgrade is Phase 2.
 
-- [ ] **Step 3: Verify + commit**
+- [x] **Step 3: Verify + commit**
 
 Run: `grep -rn "social-auth\|dev build" apps/mobile/CLAUDE.md apps/mobile/README.md`
 Expected: the pointer + runbook present.

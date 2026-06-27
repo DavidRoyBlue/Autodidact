@@ -127,6 +127,10 @@
     "issue": 75,
     "parent": "GitHub-Issues-Lifecycle.md"
   },
+  "2026-06-26-social-sign-in-phase1-provider-config.md": {
+    "issue": 82,
+    "parent": "2026-06-22-social-sign-in-phase1-oauth-sign-in.md"
+  },
   "GitHub-Issues-Lifecycle.md": {
     "issue": 53,
     "parent": null
