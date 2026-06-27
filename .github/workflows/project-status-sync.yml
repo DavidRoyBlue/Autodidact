@@ -1,10 +1,12 @@
 name: Project status sync
 
-# Seeds the Autodidact project board's Status field from issue labels:
+# Syncs the Autodidact project board's Status field from issue labels:
 #   label "ready"       -> Status "Ready"
 #   label "in-progress" -> Status "In progress"
-# Seeds only items whose Status is empty or "Backlog", so it never overrides
-# manual board triage. Requires a repo secret PROJECT_PAT — a PAT (classic:
+#   label "in-review"   -> Status "In review"
+# Moves a card FORWARD only (never backward, never off Done), so it advances
+# e.g. In progress -> In review on a label change without overriding manual
+# triage. Requires a repo secret PROJECT_PAT — a PAT (classic:
 # scopes `repo` + `project`) with write access to the user project — because the
 # default GITHUB_TOKEN cannot write user-owned Projects V2. Without the secret
 # the job is a no-op (see the guard in the first step).
@@ -35,11 +37,12 @@ jobs:
             echo "PROJECT_PAT secret not set — skipping (no-op)."; exit 0
           fi
 
-          # 1. Pick target Status from labels (in-progress wins over ready). No match -> nothing to do.
+          # 1. Pick target Status from labels (most-advanced wins). No match -> nothing to do.
           labels=$(jq -r '.issue.labels[].name' "$GITHUB_EVENT_PATH")
-          if   grep -qx "in-progress" <<<"$labels"; then target="In progress"
+          if   grep -qx "in-review"   <<<"$labels"; then target="In review"
+          elif grep -qx "in-progress" <<<"$labels"; then target="In progress"
           elif grep -qx "ready"       <<<"$labels"; then target="Ready"
-          else echo "Issue #$ISSUE_NUMBER has no ready/in-progress label — skipping."; exit 0
+          else echo "Issue #$ISSUE_NUMBER has no ready/in-progress/in-review label — skipping."; exit 0
           fi
 
           # 2. Resolve project id, Status field id, and the target option id (by name, for robustness).
@@ -61,13 +64,17 @@ jobs:
               addProjectV2ItemById(input:{projectId:$projectId, contentId:$contentId}){ item { id } } }' \
             --jq '.data.addProjectV2ItemById.item.id')
 
-          # 4. Seed only if the item is untriaged (no Status, or Backlog) — never override manual moves.
+          # 4. Move the card FORWARD only (Backlog<Ready<In progress<In review), never off Done —
+          #    advances e.g. In progress -> In review on a label change, without yanking a card
+          #    backward or overriding a manual move to a later column.
           CUR=$(gh api graphql -f itemId="$ITEM_ID" -f query='
             query($itemId:ID!){ node(id:$itemId){ ... on ProjectV2Item {
               fieldValueByName(name:"Status"){ ... on ProjectV2ItemFieldSingleSelectValue { name } } } } }' \
             --jq '.data.node.fieldValueByName.name // ""')
-          if [ -n "$CUR" ] && [ "$CUR" != "Backlog" ]; then
-            echo "Issue #$ISSUE_NUMBER already in '$CUR' — leaving manual triage untouched."; exit 0
+          rank() { case "$1" in Ready) echo 1;; "In progress") echo 2;; "In review") echo 3;; Done) echo 4;; *) echo 0;; esac; }
+          if [ "$CUR" = "Done" ]; then echo "Issue #$ISSUE_NUMBER is Done — leaving it."; exit 0; fi
+          if [ -n "$CUR" ] && [ "$(rank "$CUR")" -ge "$(rank "$target")" ]; then
+            echo "Issue #$ISSUE_NUMBER already at '$CUR' (>= '$target') — leaving as-is."; exit 0
           fi
 
           # 5. Set the Status.
