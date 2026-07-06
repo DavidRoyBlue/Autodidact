@@ -1,0 +1,91 @@
+#!/usr/bin/env node
+// .claude/hooks/first-prompt-issue.mjs — UserPromptSubmit: on a session's first substantive
+// prompt, tie the session to a GitHub issue:
+//   1. an open issue explicitly referenced in the prompt, else
+//   2. a new sub-issue under the closest related open issue (picked by claude -p), else
+//   3. a new standalone issue.
+// The tie is stored in the OS tmpdir (lib/session-tie.mjs) and consumed by
+// session-issues.mjs (Stop) to nest the session record without a second LLM call.
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import * as T from "./lib/session-tie.mjs";
+
+const sh = (cmd, args, opts = {}) =>
+  execFileSync(cmd, args, { encoding: "utf8", ...opts }).trim();
+
+function nodeId(issueNumber) {
+  return sh("gh", ["issue", "view", String(issueNumber), "--json", "id", "-q", ".id"]);
+}
+function linkSubIssue(parentNumber, childNumber) {
+  sh("gh", ["api", "graphql", "-f", `query=
+    mutation($parentId: ID!, $childId: ID!) {
+      addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) { issue { number } }
+    }`,
+    "-f", `parentId=${nodeId(parentNumber)}`,
+    "-f", `childId=${nodeId(childNumber)}`]);
+}
+
+function tie(sessionId, issue, note) {
+  T.writeTie(sessionId, { issue: Number(issue) });
+  // stdout from a UserPromptSubmit hook is added to Claude's context.
+  process.stdout.write(`[first-prompt-issue] Session tied to issue #${issue} (${note}).\n`);
+}
+
+function run() {
+  // Recursion guard: the claude -p call below sets this; bail if we are that nested call.
+  if (process.env.ISSUES_SYNC_NESTED) return;
+
+  const input = JSON.parse(readFileSync(0, "utf8"));
+  const sessionId = input.session_id;
+  const prompt = input.prompt;
+  if (!sessionId || typeof prompt !== "string") return;
+  if (T.readTie(sessionId)) return; // already tied — only the first prompt counts
+  if (!T.isSubstantivePrompt(prompt)) return;
+
+  // 1. Prompt flags an issue → tie to it if it's open.
+  const ref = T.extractIssueRef(prompt);
+  if (ref) {
+    try {
+      const state = sh("gh", ["issue", "view", String(ref), "--json", "state", "-q", ".state"]);
+      if (state === "OPEN") {
+        try { sh("gh", ["issue", "edit", String(ref), "--add-label", "in-progress"]); } catch { /* label is best-effort */ }
+        tie(sessionId, ref, "referenced in prompt");
+        return;
+      }
+    } catch { /* unknown issue number — fall through */ }
+  }
+
+  // 2. Ask claude -p (Haiku) which open issue this prompt's work is closest to.
+  const openIssues = sh("gh", ["issue", "list", "--state", "open", "--json", "number,title",
+    "--jq", '.[] | "\\(.number): \\(.title)"']);
+  let answer = "null";
+  if (openIssues) {
+    const q =
+      `First prompt of a coding session:\n${prompt.slice(0, 2000)}\n\nOpen issues:\n${openIssues}\n\n` +
+      `Which ONE open issue is this session's work most closely related to? ` +
+      `Return ONLY that issue's number, or the word null if none is a good fit.`;
+    try {
+      answer = sh("claude", ["-p", "--model", "claude-haiku-4-5", q],
+        { env: { ...process.env, ISSUES_SYNC_NESTED: "1" } });
+    } catch { /* fall through to standalone issue */ }
+  }
+  const parent = /^\s*\d+\s*$/.test(answer) ? answer.trim() : null;
+
+  // 3. Create the session's issue — nested under the match when there is one.
+  const url = sh("gh", ["issue", "create", "--title", T.titleFromPrompt(prompt),
+    "--body", prompt.slice(0, 4000), "--label", "in-progress"]);
+  const n = (url.match(/\/issues\/(\d+)/) || [])[1];
+  if (!n) { process.stderr.write(`[first-prompt-issue] could not parse issue number from: ${url}\n`); return; }
+
+  if (parent) {
+    try {
+      linkSubIssue(parent, n);
+      tie(sessionId, n, `new sub-issue of #${parent}`);
+      return;
+    } catch { /* nest failed — tie standalone */ }
+  }
+  tie(sessionId, n, "new issue");
+}
+
+try { run(); } catch (e) { process.stderr.write(`[first-prompt-issue] ${e.message}\n`); }
+process.exit(0);

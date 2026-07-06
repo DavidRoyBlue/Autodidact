@@ -5,6 +5,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { parseTranscript, hasSuperpowersWrite, extractSummary } from "./lib/transcript.mjs";
+import { readTie } from "./lib/session-tie.mjs";
 
 const sh = (cmd, args, opts = {}) =>
   execFileSync(cmd, args, { encoding: "utf8", ...opts }).trim();
@@ -38,21 +39,27 @@ function run() {
   const summary = extractSummary(entries);
   if (!summary) return;
 
-  const openIssues = sh("gh", ["issue", "list", "--state", "open", "--json", "number,title",
-    "--jq", '.[] | "\\(.number): \\(.title)"']);
+  // Session already tied to an issue at first prompt (first-prompt-issue.mjs) → nest there.
+  const tie = readTie(input.session_id);
+  let match = tie?.issue ? String(tie.issue) : null;
 
-  // Ask claude -p (Haiku) which open issue this session's work most naturally belongs UNDER.
-  const prompt =
-    `Session output:\n${summary}\n\nOpen issues:\n${openIssues || "(none)"}\n\n` +
-    `Which ONE open issue does this session's work most naturally belong under as a sub-task? ` +
-    `Return ONLY that issue's number, or the word null if none is a good fit.`;
-  let answer = "null";
-  try {
-    answer = sh("claude", ["-p", "--model", "claude-haiku-4-5", prompt],
-      { env: { ...process.env, ISSUES_SYNC_NESTED: "1" } });
-  } catch { /* fall through to create-and-close */ }
+  if (!match) {
+    const openIssues = sh("gh", ["issue", "list", "--state", "open", "--json", "number,title",
+      "--jq", '.[] | "\\(.number): \\(.title)"']);
 
-  const match = /^\s*(\d+)\s*$/.test(answer) ? answer.trim() : null;
+    // Ask claude -p (Haiku) which open issue this session's work most naturally belongs UNDER.
+    const prompt =
+      `Session output:\n${summary}\n\nOpen issues:\n${openIssues || "(none)"}\n\n` +
+      `Which ONE open issue does this session's work most naturally belong under as a sub-task? ` +
+      `Return ONLY that issue's number, or the word null if none is a good fit.`;
+    let answer = "null";
+    try {
+      answer = sh("claude", ["-p", "--model", "claude-haiku-4-5", prompt],
+        { env: { ...process.env, ISSUES_SYNC_NESTED: "1" } });
+    } catch { /* fall through to create-and-close */ }
+
+    match = /^\s*(\d+)\s*$/.test(answer) ? answer.trim() : null;
+  }
 
   // Always record the freeform session as its own born-closed issue.
   const firstLine = summary.split("\n").find((l) => l.trim()) ?? "Session";
