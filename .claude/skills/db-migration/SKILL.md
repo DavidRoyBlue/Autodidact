@@ -26,7 +26,7 @@ Takes a schema change from Drizzle schema edit to verified migration. Binding in
 2. Edit `packages/db/src/schema/` and hand-author the matching `.sql` in `packages/db/migrations/` (next sequence number, style of the existing trigger migrations). Commit both together.
 3. Dry-run locally: `pnpm migrate:dev` against the local stack. For a from-scratch validation, `pnpm db:reset:dev` (destructive, local only) then `pnpm migrate:dev`.
 4. Verify types compile against the new schema: `pnpm --filter @autodidact/db typecheck`, then typecheck/test the packages that consume the changed tables.
-5. Prod: do **not** apply manually — CI migrates on deploy. `pnpm migrate:prod` only for out-of-band recovery, and only when asked.
+5. Prod: do **not** apply manually — follow the prod policy in `.claude/rules/db.md` (CI migrates on deploy; out-of-band work goes through the `db-specialist` subagent).
 6. If the change alters what the system can do (new capability, new blocker), update `PROJECT_STATE.md`.
 
 ## Definition of done

@@ -7,7 +7,7 @@
 // Never blocks: always exits 0; a formatting failure is not an edit failure.
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { extname } from "node:path";
+import { extname, join } from "node:path";
 
 let raw = "";
 for await (const chunk of process.stdin) raw += chunk;
@@ -23,12 +23,22 @@ const FORMATTABLE = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".jso
 if (!file || !existsSync(file) || !FORMATTABLE.has(extname(file))) process.exit(0);
 if (/\/(node_modules|dist|build|\.expo)\//.test(file)) process.exit(0);
 
+const root = process.env.CLAUDE_PROJECT_DIR ?? process.cwd();
+const prettierBin = join(root, "node_modules", ".bin", "prettier");
+if (!existsSync(prettierBin)) process.exit(0);
+
 try {
-  execFileSync("pnpm", ["exec", "prettier", "--write", "--ignore-unknown", file], {
-    cwd: process.env.CLAUDE_PROJECT_DIR ?? process.cwd(),
-    stdio: "ignore",
-    timeout: 20_000,
-  });
+  // --config is required: the shared config lives in packages/config/, which is not
+  // an ancestor of the source dirs, so prettier would otherwise apply its defaults.
+  execFileSync(
+    prettierBin,
+    ["--write", "--config", join(root, "packages", "config", "prettier.config.mjs"), file],
+    {
+      cwd: root,
+      stdio: "ignore",
+      timeout: 20_000,
+    },
+  );
 } catch {
   // prettier missing or file unparsable — never fail the edit over formatting
 }

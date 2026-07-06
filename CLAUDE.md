@@ -42,7 +42,7 @@ Copy `.env.example` → `.env.dev` (`pnpm setup` does this). Minimum required to
 
 | Var | Used by | Note |
 |-----|---------|------|
-| `DATABASE_URL` | api, agent, worker | WSL2: must be transaction pooler URL (port 6543) |
+| `DATABASE_URL` | api, agent, worker | Local dev: `127.0.0.1:55322` (direct). Cloud/prod from WSL2: transaction pooler URL (port 6543) |
 | `SUPABASE_URL` | api | Supabase project URL |
 | `SUPABASE_PUBLISHABLE_KEY` | mobile | Also set in `apps/mobile/app.json` → `extra` |
 | `SUPABASE_SECRET_KEY` | packages/db | Admin client — never expose to clients |
@@ -60,7 +60,7 @@ GCP (project `autodidact-494819`, `northamerica-northeast1`): Cloud Run ×3, Clo
 - **Runbook:** [`docs/gcp_infra_setup.md`](docs/gcp_infra_setup.md) — read before touching prod infra.
 - **Deploy:** promoting `master` → `production` (`git push origin master:production`) triggers `.github/workflows/deploy.yml` (CI → images → migrations → `gcloud run deploy`, via Workload Identity Federation). Pushing to `master` does **not** deploy; promotion is the human release gate.
 - **Prod secrets:** `infra/secrets.env` is the single source (never committed). There is **no `.env.prod`**.
-- **Prod DB tools** (sparingly — CI migrates on deploy): `pnpm migrate:prod`, `pnpm db:studio:prod`.
+- **Prod DB tools** (sparingly — CI migrates on deploy): `pnpm migrate:prod`, `pnpm db:studio:prod` — prod DB operations run only via the `db-specialist` subagent, never the main conversation.
 - Mobile prod target is selected by EAS build profiles in `apps/mobile/eas.json`; local `expo start` uses `.env.dev`.
 
 ## Core engineering values

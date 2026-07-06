@@ -36,12 +36,14 @@ if (tool === "Edit" || tool === "Write" || tool === "NotebookEdit") {
 
 if (tool === "Bash") {
   const cmd = (input.tool_input?.command ?? "").trim();
-  // Read-only git subcommands only; no chaining, piping, or redirection.
+  // Read-only git subcommands only; no chaining, piping, redirection, or newlines
+  // (bash treats a newline as a command separator), and no --output/-o flags
+  // (git diff/show can write files through them despite being "read" commands).
   const READONLY =
-    /^git (diff|show|log|status|blame|rev-parse|ls-files)\b[^;&|>`$]*$/;
-  if (!READONLY.test(cmd)) {
+    /^git (diff|show|log|status|blame|rev-parse|ls-files)\b[^;&|<>`$\n\r]*$/;
+  if (!READONLY.test(cmd) || /(^|\s)(--output(=|\s|$)|-o\b)/.test(cmd)) {
     console.error(
-      "code-reviewer Bash is limited to read-only git commands (diff/show/log/status/blame/rev-parse/ls-files) without chaining or redirection.",
+      "code-reviewer Bash is limited to read-only git commands (diff/show/log/status/blame/rev-parse/ls-files) without chaining, redirection, or --output flags.",
     );
     process.exit(2);
   }

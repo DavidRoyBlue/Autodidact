@@ -14,12 +14,12 @@ paths:
 - **Known tooling limitation:** `pnpm db:generate:dev` is currently broken (ESM / drizzle-kit `.js`→`.ts` resolution under `"type":"module"`), and the drizzle snapshot chain (`migrations/meta/*_snapshot.json`) is incomplete for hand-authored SQL migrations. Until both are repaired together, **hand-author migrations as plain SQL** (see the trigger migrations in `migrations/` for the pattern).
 - Do not use `drizzle push` — all schema changes go through plain SQL migration files.
 
-## Workflow
+## Prod policy
 
-1. Edit `packages/db/src/schema/` and hand-author the matching `.sql` migration.
-2. Verify locally: `pnpm migrate:dev` against the local stack (`127.0.0.1:55322`), then run the affected package tests.
-3. Destructive local reset if needed: `pnpm db:reset:dev` (local stack only).
-4. Prod: CI applies migrations automatically on deploy (`.github/workflows/deploy.yml`). Manual `pnpm migrate:prod` (loads `infra/secrets.env`, targets the pooler) is for out-of-band inspection/recovery only — and prod DB operations / Supabase MCP tools go through the `db-specialist` subagent, never the main conversation.
+- CI applies migrations automatically on deploy (`.github/workflows/deploy.yml`). Manual `pnpm migrate:prod` (loads `infra/secrets.env`, targets the pooler) is for out-of-band inspection/recovery only.
+- Prod DB operations and Supabase MCP tools go through the `db-specialist` subagent, never the main conversation.
+
+The step-by-step schema-change procedure and its definition of done live in the `db-migration` skill — this rule owns invariants only.
 
 ## Local vs prod connections
 
