@@ -1,9 +1,23 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 // Session→issue ties live outside the repo so they never show up in git.
 const TIE_DIR = join(tmpdir(), "claude-session-issues");
+
+// Ties must outlive the whole session (Stop fires per turn and first-prompt-issue
+// uses the tie's existence as its "already ran" marker), so they can't be deleted
+// on consumption — instead each write sweeps entries older than the TTL.
+const TIE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function sweepStaleTies(now = Date.now()) {
+  let names;
+  try { names = readdirSync(TIE_DIR); } catch { return; }
+  for (const f of names) {
+    const p = join(TIE_DIR, f);
+    try { if (statSync(p).mtimeMs < now - TIE_TTL_MS) rmSync(p); } catch { /* races are fine */ }
+  }
+}
 
 export function tiePath(sessionId) {
   return join(TIE_DIR, `${sessionId}.json`);
@@ -18,6 +32,7 @@ export function readTie(sessionId) {
 
 export function writeTie(sessionId, data) {
   mkdirSync(TIE_DIR, { recursive: true });
+  sweepStaleTies();
   writeFileSync(tiePath(sessionId), JSON.stringify(data));
 }
 

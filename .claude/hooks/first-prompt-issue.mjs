@@ -9,7 +9,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import * as T from "./lib/session-tie.mjs";
-import { closestOpenIssue } from "./lib/classify.mjs";
+import { classifyFirstPrompt } from "./lib/classify.mjs";
 
 const sh = (cmd, args, opts = {}) =>
   execFileSync(cmd, args, { encoding: "utf8", ...opts }).trim();
@@ -56,13 +56,15 @@ function run() {
     } catch { /* unknown issue number — fall through */ }
   }
 
-  // 2. Ask claude -p (Haiku) which open issue this prompt's work is closest to.
-  const parent = closestOpenIssue("First prompt of a coding session", prompt.slice(0, 2000),
-    "Which ONE open issue is this session's work most closely related to?");
+  // 2. One Haiku call: closest open issue + a publicly-safe title and summary.
+  // The raw prompt never reaches GitHub (it may contain secrets or stack traces);
+  // if the call fails we fall back to the prompt's first 70 chars + a stock body.
+  const { parent, title, summary } = classifyFirstPrompt(prompt.slice(0, 2000));
 
   // 3. Create the session's issue — nested under the match when there is one.
-  const url = sh("gh", ["issue", "create", "--title", T.titleFromPrompt(prompt),
-    "--body", prompt.slice(0, 4000), "--label", "in-progress"]);
+  const url = sh("gh", ["issue", "create", "--title", title ?? T.titleFromPrompt(prompt),
+    "--body", summary ?? "Opened automatically from a Claude Code session's first prompt.",
+    "--label", "in-progress"]);
   const n = (url.match(/\/issues\/(\d+)/) || [])[1];
   if (!n) { process.stderr.write(`[first-prompt-issue] could not parse issue number from: ${url}\n`); return; }
 

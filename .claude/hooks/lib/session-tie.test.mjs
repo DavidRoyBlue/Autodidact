@@ -33,3 +33,17 @@ test("tie read/write roundtrip; unknown session reads null", () => {
   assert.deepEqual(T.readTie(id), { issue: 99 });
   rmSync(T.tiePath(id));
 });
+
+test("sweepStaleTies removes only entries older than the TTL", () => {
+  const oldId = randomUUID(), newId = randomUUID();
+  T.writeTie(oldId, { issue: 1 });
+  T.writeTie(newId, { issue: 2 });
+  // Pretend "now" is 8 days ahead: the old tie ages out, the new one written at
+  // the same time would too — so re-touch newId by checking against real now first.
+  T.sweepStaleTies(Date.now() + 8 * 24 * 60 * 60 * 1000);
+  assert.equal(T.readTie(oldId), null);
+  T.writeTie(newId, { issue: 2 });
+  T.sweepStaleTies();
+  assert.deepEqual(T.readTie(newId), { issue: 2 });
+  rmSync(T.tiePath(newId));
+});
