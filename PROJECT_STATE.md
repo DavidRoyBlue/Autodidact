@@ -6,7 +6,7 @@
 **Legend:** 🔵 prod-ready · 🟢 runs in dev · 🔴 non-functional
 
 🟢 **📱 Mobile** — Expo app, the only UI · [detail](apps/mobile/SERVICE_STATE.md)
-Runs on the emulator; no build/release pipeline yet.
+Runs on the emulator; EAS build profiles configured, no build shipped yet.
 
 🟢 **🌐 API** — NestJS public HTTP: auth, courses, chat proxy · [detail](services/api/SERVICE_STATE.md)
 Dev-green; no monitoring yet, never deployed to real infra.
@@ -35,7 +35,7 @@ Wired but inactive; no OTEL endpoint/collector configured.
 1. **Provision the environment** — run the GCP bootstrap (`scripts/gcp-bootstrap.sh` → `terraform apply` → push to deploy), then one full deploy + smoke test.
 2. **Make it durable for real sessions** — flip `CHECKPOINTER=postgres` and verify it; add Worker failed-job recovery so stuck courses aren't unrecoverable.
 3. **Make it observable + safe to expose** — wire error tracking / OTEL backend, add API rate limiting, and add LLM cost/token controls in the Agent.
-4. **Ship the client** — add an EAS build + store-submission path and real test coverage for Mobile.
+4. **Ship the client** — produce/submit a signed EAS build (profiles configured) and real test coverage for Mobile.
 
 ## Current Objective
 

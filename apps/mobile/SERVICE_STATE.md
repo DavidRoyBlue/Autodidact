@@ -5,7 +5,7 @@
 
 ## Purpose
 
-The user-facing app: sign-in/up, home dashboard, course list, course detail with modules, and AI module-chat via SSE. Server state through TanStack Query; client state (auth session, chat buffer) through Zustand; UI built on a Tamagui design system.
+The user-facing app: sign-in/up, home dashboard, course list, course detail with modules, and AI module-chat via SSE. Server state through TanStack Query; client state (auth session, chat buffer) through Zustand; UI built on NativeWind v4 + React Native Reusables (ADR-029).
 
 ## Status
 
@@ -30,25 +30,23 @@ The user-facing app: sign-in/up, home dashboard, course list, course detail with
 - Offline support: ❌ none (Phase 2 roadmap)
 - Analytics: ❌ none
 - Error Tracking: ❌ none (ErrorBoundary catches render errors locally only)
-- Build/release pipeline: ❌ no EAS/build config present
+- Build/release pipeline: ⚠️ EAS build profiles exist (`eas.json`, three profiles); no store submission yet
 
 ## Current Bottleneck
 
-No production build/release path. There is no EAS or store-submission config and no real `app.json` `extra` values wired for a hosted API — so the app cannot be shipped to testers' devices in a repeatable way yet. (Unit + Maestro tests exist, but the missing build pipeline is the blocker, not coverage.)
+No shipped build. EAS build profiles and per-profile API URLs are configured (`eas.json` + `app.config.ts`), but no signed build has been produced or submitted, so the app cannot yet reach testers' devices in a repeatable way. (Unit + Maestro tests exist, but the unexercised build pipeline is the blocker, not coverage.)
 
 ## Known Issues
 
-- Tamagui pinned to `2.0.0-rc.41` (release candidate); Renovate auto-bumps disabled for it (dependency risk).
 - No PR-gated e2e: Maestro flows run manual/nightly only, so UI regressions can reach a build without a gate catching them.
 - No course-generation progress indicator (polling only; Phase 2).
 - Requires real `supabaseUrl` / `supabasePublishableKey` / `apiBaseUrl` in `app.json` `extra` to run against a live backend.
 
 ## Next Steps
 
-1. Add an EAS build + store-submission config; produce a testable build.
+1. Produce and submit a testable EAS build (profiles already configured).
 2. Add component/integration tests for the chat and course-generation flows.
-3. Move Tamagui off the RC to GA `2.0.0` when it ships.
-4. Wire crash/error reporting (e.g. Sentry) for real devices.
+3. Wire crash/error reporting (e.g. Sentry) for real devices.
 
 ## Open Questions
 
@@ -60,4 +58,4 @@ No production build/release path. There is no EAS or store-submission config and
 - Developers: ✅ — clear structure, strong CLAUDE.md invariants, design system.
 - Internal testers: ⚠️ — runs in Expo Go against a local stack; not a standalone build.
 - Beta users: ⚠️ — needs a real build pipeline, hosted backend, and tests.
-- Production users: ❌ — not built/submitted; RC dependency and no crash reporting.
+- Production users: ❌ — not built/submitted; no crash reporting.

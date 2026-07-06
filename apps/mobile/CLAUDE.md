@@ -227,10 +227,7 @@ eas submit --profile production --platform android   # upload to Google Play (ne
 
 ## Testing rules
 
-- **Jest, not Vitest** (ADR-025): the rest of the monorepo uses Vitest, but React
-  Native/Expo require **jest-expo** + `@testing-library/react-native`. Jest is
-  scoped to this package only. Config: `jest.config.js` (pnpm-aware
-  `transformIgnorePatterns`), setup: `jest-setup.ts`.
+- **Jest, not Vitest** (ADR-025 — see `.claude/rules/testing.md` for the monorepo runner split): React Native/Expo require **jest-expo** + `@testing-library/react-native`. Config: `jest.config.js` (pnpm-aware `transformIgnorePatterns`), setup: `jest-setup.ts`.
 - Unit-test pure logic directly: Zustand stores (`src/stores/`), `apiFetch`
   (`src/api/client.ts`), hooks via `renderHook`. Mock `expo-secure-store`,
   `expo-router`, `../lib/supabase`, and `fetch` at the seam.

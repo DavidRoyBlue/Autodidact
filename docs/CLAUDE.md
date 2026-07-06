@@ -31,6 +31,19 @@
 
 ---
 
+## Where to document (repo-wide map)
+
+- Local implementation detail → nearest folder `README.md`
+- Service/package responsibility → its `README.md`
+- Cross-boundary contract → README of the lowest common ancestor folder
+- System-wide relationship → `docs/architecture/`
+- Durable decision/tradeoff → ADR (`architecture/ADRs/`)
+- Agent-binding invariants & verification commands → nearest `CLAUDE.md`
+- Path-triggered agent behavior (migrations, tests, issues) → `.claude/rules/`
+- Non-obvious code behavior → code comment
+
+---
+
 ## Key patterns to follow
 
 - When a technology changes, update both `stack.md` and the affected `architecture/` doc.

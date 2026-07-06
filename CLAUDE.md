@@ -1,8 +1,7 @@
 # Claude Project Instructions
 
 > Planning, assumptions, and completion summaries scale with change size — trivial fixes don't need them.
-
----
+> Path-scoped rules live in `.claude/rules/` (`db.md`, `testing.md`, `issues.md`) — they load automatically when you touch matching files. Subtree invariants live in nested `CLAUDE.md` files and win within their scope.
 
 ## Project overview
 
@@ -17,31 +16,25 @@ AI-powered learning platform. Three backend services plus an Expo mobile app in 
 
 Shared packages: `packages/db` (Drizzle + pgvector), `packages/types`, `packages/schemas` (Zod), `packages/providers` (LLM/queue/auth abstractions), `packages/prompts`, `packages/observability` (pino + OTEL), `packages/config` (tsconfig, eslint, vitest bases).
 
----
-
 ## Commands
 
 ```bash
-pnpm setup              # first-time: checks prereqs → installs deps → copies .env.example → .env.dev → starts the Supabase stack (supabase start) → migrates → builds
-pnpm dev                # full backend stack: starts the Supabase stack (supabase start) → builds → migrates → all services (reads .env.dev)
-pnpm mobile             # Expo dev server — run in a separate terminal while dev is running
-pnpm stop               # stops the local Supabase stack (supabase stop); Node services stop via Ctrl+C in their terminal
+pnpm setup              # first-time: prereqs → install → .env.dev → supabase start → migrate → build
+pnpm dev                # full backend stack: supabase start → build → migrate → all services (reads .env.dev)
+pnpm mobile             # Expo dev server — separate terminal while dev is running
+pnpm stop               # stop the local Supabase stack; Node services stop via Ctrl+C
 
 pnpm build              # turbo build all packages and services
 pnpm typecheck          # type-check all packages (triggers a build first)
-pnpm lint               # lint all packages
-pnpm lint --fix         # lint and auto-fix violations
-pnpm test               # run all test suites (triggers a build first)
-pnpm test <filter>      # run tests for matching packages only (e.g. pnpm test api, pnpm test agent)
+pnpm lint               # lint all packages (--fix to auto-fix)
+pnpm test               # all test suites (triggers a build first)
+pnpm test <filter>      # tests for matching packages only (e.g. pnpm test api)
 pnpm clean              # remove all build artifacts
 
 pnpm migrate:dev        # run pending Drizzle migrations against the local stack DB (127.0.0.1:55322)
-pnpm db:generate:dev    # generate a new migration from schema changes — review the SQL before committing
-pnpm db:studio:dev      # open Drizzle Studio at https://local.drizzle.studio (Supabase Studio also at http://127.0.0.1:55323)
-pnpm db:reset:dev       # DESTRUCTIVE: supabase db reset → re-apply all Drizzle migrations from scratch (local stack only)
+pnpm db:studio:dev      # Drizzle Studio at https://local.drizzle.studio (Supabase Studio: http://127.0.0.1:55323)
+pnpm db:reset:dev       # DESTRUCTIVE: supabase db reset → re-apply all Drizzle migrations (local stack only)
 ```
-
----
 
 ## Environment
 
@@ -57,283 +50,46 @@ Copy `.env.example` → `.env.dev` (`pnpm setup` does this). Minimum required to
 | `AGENT_SERVICE_URL` | api, worker | Default: `http://localhost:3001` |
 
 See `.env.example` for all vars and provider-swap options (`LLM_PROVIDER`, `CHECKPOINTER`, etc.).
-
-## New branch / worktree setup
-When starting work in a new worktree, symlink env files from the main workspace:
-ln -sf $(git rev-parse --show-superproject-working-tree || git rev-parse --show-toplevel)/.env.dev .env.dev
-
----
+New worktree: symlink env files from the main workspace —
+`ln -sf $(git rev-parse --show-superproject-working-tree || git rev-parse --show-toplevel)/.env.dev .env.dev`
 
 ## Production & deployment
 
-Production runs on **GCP** (project `autodidact-494819`, region `northamerica-northeast1`): Cloud Run ×3 (api public, agent internal, worker scale-to-zero), Cloud Tasks queues, Artifact Registry, and GCP Secret Manager — all defined as Terraform IaC under `infra/` (remote state in GCS). The hosted prod DB is the Supabase project reached via its transaction pooler (port 6543).
+GCP (project `autodidact-494819`, `northamerica-northeast1`): Cloud Run ×3, Cloud Tasks, Artifact Registry, Secret Manager — Terraform IaC under `infra/`. Prod DB is hosted Supabase via its transaction pooler (port 6543).
 
-- **Full setup runbook:** [`docs/gcp_infra_setup.md`](docs/gcp_infra_setup.md) — GCP bootstrap, Terraform apply, Secret Manager, Workload Identity Federation. Read this before touching prod infra.
-- **Deploy:** promoting `master` → the `production` branch (`git push origin master:production`) triggers `.github/workflows/deploy.yml`. Its `ci` job lints/typechecks/tests and builds & pushes the three images; its `deploy` job (`environment: production`) then runs DB migrations, seeds the onboarding course, and `gcloud run deploy`s — authenticated via Workload Identity Federation (no key files). Pushing to `master` does **not** deploy; PRs are validated separately by `.github/workflows/ci.yml`. Promotion to `production` is the human release gate.
-- **Prod secrets:** `infra/secrets.env` is the single source (seeds Secret Manager via `scripts/gcp-bootstrap.sh`); never committed. There is **no `.env.prod`**.
-- **Prod DB tools** (run locally, sparingly — CI already migrates on deploy):
-
-```bash
-pnpm migrate:prod       # apply pending Drizzle migrations to the prod DB (loads infra/secrets.env)
-pnpm db:studio:prod     # open Drizzle Studio against the prod DB (loads infra/secrets.env)
-```
-
-The mobile app's prod target (Cloud Run API + hosted Supabase) is selected by EAS build profiles in `apps/mobile/eas.json`; local `expo start` uses `.env.dev`.
-
----
+- **Runbook:** [`docs/gcp_infra_setup.md`](docs/gcp_infra_setup.md) — read before touching prod infra.
+- **Deploy:** promoting `master` → `production` (`git push origin master:production`) triggers `.github/workflows/deploy.yml` (CI → images → migrations → `gcloud run deploy`, via Workload Identity Federation). Pushing to `master` does **not** deploy; promotion is the human release gate.
+- **Prod secrets:** `infra/secrets.env` is the single source (never committed). There is **no `.env.prod`**.
+- **Prod DB tools** (sparingly — CI migrates on deploy): `pnpm migrate:prod`, `pnpm db:studio:prod`.
+- Mobile prod target is selected by EAS build profiles in `apps/mobile/eas.json`; local `expo start` uses `.env.dev`.
 
 ## Core engineering values
 
-Every code change must respect these:
-
-1. **Test what you change.** Add or update focused tests for new or changed behavior. If a test isn't practical, explain why and describe how you verified it manually.
-2. **Single source of truth.** Don't duplicate facts, config, schemas, business rules, or ownership info in code. Update the authoritative source; reference it from elsewhere. (Documentation reference content is exempt — see Authority: README vs CLAUDE.md.)
-3. **Modular design.** Isolated responsibilities, clear interfaces, small modules. Don't couple unrelated concerns to ship faster.
-4. **Simplicity first.** Write the minimum code that solves the problem. No speculative features, no abstractions for single-use code, no "configurability" that wasn't asked for. If you wrote 200 lines and it could be 50, rewrite it.
-5. **Surgical changes.** Touch only what the task requires. No drive-by cleanup of adjacent code, comments, or formatting. Match existing style — exception: if it violates an invariant stated in a nested `CLAUDE.md`, the invariant wins. Remove only dead code your changes created, not pre-existing orphans. Tests for code you're modifying count as part of the change, not cleanup.
-
----
-
-## Mean and lean (hard constraint)
-- Implement the minimum code that satisfies the requirement. No pre-emptive abstractions.
-- Prefer SDK and library calls over custom implementations — they are maintained externally; custom code is yours to own forever.
-- Test logic, not SDK calls or infrastructure wrappers.
-- No docs updates unless something is genuinely non-obvious to a future reader.
-- No placeholder comments for unimplemented future specs.
-- Being lean is our core advantage. Always prioritize concise code/librairy/sdk over costum implementation.
+1. **Test what you change.** Focused tests for new/changed behavior; test logic, not SDK calls or infrastructure wrappers. If a test isn't practical, say why and how you verified manually.
+2. **Single source of truth.** Every fact, config, schema, and rule lives in exactly one authoritative place; reference it from elsewhere. (Documentation reference content is exempt — see Documentation.)
+3. **Modular design.** Isolated responsibilities, clear interfaces, small modules.
+4. **Mean and lean (hard constraint).** Minimum code that solves the problem. No speculative features or pre-emptive abstractions. Prefer SDK/library calls over custom implementations — custom code is yours to own forever. If you wrote 200 lines and it could be 50, rewrite it.
+5. **Surgical changes.** Touch only what the task requires; no drive-by cleanup. Match existing style — unless it violates a nested `CLAUDE.md` invariant, which wins. Tests for code you're modifying are part of the change.
 
 ## Before you code
 
-State assumptions before implementing. If uncertain, ask:
+- State assumptions first. If multiple interpretations exist, name them — don't pick silently. If a simpler approach exists, push back. If success criteria are vague, ask for specifics.
+- For multi-step tasks, state a brief plan with verifiable checkpoints: `[Step] → verify: [check]`.
+- For non-trivial changes, read docs before editing: nearest `README.md` → parent READMEs → `docs/architecture/` → relevant ADRs. Don't guess conventions when documentation exists.
 
-- If multiple interpretations exist, name them — don't pick silently.
-- If a simpler approach is available, say so and push back when warranted.
-- If something is unclear, stop, name what's confusing, ask before proceeding.
-- If success criteria are vague ("make it work"), ask for specifics.
+## Documentation
 
-For multi-step tasks, state a brief plan with verifiable checkpoints:
+- Layers: root `README.md` = repo overview · `docs/architecture/` = system design · ADRs (`docs/architecture/ADRs/`) = durable decisions · folder `README.md` = human narrative/gotchas · nested `CLAUDE.md` = agent-binding subtree invariants · code comments = non-obvious behavior only. Link upward instead of duplicating; `docs/CLAUDE.md` owns the where-to-document map.
+- Binding rules live authoritatively in `CLAUDE.md` files; READMEs may duplicate reference content (commands, maps) but never restate binding rules — they link.
+- **Compounding:** if a change teaches the codebase something durable (architecture, boundaries, commands, env vars, contracts, gotchas), update the closest relevant doc. **Pruning:** docs that contradict code get fixed or deleted in the same change.
+- When completing a task, state: what changed, what tests were added (or why none), what docs were read/updated.
 
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
+## Code navigation (code-review-graph MCP)
 
----
+Docs own intent and rules; the graph owns structure and topology. For non-trivial changes: **docs first, graph next, source last**.
+Where is X? → `semantic_search_nodes` · what calls X / is X tested? → `query_graph` · blast radius? → `get_impact_radius`, `get_affected_flows` · start broad → `get_minimal_context`, `get_architecture_overview`. Workflow recipes live in the `.claude/skills/` graph skills. If the graph seems stale, run `code-review-graph status`.
 
-## Documentation-first rule
+## GitHub issues
 
-For non-trivial changes, read existing docs before editing.
-
-Start with:
-1. Nearest relevant `README.md`
-2. Parent `README.md` files, up to 2 levels up
-3. Relevant `docs/architecture/` files if the change crosses boundaries
-4. Relevant ADRs if the change touches a durable decision
-5. Graph layer for structural navigation — locating implementations, tracing calls, assessing blast radius (see MCP Tools below)
-
-Do not guess project conventions when documentation exists.
-
-For trivial fixes, use judgment and avoid unnecessary context loading.
-
----
-
-## Layered documentation model
-
-- Root `README.md` = product/repo overview
-- `docs/architecture/` = system architecture, C4, infra, data model
-- `docs/architecture/decisions/` = durable decisions and tradeoffs
-- Folder `README.md` = local narrative, ownership, workflows, gotchas (human-facing)
-- Nested `CLAUDE.md` = subtree invariants, source-of-truth, agent rules (agent-binding)
-- Code comments = non-obvious implementation details only
-
-Higher-level docs explain broad context. Lower-level docs explain local implementation details. Link upward instead of duplicating.
-
----
-
-## Authority: README vs CLAUDE.md
-
-Both files coexist in many folders. They serve different audiences and may overlap on reference content — that's fine.
-
-**Binding rules need a single source of truth.** Imperative rules ("must use X," "must not Y," invariants) live authoritatively in `CLAUDE.md`. README does not restate them — if relevant to humans, link to `CLAUDE.md`.
-
-**Reference content can appear in both.** Source-of-truth maps, component relationships, file locations, commands — duplicate freely. Both audiences benefit from self-contained files, and drift in pointer data is obvious when it happens.
-
-**Audience split for narrative:**
-- Narrative purpose, ownership, gotchas, onboarding → README
-- Agent-binding rules, invariants, testing rules → `CLAUDE.md`
-
-Each file cross-links to its pair at the top.
-
----
-
-## Nested CLAUDE.md
-
-Subtree-specific behavior rules belong in nested `CLAUDE.md` files.
-
-Examples:
-- `services/api/CLAUDE.md`
-- `packages/db/CLAUDE.md`
-- `apps/mobile/CLAUDE.md`
-
-Use nested `CLAUDE.md` files for:
-- local invariants
-- library choices
-- verification commands (tests, typecheck, lint)
-- testing rules
-- source-of-truth declarations
-- anything an agent must always respect in that subtree
-
-Nested rules extend this root file and narrow it within their subtree — a nested invariant is more specific than a root rule and wins within its scope.
-
----
-
-## Where to document
-
-- Local implementation detail → nearest folder `README.md`
-- Service/package responsibility → service/package `README.md`
-- Cross-boundary contract → README of the lowest common ancestor folder
-- System-wide relationship → `docs/architecture/`
-- Durable decision/tradeoff → ADR
-- Verification commands (tests, typecheck, lint) → nearest `CLAUDE.md`
-- Broader workflows → nearest README, plus root README if globally relevant
-- Non-obvious code behavior → code comment
-
----
-
-## Compounding rule
-
-After meaningful changes, ask:
-
-> Did this change teach the codebase something future agents or developers need to know?
-
-If yes, update the closest relevant doc.
-
-Update docs for changes to:
-- architecture
-- ownership/boundaries
-- commands/workflows
-- environment variables
-- source-of-truth rules
-- integration contracts
-- recurring gotchas
-- testing strategy
-- future agent behavior
-
-Do not update docs for trivial refactors or obvious implementation details.
-
----
-
-## Pruning rule
-
-If documentation contradicts current code, fix or delete the stale documentation in the same change. Stale docs are worse than missing docs.
-
----
-
-## README style
-
-Keep README updates short, factual, specific, and link upward instead of duplicating.
-
----
-
-## Final response expectation
-
-When completing a task, mention:
-1. What code changed
-2. What tests were added or updated (or why none were needed)
-3. What docs were read
-4. Whether docs were updated, and if not, why
-
----
-
-## MCP Tools: code-review-graph
-
-Structural knowledge graph (Tree-sitter + SQLite, MCP-exposed) tracking imports, calls, inheritance, tests, and execution flows. Use for code-structure questions before scanning files.
-
-Two complementary layers with distinct domains — neither substitutes for the other.
-
-**Doc layer** (`CLAUDE.md` files, READMEs, `docs/architecture/`) owns **intent, rules, and decisions**: what invariants apply, why things were built a certain way, what tradeoffs were made.
-
-**Graph layer** (code-review-graph MCP tools) owns **structure and topology**: where code lives, what calls what, blast radius of a change. The graph carries no rules or intent — it can tell you *that* X calls Y, not *why*.
-
-Most tasks need both: read relevant docs first to absorb rules and context, then use the graph for structural navigation.
-
-**What each layer answers:**
-
-| Question | Layer | Where |
-|----------|-------|-------|
-| What invariants apply here? What must not be broken? | Doc | Nearest `CLAUDE.md` → parent `CLAUDE.md` |
-| Why was X built this way? What tradeoffs were made? | Doc | `docs/architecture/decisions/` (ADRs) |
-| How does the system work at a high level? | Doc | `docs/architecture/overview.md` |
-| Where is X implemented? | Graph | `semantic_search_nodes` |
-| What calls X? What does X depend on? | Graph | `query_graph` |
-| What will break if I change X? | Graph | `get_impact_radius`, `get_affected_flows` |
-| Is X covered by tests? | Graph | `query_graph` pattern="tests_for" |
-| Broad boundary map | Both | `get_architecture_overview` → `docs/architecture/` for depth |
-| Reviewing a diff | Both | Nearest `CLAUDE.md` for applicable invariants → `detect_changes` + `get_review_context` |
-
-Use Grep/Glob/Read as a fallback for **code** when the graph doesn't have the answer — not as a substitute for reading doc files directly.
-
-### Order of operations
-
-For non-trivial changes (extends Documentation-first and Before you code):
-
-1. **Docs first** — READMEs, ADRs, nearest `CLAUDE.md`.
-2. **Graph next** — start with `get_minimal_context` (~100 tokens), then drill in.
-3. **Source last** — read implementation only after the graph narrows where.
-
-The graph gives structure, not implementation. Read source for what code actually does, and for non-code files (configs, markdown, scripts).
-
-### Tools
-
-**Explore** — `get_minimal_context` (start here), `get_architecture_overview`, `list_communities` / `get_community`, `semantic_search_nodes`, `query_graph` (callers_of / callees_of / imports_of / tests_for), `traverse_graph`, `find_large_functions`
-
-**Analyze changes** — `detect_changes` (risk-scored diff), `get_review_context` (compact snippets), `get_impact_radius`, `get_affected_flows`, `list_flows` / `get_flow`
-
-**Architecture & quality** — `get_hub_nodes` (hotspots), `get_bridge_nodes` (chokepoints), `get_surprising_connections`, `get_knowledge_gaps`, `get_suggested_questions`
-
-**Refactor** — `refactor_tool` (preview), `apply_refactor_tool`
-
-**Document** — `generate_wiki` (drafts from community structure), `get_wiki_page`
-
-### Workflows
-
-- **Code review** (Surgical changes, v5): `detect_changes` → `get_impact_radius` → `get_review_context` → `query_graph` tests_for.
-- **Bug**: `semantic_search_nodes` → `query_graph` callers_of → `get_affected_flows` → read source.
-- **New feature** (Modular design, v3): `get_architecture_overview` → `list_communities` → `semantic_search_nodes` for patterns → mirror existing.
-- **Refactor** (Simplicity, v4): `refactor_tool` preview → `query_graph` callers_of → `get_impact_radius` → `apply_refactor_tool`.
-- **Doc pass** (Compounding rule): `get_architecture_overview` → `get_hub_nodes` → `get_knowledge_gaps` → `list_communities` → `generate_wiki` to draft.
-
-### Maintenance
-
-Hooks auto-update on edit/commit. If stale, run `code-review-graph status`; re-run install if hooks aren't firing.
-
-## GitHub Issues
-
-Issue creation and labelling are automated by `.claude/hooks/issues-sync.mjs`. The filename→issue
-link lives in `.claude/issue-map.json` — never write an `**Issue:**` field into files.
-
-### Marking completion — the owner closes, never Claude (hard rule)
-**You (Claude) must NEVER close an issue or set its project-board Status to `Done`.** Marking
-incomplete work as done — especially a parent that still has open children — defeats the entire
-point of the issue tree (a clean, organising dashboard). Instead:
-
-- When you finish your part of an issue, apply the **`in-review`** label and **leave it open**
-  (`gh issue edit #N --add-label in-review --remove-label in-progress`). That puts it in the board's
-  *In review* column; the **owner** verifies and closes it.
-- **Never** mark a **parent** issue done, closed, or `in-review` while it has **any open sub-issue**.
-  A parent stays `in-progress` until every child is closed *by the owner*. (Sub-issues exist for
-  dashboard clarity — closing a parent with open children breaks that.)
-- Do **not** put `Closes #N` in a PR body (it auto-closes the issue on merge). Write "Part of #N"
-  instead; the owner closes after review.
-
-### When creating a spec or plan that belongs to a parent
-Add `**Parent:** <parent-filename.md>` to the file body alongside `**Date:**`, before writing.
-The hook resolves that filename to the parent issue and sets the sub-issue relationship. Use the
-parent's filename, not an issue number.
-
-### When all checkboxes in a plan file are checked off
-1. Look up the plan's issue number in `.claude/issue-map.json` (keyed by filename).
-2. Mark it **in-review** and leave it **open** — do NOT close it:
-   `gh issue edit #N --add-label in-review --remove-label in-progress`. The owner reviews and closes.
-3. Never close the parent spec/plan issue, and never mark it `in-review` while any sibling/child issue is still open — it stays `in-progress` until the owner closes its children.
-
-Do not manually create issues, edit labels, or close issues on folder moves — the hook and the
-folder location handle status.
+Issue lifecycle is hook-automated (`.claude/hooks/issues-sync.mjs`; filename→issue map in `.claude/issue-map.json`).
+**Hard rule: never close an issue or mark a parent done — the owner closes.** In PR bodies write "Part of #N", never `Closes #N`. Full lifecycle rules: `.claude/rules/issues.md` (loads with `docs/superpowers/**` files).
