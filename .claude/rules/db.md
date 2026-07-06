@@ -19,7 +19,7 @@ paths:
 1. Edit `packages/db/src/schema/` and hand-author the matching `.sql` migration.
 2. Verify locally: `pnpm migrate:dev` against the local stack (`127.0.0.1:55322`), then run the affected package tests.
 3. Destructive local reset if needed: `pnpm db:reset:dev` (local stack only).
-4. Prod: CI applies migrations automatically on deploy (`.github/workflows/deploy.yml`). Manual `pnpm migrate:prod` (loads `infra/secrets.env`, targets the pooler) is for out-of-band inspection/recovery only.
+4. Prod: CI applies migrations automatically on deploy (`.github/workflows/deploy.yml`). Manual `pnpm migrate:prod` (loads `infra/secrets.env`, targets the pooler) is for out-of-band inspection/recovery only — and prod DB operations / Supabase MCP tools go through the `db-specialist` subagent, never the main conversation.
 
 ## Local vs prod connections
 
