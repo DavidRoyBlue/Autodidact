@@ -9,6 +9,7 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import * as T from "./lib/session-tie.mjs";
+import { closestOpenIssue } from "./lib/classify.mjs";
 
 const sh = (cmd, args, opts = {}) =>
   execFileSync(cmd, args, { encoding: "utf8", ...opts }).trim();
@@ -56,20 +57,8 @@ function run() {
   }
 
   // 2. Ask claude -p (Haiku) which open issue this prompt's work is closest to.
-  const openIssues = sh("gh", ["issue", "list", "--state", "open", "--json", "number,title",
-    "--jq", '.[] | "\\(.number): \\(.title)"']);
-  let answer = "null";
-  if (openIssues) {
-    const q =
-      `First prompt of a coding session:\n${prompt.slice(0, 2000)}\n\nOpen issues:\n${openIssues}\n\n` +
-      `Which ONE open issue is this session's work most closely related to? ` +
-      `Return ONLY that issue's number, or the word null if none is a good fit.`;
-    try {
-      answer = sh("claude", ["-p", "--model", "claude-haiku-4-5", q],
-        { env: { ...process.env, ISSUES_SYNC_NESTED: "1" } });
-    } catch { /* fall through to standalone issue */ }
-  }
-  const parent = /^\s*\d+\s*$/.test(answer) ? answer.trim() : null;
+  const parent = closestOpenIssue("First prompt of a coding session", prompt.slice(0, 2000),
+    "Which ONE open issue is this session's work most closely related to?");
 
   // 3. Create the session's issue — nested under the match when there is one.
   const url = sh("gh", ["issue", "create", "--title", T.titleFromPrompt(prompt),
