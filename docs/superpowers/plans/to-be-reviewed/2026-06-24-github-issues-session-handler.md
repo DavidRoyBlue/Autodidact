@@ -1,5 +1,9 @@
 # GitHub Issues — Session Handler Implementation Plan
 
+> **Superseded in part (2026-07-18):** the Stop hook still exists at
+> `.claude/hooks/session-issues.mjs`, but its shared helpers (`isSuperpowersFile`, sub-issue
+> linking) now come from `issuekit/` (see `issuekit/README.md`).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Date:** 2026-06-24

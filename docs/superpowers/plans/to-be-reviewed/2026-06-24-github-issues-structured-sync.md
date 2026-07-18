@@ -1,5 +1,9 @@
 # GitHub Issues — Structured Sync Implementation Plan
 
+> **Superseded (2026-07-18):** the hook + helper described here were consolidated into
+> `issuekit/` (`cli.mjs sync`, rules in `issuekit/rules.json`). This plan is kept as the
+> historical record of what was built; see `issuekit/README.md` for the current system.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Date:** 2026-06-24

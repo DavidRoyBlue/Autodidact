@@ -2,26 +2,11 @@
 // .claude/hooks/session-issues.mjs — Stop: record each freeform session as a born-closed issue,
 // nested as a sub-issue under the closest related open issue when one exists (parent stays open),
 // otherwise standalone. Never closes an existing open issue.
-import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { parseTranscript, hasSuperpowersWrite, extractSummary } from "./lib/transcript.mjs";
 import { readTie } from "./lib/session-tie.mjs";
 import { closestOpenIssue } from "./lib/classify.mjs";
-
-const sh = (cmd, args, opts = {}) =>
-  execFileSync(cmd, args, { encoding: "utf8", ...opts }).trim();
-
-function nodeId(issueNumber) {
-  return sh("gh", ["issue", "view", String(issueNumber), "--json", "id", "-q", ".id"]);
-}
-function linkSubIssue(parentNumber, childNumber) {
-  sh("gh", ["api", "graphql", "-f", `query=
-    mutation($parentId: ID!, $childId: ID!) {
-      addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) { issue { number } }
-    }`,
-    "-f", `parentId=${nodeId(parentNumber)}`,
-    "-f", `childId=${nodeId(childNumber)}`]);
-}
+import { sh, linkSubIssue } from "../../issuekit/lib/gh.mjs";
 
 function run() {
   // Recursion guard: the claude -p call below sets this; bail if we are that nested call.

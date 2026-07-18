@@ -1,15 +1,8 @@
 name: Project status sync
 
-# Syncs the Autodidact project board's Status field from issue labels:
-#   label "ready"       -> Status "Ready"
-#   label "in-progress" -> Status "In progress"
-#   label "in-review"   -> Status "In review"
-# Moves a card FORWARD only (never backward, never off Done), so it advances
-# e.g. In progress -> In review on a label change without overriding manual
-# triage. Requires a repo secret PROJECT_PAT — a PAT (classic:
-# scopes `repo` + `project`) with write access to the user project — because the
-# default GITHUB_TOKEN cannot write user-owned Projects V2. Without the secret
-# the job is a no-op (see the guard in the first step).
+# Thin caller — mapping and forward-only rules live in issuekit (see issuekit/README.md).
+# Needs the PROJECT_PAT secret (classic PAT, scopes repo + project) because the default
+# GITHUB_TOKEN cannot write user-owned Projects V2; without it issuekit no-ops.
 
 on:
   issues:
@@ -25,62 +18,6 @@ jobs:
     timeout-minutes: 5
     env:
       GH_TOKEN: ${{ secrets.PROJECT_PAT }}
-      OWNER: ${{ github.repository_owner }}
-      PROJECT_NUMBER: "4"
-      ISSUE_NODE_ID: ${{ github.event.issue.node_id }}
-      ISSUE_NUMBER: ${{ github.event.issue.number }}
     steps:
-      - name: Seed project Status from label
-        run: |
-          set -euo pipefail
-          if [ -z "${GH_TOKEN:-}" ]; then
-            echo "PROJECT_PAT secret not set — skipping (no-op)."; exit 0
-          fi
-
-          # 1. Pick target Status from labels (most-advanced wins). No match -> nothing to do.
-          labels=$(jq -r '.issue.labels[].name' "$GITHUB_EVENT_PATH")
-          if   grep -qx "in-review"   <<<"$labels"; then target="In review"
-          elif grep -qx "in-progress" <<<"$labels"; then target="In progress"
-          elif grep -qx "ready"       <<<"$labels"; then target="Ready"
-          else echo "Issue #$ISSUE_NUMBER has no ready/in-progress/in-review label — skipping."; exit 0
-          fi
-
-          # 2. Resolve project id, Status field id, and the target option id (by name, for robustness).
-          read -r PROJECT_ID FIELD_ID OPT_ID < <(
-            gh api graphql -f login="$OWNER" -F number="$PROJECT_NUMBER" -f query='
-              query($login:String!, $number:Int!){
-                user(login:$login){ projectV2(number:$number){
-                  id
-                  field(name:"Status"){ ... on ProjectV2SingleSelectField { id options { id name } } }
-                } } }' \
-              --jq ".data.user.projectV2 | .id, .field.id, (.field.options[] | select(.name==\"$target\") | .id)" \
-            | paste -sd' '
-          )
-          if [ -z "${OPT_ID:-}" ]; then echo "No '$target' option on the board's Status field — aborting."; exit 1; fi
-
-          # 3. Ensure the issue is on the board (idempotent: returns the existing item if already added).
-          ITEM_ID=$(gh api graphql -f projectId="$PROJECT_ID" -f contentId="$ISSUE_NODE_ID" -f query='
-            mutation($projectId:ID!, $contentId:ID!){
-              addProjectV2ItemById(input:{projectId:$projectId, contentId:$contentId}){ item { id } } }' \
-            --jq '.data.addProjectV2ItemById.item.id')
-
-          # 4. Move the card FORWARD only (Backlog<Ready<In progress<In review), never off Done —
-          #    advances e.g. In progress -> In review on a label change, without yanking a card
-          #    backward or overriding a manual move to a later column.
-          CUR=$(gh api graphql -f itemId="$ITEM_ID" -f query='
-            query($itemId:ID!){ node(id:$itemId){ ... on ProjectV2Item {
-              fieldValueByName(name:"Status"){ ... on ProjectV2ItemFieldSingleSelectValue { name } } } } }' \
-            --jq '.data.node.fieldValueByName.name // ""')
-          rank() { case "$1" in Ready) echo 1;; "In progress") echo 2;; "In review") echo 3;; Done) echo 4;; *) echo 0;; esac; }
-          if [ "$CUR" = "Done" ]; then echo "Issue #$ISSUE_NUMBER is Done — leaving it."; exit 0; fi
-          if [ -n "$CUR" ] && [ "$(rank "$CUR")" -ge "$(rank "$target")" ]; then
-            echo "Issue #$ISSUE_NUMBER already at '$CUR' (>= '$target') — leaving as-is."; exit 0
-          fi
-
-          # 5. Set the Status.
-          gh api graphql -f projectId="$PROJECT_ID" -f itemId="$ITEM_ID" -f fieldId="$FIELD_ID" -f optId="$OPT_ID" -f query='
-            mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optId:String!){
-              updateProjectV2ItemFieldValue(input:{
-                projectId:$projectId, itemId:$itemId, fieldId:$fieldId,
-                value:{ singleSelectOptionId:$optId } }){ projectV2Item { id } } }' >/dev/null
-          echo "Issue #$ISSUE_NUMBER → Status '$target'."
+      - uses: actions/checkout@v4
+      - run: node issuekit/cli.mjs check board-sync --issue "${{ github.event.issue.number }}" --fix

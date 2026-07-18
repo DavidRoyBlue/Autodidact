@@ -11,6 +11,23 @@
 > all model calls use the `claude -p` CLI subprocess (no `ANTHROPIC_API_KEY`); folder names
 > corrected to the real tree (`to-be-reviewed`, `in-progress`, `_done`, `plan-in-action`).
 
+> **Revision note (2026-07-18):** Updated to match the shipped implementation, which has
+> superseded parts of this spec:
+> - All logic now lives in **`issuekit/`** (one config, `issuekit/rules.json`; one CLI,
+>   `issuekit/cli.mjs`). The hook is a thin caller of `cli.mjs sync`; backfill is `cli.mjs sync`
+>   run standalone. See `issuekit/README.md`.
+> - **D3 is superseded on `in-review`:** the shipped model is owner-closes — Claude never
+>   closes an issue; it applies the `in-review` label as handoff, and the label is part of the
+>   bootstrap (`cli.mjs labels --ensure`). Labels remain a creation-time snapshot otherwise.
+> - **D9 is superseded:** PR bodies say "Part of #N", never "Closes #N" — auto-close on merge
+>   would bypass the owner's review gate.
+> - **Phase 2's CLAUDE.md snippet is superseded** by the current `## GitHub Issues` section in
+>   the root `CLAUDE.md` (checkbox completion → mark `in-review`, owner closes).
+> - `plan-in-action/` was dropped — the directory never existed.
+> - The out-of-scope items "in-review label" and "Projects board" are now in scope, enforced
+>   server-side by `parent-close-guard.yml` and `project-status-sync.yml` (thin callers of
+>   `cli.mjs check`).
+
 ---
 
 ## Context

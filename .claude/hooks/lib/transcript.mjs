@@ -1,4 +1,4 @@
-import { isSuperpowersFile } from "./issues.mjs";
+import { isSuperpowersFile } from "../../../issuekit/lib/files.mjs";
 
 export function parseTranscript(jsonlText) {
   const out = [];
