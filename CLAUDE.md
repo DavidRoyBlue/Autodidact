@@ -307,38 +307,17 @@ Hooks auto-update on edit/commit. If stale, run `code-review-graph status`; re-r
 
 ## GitHub Issues
 
-Issue creation and labelling are automated by `.claude/hooks/issues-sync.mjs`. The filename→issue
-link lives in `.claude/issue-map.json` — never write an `**Issue:**` field into files.
-
-Freeform sessions are tied to an issue on their first prompt by `.claude/hooks/first-prompt-issue.mjs`
-(prompt references an open issue → tied to it; else a new sub-issue under the closest related open
-issue; else a new standalone issue) and recorded at Stop by `session-issues.mjs`, which nests the
-session record under the tied issue.
-
-### Marking completion — the owner closes, never Claude (hard rule)
-**You (Claude) must NEVER close an issue or set its project-board Status to `Done`.** Marking
-incomplete work as done — especially a parent that still has open children — defeats the entire
-point of the issue tree (a clean, organising dashboard). Instead:
-
-- When you finish your part of an issue, apply the **`in-review`** label and **leave it open**
-  (`gh issue edit #N --add-label in-review --remove-label in-progress`). That puts it in the board's
-  *In review* column; the **owner** verifies and closes it.
-- **Never** mark a **parent** issue done, closed, or `in-review` while it has **any open sub-issue**.
-  A parent stays `in-progress` until every child is closed *by the owner*. (Sub-issues exist for
-  dashboard clarity — closing a parent with open children breaks that.)
-- Do **not** put `Closes #N` in a PR body (it auto-closes the issue on merge). Write "Part of #N"
-  instead; the owner closes after review.
-
-### When creating a spec or plan that belongs to a parent
-Add `**Parent:** <parent-filename.md>` to the file body alongside `**Date:**`, before writing.
-The hook resolves that filename to the parent issue and sets the sub-issue relationship. Use the
-parent's filename, not an issue number.
-
-### When all checkboxes in a plan file are checked off
-1. Look up the plan's issue number in `.claude/issue-map.json` (keyed by filename).
-2. Mark it **in-review** and leave it **open** — do NOT close it:
-   `gh issue edit #N --add-label in-review --remove-label in-progress`. The owner reviews and closes.
-3. Never close the parent spec/plan issue, and never mark it `in-review` while any sibling/child issue is still open — it stays `in-progress` until the owner closes its children.
-
-Do not manually create issues, edit labels, or close issues on folder moves — the hook and the
+The issue system is implemented in `issuekit/` — rules live in `issuekit/rules.json`; run
+`node issuekit/cli.mjs --help`. Plan/spec files under `docs/superpowers/` are mirrored to an
+issue tree by the Write hook (sidecar `.claude/issue-map.json`; never write an `**Issue:**`
+field into files); declare hierarchy with `**Parent:** <parent-filename.md>` in the file body.
+Freeform sessions are tied to an issue at first prompt (`.claude/hooks/first-prompt-issue.mjs`)
+and recorded at Stop (`session-issues.mjs`); server-side workflows enforce the rules
+(registered in `automations/`). Do not manually create issues or edit labels — the hook and
 folder location handle status.
+
+**Hard rule — the owner closes, never Claude.** Never close an issue or set board Status to
+`Done`. When your part is done: `gh issue edit #N --add-label in-review --remove-label
+in-progress` and leave it open (never on a parent with open sub-issues — it stays
+`in-progress` until the owner closes its children). Write "Part of #N" in PR bodies, never
+"Closes #N".

@@ -1,7 +1,4 @@
-import { execFileSync } from "node:child_process";
-
-const sh = (cmd, args, opts = {}) =>
-  execFileSync(cmd, args, { encoding: "utf8", ...opts }).trim();
+import { sh } from "../../../issuekit/lib/gh.mjs";
 
 function listOpenIssues() {
   return sh("gh", ["issue", "list", "--state", "open", "--json", "number,title",

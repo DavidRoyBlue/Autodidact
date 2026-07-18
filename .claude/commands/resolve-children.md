@@ -8,9 +8,8 @@ Resolve the child issues of parent issue **#$1**.
 This command runs in two phases. **Phase 1 always runs first and always stops for my
 explicit approval.** Never start Phase 2 without it.
 
-Use only the `gh` CLI patterns already in this repo (see `.claude/hooks/issues-sync.mjs`
-and `.github/workflows/parent-close-guard.yml`) — no new auth, no new tokens, no new
-dependencies.
+Use only the `gh` CLI patterns already in this repo (see `issuekit/lib/gh.mjs`) — no new
+auth, no new tokens, no new dependencies.
 
 ---
 

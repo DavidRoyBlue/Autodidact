@@ -6,25 +6,10 @@
 //   3. a new standalone issue.
 // The tie is stored in the OS tmpdir (lib/session-tie.mjs) and consumed by
 // session-issues.mjs (Stop) to nest the session record without a second LLM call.
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import * as T from "./lib/session-tie.mjs";
 import { classifyFirstPrompt } from "./lib/classify.mjs";
-
-const sh = (cmd, args, opts = {}) =>
-  execFileSync(cmd, args, { encoding: "utf8", ...opts }).trim();
-
-function nodeId(issueNumber) {
-  return sh("gh", ["issue", "view", String(issueNumber), "--json", "id", "-q", ".id"]);
-}
-function linkSubIssue(parentNumber, childNumber) {
-  sh("gh", ["api", "graphql", "-f", `query=
-    mutation($parentId: ID!, $childId: ID!) {
-      addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) { issue { number } }
-    }`,
-    "-f", `parentId=${nodeId(parentNumber)}`,
-    "-f", `childId=${nodeId(childNumber)}`]);
-}
+import { sh, linkSubIssue } from "../../issuekit/lib/gh.mjs";
 
 function tie(sessionId, issue, note) {
   T.writeTie(sessionId, { issue: Number(issue) });

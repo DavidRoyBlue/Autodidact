@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node /home/bkd/Projects/Autodidact/.claude/hooks/issues-sync.mjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/issuekit/cli.mjs sync"
           }
         ]
       }

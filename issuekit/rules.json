@@ -1,0 +1,48 @@
+{
+  "$comment": "Single source of truth for the GitHub issue system. Consumed by issuekit/cli.mjs; documented in issuekit/README.md. Change rules here, nowhere else.",
+  "map": ".claude/issue-map.json",
+  "plans": {
+    "$comment": "Plan/spec files mirrored to issues. Folder = live status SSOT (docs/superpowers/CLAUDE.md); labels are a creation-time snapshot.",
+    "root": "docs/superpowers",
+    "statusFolders": ["to-be-reviewed", "in-progress", "_done"],
+    "doneFolder": "_done",
+    "folderLabels": {
+      "to-be-reviewed": "ready",
+      "in-progress": "in-progress",
+      "_done": "ready"
+    },
+    "defaultLabel": "ready"
+  },
+  "labels": {
+    "ready": { "color": "0075ca", "description": "Created in to-be-reviewed/ — proposed, not started" },
+    "in-progress": { "color": "e4e669", "description": "Created in in-progress/ or picked up by a session" },
+    "in-review": { "color": "d93f0b", "description": "Claude finished its part; awaiting owner review (never auto-Done)" }
+  },
+  "flow": {
+    "$comment": "Label state machine, least → most advanced. Closing an issue (= board Done) is owner-only; the agent's terminal action is applying the handoff label.",
+    "order": ["ready", "in-progress", "in-review"],
+    "handoffLabel": "in-review",
+    "closeAuthority": "owner",
+    "prReference": "Part of #N"
+  },
+  "board": {
+    "$comment": "GitHub Projects V2 board. Cards move forward only, never off the terminal status.",
+    "projectNumber": 4,
+    "ownerType": "user",
+    "statusField": "Status",
+    "labelToStatus": {
+      "ready": "Ready",
+      "in-progress": "In progress",
+      "in-review": "In review"
+    },
+    "statusOrder": ["Ready", "In progress", "In review", "Done"],
+    "forwardOnly": true,
+    "terminalStatus": "Done"
+  },
+  "integrity": {
+    "parentClose": {
+      "rule": "An issue with open sub-issues is a parent and must stay open",
+      "remedy": "reopen and comment"
+    }
+  }
+}
