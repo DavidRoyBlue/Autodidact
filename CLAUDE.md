@@ -310,6 +310,11 @@ Hooks auto-update on edit/commit. If stale, run `code-review-graph status`; re-r
 Issue creation and labelling are automated by `.claude/hooks/issues-sync.mjs`. The filename→issue
 link lives in `.claude/issue-map.json` — never write an `**Issue:**` field into files.
 
+Freeform sessions are tied to an issue on their first prompt by `.claude/hooks/first-prompt-issue.mjs`
+(prompt references an open issue → tied to it; else a new sub-issue under the closest related open
+issue; else a new standalone issue) and recorded at Stop by `session-issues.mjs`, which nests the
+session record under the tied issue.
+
 ### Marking completion — the owner closes, never Claude (hard rule)
 **You (Claude) must NEVER close an issue or set its project-board Status to `Done`.** Marking
 incomplete work as done — especially a parent that still has open children — defeats the entire
