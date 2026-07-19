@@ -39,7 +39,13 @@ for tool in tmux docker pnpm node ss; do
 done
 docker info &>/dev/null || die "Docker is not running. Start Docker Desktop."
 [[ -f "$ROOT/workspace.yml" ]] || die "workspace.yml not found in $ROOT"
-node -e "require('yaml')" 2>/dev/null || die "yaml parser missing — run: pnpm install"
+# Stale node_modules (e.g. right after pulling a dep-changing commit) is a
+# repairable state — install rather than telling the user to.
+if ! node -e "require('yaml')" 2>/dev/null; then
+  step "Dependencies out of date — running pnpm install"
+  pnpm install
+  node -e "require('yaml')" 2>/dev/null || die "yaml parser still missing after pnpm install"
+fi
 ok "tmux, docker, pnpm, node, ss available"
 
 # ── Parse workspace.yml → tab-separated records ──────────────────────────────
