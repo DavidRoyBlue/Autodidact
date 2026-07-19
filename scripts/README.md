@@ -12,13 +12,45 @@ All scripts are run from the **monorepo root**:
 
 ```bash
 ./scripts/setup.sh   # one-time: install deps, create .env.dev, migrate DB
-pnpm dev             # every time: load .env.dev and start all backend services
-./scripts/mobile.sh  # in a separate terminal: start the Expo dev server
+pnpm workspace       # every time: full tmux workspace (Supabase + backend + mobile)
 ```
+
+Or run the pieces manually in separate terminals: `pnpm dev` (backend stack) and `./scripts/mobile.sh` (Expo).
 
 ---
 
 ## Script reference
+
+### `dev-workspace.sh`  (`pnpm workspace`)
+**Create, repair, and attach to the persistent dev workspace.** Idempotent — run it any time; it never duplicates sessions, panes, processes, or ports.
+
+Reads `workspace.yml` (the source of truth), starts the Supabase stack if it isn't running, then ensures the `autodidact` tmux session has:
+
+| Window   | Pane      | Command       | Health check                        |
+|----------|-----------|---------------|-------------------------------------|
+| `app`    | `backend` | `pnpm dev`    | port `3000` owned by pane's process |
+| `app`    | `mobile`  | `pnpm mobile` | port `8081` owned by pane's process |
+| `claude` | —         | — (preserved) | never touched by the script         |
+
+**Service detection.** Managed panes are tagged with the tmux pane option `@ws_id` (stable across pane-index changes). A pane is healthy when a process in its tree matches the pane's `match` regex **and** owns its health port. A pane sitting at a bare shell is restarted; a pane running an unexpected process is warned about, never killed. If a health port is held by a process outside the workspace, the script reports the conflict and does **not** start the service on an alternate port.
+
+**Common operations:**
+
+```bash
+pnpm workspace                                  # create / repair / attach
+./scripts/dev-workspace.sh --no-attach          # repair only (agents, scripts)
+tmux attach -t autodidact                       # attach later
+tmux list-windows -t autodidact                 # what windows exist
+tmux list-panes -a -F '#S:#W.#P #{pane_title} #{pane_current_command}'
+tmux capture-pane -pt autodidact:app.1          # inspect a pane's output
+docker ps --filter name=supabase                # infra containers
+```
+
+**Restart one service:** press `Ctrl+C` in its pane (or `tmux send-keys -t autodidact:app.<pane> C-c`), then re-run `pnpm workspace` — only the dead service is relaunched, in the same pane.
+
+**Stop safely:** `Ctrl+C` in the service panes, `pnpm stop` for the Supabase stack, `tmux kill-session -t autodidact` to drop the session. DB data persists in Docker volumes across `pnpm stop`, tmux exits, and reboots (wipe with `pnpm exec supabase stop --no-backup`). tmux panes/processes do **not** survive a reboot — recover with `pnpm workspace`.
+
+---
 
 ### `setup.sh`
 **First-time project setup.** Run once after cloning.

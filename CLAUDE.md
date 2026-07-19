@@ -47,6 +47,19 @@ ln -sf $(git rev-parse --show-superproject-working-tree || git rev-parse --show-
 
 ---
 
+## Development workspace policy
+
+The development workspace is owned by `workspace.yml`, `scripts/dev-workspace.sh`, and the Supabase CLI stack. Before starting any long-running development process:
+
+1. Run `pnpm workspace` (or `./scripts/dev-workspace.sh --no-attach` from an agent) — it is idempotent: it reuses healthy services and restarts dead ones in their designated pane.
+2. Inspect existing tmux and Docker state (`tmux list-panes -a -F '#S:#W.#P #{pane_title}'`, `docker ps`) before launching anything yourself.
+3. Never launch duplicate backend (`pnpm dev`), Expo/Metro, database, emulator, or watcher processes manually — each has exactly one designated pane in the `autodidact` session.
+4. Never use alternate ports to bypass an existing process.
+5. Short-lived commands (tests, lint, typecheck, builds, migrations, individual adb commands) may run independently.
+6. Never modify, kill, or send commands to the `claude` window in the `autodidact` session, or any `ClaudeHUB` window, unless explicitly requested.
+
+---
+
 ## Production & deployment
 
 Prod shape (GCP project, Cloud Run services, queues, mobile build profiles) is described in `PRODUCTION.md`. Binding rules:
