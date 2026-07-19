@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 # One command to run the Autodidact mobile app end-to-end from WSL2:
 #   1. Boot the Android emulator on the Windows host (idempotent, self-healing)
-#   2. Start Expo/Metro and open the app in Expo Go on that emulator
-#   3. Leave Metro running in the background so mobile-mcp can drive the app
+#   2. Require the custom DEV CLIENT (com.autodidact.app) on the device
+#   3. adb reverse 8081/3000/55321, start Metro if needed, open the app
 #
-# Expo SDK 52 (managed, Expo Go). We start *plain* Metro (`expo start`, NOT
-# `--android`) and open the app ourselves via an adb deep link in step 4. Why:
-# `expo start --android` PROMPTS to upgrade an already-installed-but-outdated Expo
-# Go and then aborts under non-interactive mode (no TTY). Plain Metro never touches
-# the device, so it can't prompt. Requires Expo Go already installed on the emulator
-# (install once with `expo start --android` interactively if it's a fresh AVD).
+# Expo SDK 52 + expo-dev-client. The app CANNOT run in Expo Go (native Google
+# sign-in crashes it on boot), so a missing dev client is a hard stop with build
+# instructions, not a fallback. We start *plain* Metro (`expo start`) and open
+# the project ourselves via the dev-client deep link — non-interactive-safe.
+# Design/spec: docs/superpowers/specs/ 2026-07-19-dev-environment-design.md.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,70 +31,70 @@ die()  { echo -e "${RED}✗ $*${NC}" >&2; exit 1; }
 
 METRO_LOG="$ROOT/.expo-dev.log"
 METRO_TIMEOUT="${METRO_TIMEOUT:-120}"
+APP_ID="com.autodidact.app"
+LINUX_ADB="$HOME/android-platform-tools/adb"
 
 # --- 1. emulator -------------------------------------------------------------
 info "▶ Step 1/3 — booting the emulator"
 bash "$SCRIPT_DIR/emulator.sh"
 
-# --- 2. Metro + open app -----------------------------------------------------
-# Idempotent: if Metro is already serving on :8081, the app is already running —
-# don't start a second Metro (it would collide on the port).
-# --max-time everywhere: under WSL mirrored networking, closed loopback ports HANG
-# the TCP connect (no RST) instead of refusing, so an unbounded curl blocks ~130s.
-if curl -fsS --max-time 2 "http://localhost:8081/status" >/dev/null 2>&1; then
-  ok "Metro already running on :8081 — app is already up (skipping a second start)"
-  echo -e "${CYAN}  Drive it via mobile-mcp; or stop Metro and re-run for a fresh start.${NC}"
-  exit 0
-fi
-
-info "▶ Step 2/3 — starting Expo/Metro and opening the app (log: .expo-dev.log)"
-: > "$METRO_LOG"
-# Start plain Metro via the package's `start` script (expo start) so expo resolves
-# from apps/mobile's deps — matches scripts/mobile.sh. CI=1 disables the interactive
-# terminal UI (safe for background); ANDROID_HOME=$ADB_SHIM is harmless here and kept
-# for consistency. nohup + background so Metro keeps serving after this script returns.
-( cd apps/mobile && CI=1 ANDROID_HOME="$ADB_SHIM" nohup pnpm start >>"$METRO_LOG" 2>&1 & )
-
-# --- 3. wait until Metro answers --------------------------------------------
-info "… waiting for Metro to be ready on :8081 (≤ ${METRO_TIMEOUT}s)"
-LINUX_ADB="$HOME/android-platform-tools/adb"
-deadline=$(( SECONDS + METRO_TIMEOUT ))
-ready=""
-while (( SECONDS < deadline )); do
-  if curl -fsS --max-time 2 "http://localhost:8081/status" >/dev/null 2>&1; then ready=1; break; fi
-  # abort fast on a fatal Expo failure instead of waiting out the full timeout
-  if grep -qiE 'CommandError|ELIFECYCLE|Command failed|adb ENOENT|EADDRINUSE' "$METRO_LOG" 2>/dev/null; then
-    die "Expo failed to start — see $METRO_LOG"$'\n'"$(tail -3 "$METRO_LOG")"
-  fi
-  sleep 2
-done
-[[ -n "$ready" ]] || die "Metro did not become ready within ${METRO_TIMEOUT}s — see $METRO_LOG"
-
-# --- 4. open the app in Expo Go via adb -------------------------------------
-# Metro is up; now open the project. adb reverse lets the device reach Metro on
-# localhost:8081, then we launch the Expo Go deep link (verified for this setup).
+# --- 2. device + dev client check --------------------------------------------
+# The app REQUIRES a custom dev client (native Google sign-in); in Expo Go it
+# crashes on boot, so a missing dev client is a hard stop, not a fallback.
+# Detection is by the expo-dev-launcher component, NOT package presence: the
+# `preview` profile APK shares the package name but is not a dev client (and
+# installing it replaces the dev client — they collide on the same AVD).
 serial=$(timeout 10 "$LINUX_ADB" devices | awk '$2=="device" && $1 ~ /^emulator-/{print $1; exit}')
-if [[ -n "$serial" ]]; then
-  if ! timeout 10 "$LINUX_ADB" -s "$serial" shell pm list packages 2>/dev/null | grep -q host.exp.exponent; then
-    warn "Expo Go isn't installed on $serial. Install it once: (cd apps/mobile && expo start --android) interactively, then re-run."
-  else
-    timeout 10 "$LINUX_ADB" -s "$serial" reverse tcp:8081 tcp:8081 >/dev/null 2>&1 || true
-    timeout 10 "$LINUX_ADB" -s "$serial" reverse tcp:55321 tcp:55321 >/dev/null 2>&1 || true
-    timeout 10 "$LINUX_ADB" -s "$serial" reverse tcp:3000 tcp:3000 >/dev/null 2>&1 || true
-    # Re-fire the open until the *project* (ExperienceActivity) foregrounds — not
-    # Expo Go's HomeActivity, which also contains "exponent". The deep link can land
-    # on Home if it fires a beat before Metro is reachable, so retry.
-    for _ in 1 2 3 4 5 6; do
-      fg=$(timeout 10 "$LINUX_ADB" -s "$serial" shell dumpsys activity activities 2>/dev/null | grep -i topResumedActivity)
-      [[ "$fg" == *ExperienceActivity* ]] && break
-      timeout 10 "$LINUX_ADB" -s "$serial" shell am start -a android.intent.action.VIEW \
-        -d "exp://127.0.0.1:8081" host.exp.exponent >/dev/null 2>&1 || true
-      sleep 3
-    done
-  fi
+[[ -n "$serial" ]] || die "no booted emulator visible to adb"
+
+if ! timeout 15 "$LINUX_ADB" -s "$serial" shell dumpsys package "$APP_ID" 2>/dev/null | grep -qi devlauncher; then
+  die "no dev client on $serial — the app cannot run in Expo Go (native Google sign-in).
+  Build:    cd apps/mobile && npx eas-cli build --profile development --platform android
+  Install:  adb install <downloaded .apk>
+  then re-run: pnpm mobile:run"
 fi
 
-ok "Metro is up and the app is open in Expo Go on the emulator${serial:+ ($serial)}"
-echo -e "${CYAN}  Drive it now via mobile-mcp (mobile_take_screenshot / mobile_list_elements_on_screen).${NC}"
-echo -e "${YELLOW}  Note: the backend is NOT started by this script — run 'pnpm dev' separately${NC}"
-echo -e "${YELLOW}        for working auth/API. Metro log: .expo-dev.log${NC}"
+# --- 3. adb reverses (EVERY path, incl. Metro-already-up) --------------------
+# The device reaches Metro (8081), the local API (3000) and the local Supabase
+# stack (55321) via localhost thanks to these.
+for port in 8081 3000 55321; do
+  timeout 10 "$LINUX_ADB" -s "$serial" reverse "tcp:$port" "tcp:$port" >/dev/null 2>&1 || true
+done
+
+# --- 4. Metro (start only if not already serving) ----------------------------
+# --max-time everywhere: under WSL mirrored networking, closed loopback ports
+# HANG the TCP connect (no RST) instead of refusing — unbounded curl blocks ~130s.
+if ! curl -fsS --max-time 2 "http://localhost:8081/status" >/dev/null 2>&1; then
+  info "▶ Starting Expo/Metro (log: .expo-dev.log)"
+  : > "$METRO_LOG"
+  ( cd apps/mobile && CI=1 ANDROID_HOME="$ADB_SHIM" nohup pnpm start >>"$METRO_LOG" 2>&1 & )
+  info "… waiting for Metro on :8081 (≤ ${METRO_TIMEOUT}s)"
+  deadline=$(( SECONDS + METRO_TIMEOUT ))
+  ready=""
+  while (( SECONDS < deadline )); do
+    if curl -fsS --max-time 2 "http://localhost:8081/status" >/dev/null 2>&1; then ready=1; break; fi
+    if grep -qiE 'CommandError|ELIFECYCLE|Command failed|adb ENOENT|EADDRINUSE' "$METRO_LOG" 2>/dev/null; then
+      die "Expo failed to start — see $METRO_LOG"$'\n'"$(tail -3 "$METRO_LOG")"
+    fi
+    sleep 2
+  done
+  [[ -n "$ready" ]] || die "Metro did not become ready within ${METRO_TIMEOUT}s — see $METRO_LOG"
+else
+  ok "Metro already running on :8081"
+fi
+
+# --- 5. open the project in the dev client -----------------------------------
+# Idempotent: re-fires the deep link until the app is foregrounded.
+fg=""
+for _ in 1 2 3 4 5 6; do
+  fg=$(timeout 10 "$LINUX_ADB" -s "$serial" shell dumpsys activity activities 2>/dev/null | grep -i topResumedActivity || true)
+  [[ "$fg" == *"$APP_ID"* ]] && break
+  timeout 10 "$LINUX_ADB" -s "$serial" shell am start -a android.intent.action.VIEW \
+    -d "autodidact://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081" "$APP_ID" >/dev/null 2>&1 || true
+  sleep 3
+done
+[[ "$fg" == *"$APP_ID"* ]] || warn "app not confirmed foregrounded — check the emulator screen"
+
+ok "Dev client is open with Metro serving${serial:+ ($serial)}"
+echo -e "${CYAN}  Drive it via mobile-mcp (mobile_take_screenshot / mobile_list_elements_on_screen).${NC}"
+echo -e "${YELLOW}  Note: backend is NOT started by this script — run 'pnpm dev' separately. Metro log: .expo-dev.log${NC}"
