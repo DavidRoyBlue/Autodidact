@@ -39,6 +39,7 @@ Done plans are never deleted; they record how and why something was built. Their
 |---|---|
 | [2026-05-14 — Sync main: SessionStart hook](to-be-reviewed/2026-05-14-sync-main-session-start-hook.md) | Proposed; hook script not yet created |
 | [2026-06-22 — Onboarding Course (Spec 3/4)](to-be-reviewed/2026-06-22-onboarding-course-implementation.md) | Auto-enroll + placeholder seed + first-launch deep-link; resolves Spec 3 D9/D10 |
+| [2026-07-19 — Working Mobile Dev Environment](to-be-reviewed/2026-07-19-dev-environment.md) | Assets → EAS dev client → run-mobile wiring → local Google auth; spec in [specs/to-be-reviewed](../specs/to-be-reviewed/2026-07-19-dev-environment-design.md) |
 
 ### 🟡 In progress
 

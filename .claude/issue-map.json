@@ -167,6 +167,10 @@
     "issue": 174,
     "parent": null
   },
+  "2026-07-19-dev-environment.md": {
+    "issue": 175,
+    "parent": "2026-07-19-dev-environment-design.md"
+  },
   "GitHub-Issues-Lifecycle.md": {
     "issue": 53,
     "parent": null
