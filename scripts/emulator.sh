@@ -80,11 +80,12 @@ fi
 if ! timeout 10 "$LINUX_ADB" devices | grep -qE '^emulator-[0-9]+[[:space:]]+device$'; then
   info "▶ Booting AVD: ${BOLD}$AVD${NC}${CYAN} (detached on Windows host)…${NC}"
   EMU_WIN="$(wslpath -w "$WIN_EMU")"
-  # `start ""` => empty window title, then the quoted exe path; detaches from the
-  # WSL process tree so the emulator survives this shell exiting. (UNC-path warning
-  # from cmd.exe is harmless.)
+  # `start ""` => empty window title, then the quoted exe path. Launched in the
+  # background with stdin/stdout detached: the emulator inherits cmd.exe's handles,
+  # so a foreground call would block until the emulator EXITS (WSL interop waits on
+  # the pipes). Launch failures are caught by the register timeout below.
   cmd.exe /c start "" "$EMU_WIN" -avd "$AVD" -gpu host -no-boot-anim -no-snapshot-save \
-    >/dev/null 2>&1 || die "failed to launch emulator.exe (AVD '$AVD', $EMU_WIN)"
+    </dev/null >/dev/null 2>&1 &
 else
   info "An emulator is registered but not yet the booted target — waiting…"
 fi

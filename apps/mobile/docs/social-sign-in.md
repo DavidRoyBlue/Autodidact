@@ -51,7 +51,7 @@ Social sign-in (Google native + Facebook web-PKCE) requires configuration in thr
      # Copy the "SHA-1 fingerprint"
      ```
    - Create an Android OAuth client with:
-     - **Package name:** `com.blueking.autodidact`
+     - **Package name:** `com.autodidact.app` (must match `android.package` in `app.json`)
      - **SHA-1 certificate fingerprint:** (paste the dev keystore SHA-1)
      - Click **Create**
    - For the **production key**, repeat with the prod keystore SHA-1. **This second client ID is critical — forgetting it is the usual cause of "Google works in dev, fails in prod."**

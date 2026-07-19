@@ -40,7 +40,9 @@ bash "$SCRIPT_DIR/emulator.sh"
 # --- 2. Metro + open app -----------------------------------------------------
 # Idempotent: if Metro is already serving on :8081, the app is already running —
 # don't start a second Metro (it would collide on the port).
-if curl -fsS "http://localhost:8081/status" >/dev/null 2>&1; then
+# --max-time everywhere: under WSL mirrored networking, closed loopback ports HANG
+# the TCP connect (no RST) instead of refusing, so an unbounded curl blocks ~130s.
+if curl -fsS --max-time 2 "http://localhost:8081/status" >/dev/null 2>&1; then
   ok "Metro already running on :8081 — app is already up (skipping a second start)"
   echo -e "${CYAN}  Drive it via mobile-mcp; or stop Metro and re-run for a fresh start.${NC}"
   exit 0
@@ -60,7 +62,7 @@ LINUX_ADB="$HOME/android-platform-tools/adb"
 deadline=$(( SECONDS + METRO_TIMEOUT ))
 ready=""
 while (( SECONDS < deadline )); do
-  if curl -fsS "http://localhost:8081/status" >/dev/null 2>&1; then ready=1; break; fi
+  if curl -fsS --max-time 2 "http://localhost:8081/status" >/dev/null 2>&1; then ready=1; break; fi
   # abort fast on a fatal Expo failure instead of waiting out the full timeout
   if grep -qiE 'CommandError|ELIFECYCLE|Command failed|adb ENOENT|EADDRINUSE' "$METRO_LOG" 2>/dev/null; then
     die "Expo failed to start — see $METRO_LOG"$'\n'"$(tail -3 "$METRO_LOG")"

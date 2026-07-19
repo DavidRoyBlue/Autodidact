@@ -17,6 +17,7 @@ Code-level documentation (README files in service directories) lives alongside t
 | [product.md](product.md) | Product vision, teaching model, core user flows |
 | [roadmap.md](roadmap.md) | Phase-by-phase feature roadmap |
 | [stack.md](stack.md) | Technology choices and rationale |
+| [deployment.md](deployment.md) | Operator runbook: how to run/ship dev and prod, what's wired and what isn't |
 | [architecture/](architecture/) | System design: overview, data model, infrastructure, C4 diagrams, ADRs |
 | [superpowers/](superpowers/) | Implementation plans and design specs |
 | [templates/](templates/) | Templates for `CLAUDE.md` and `README.md` files |
