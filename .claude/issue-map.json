@@ -163,6 +163,10 @@
     "issue": 102,
     "parent": "2026-06-27-mobile-ui-ux-overhaul.md"
   },
+  "2026-07-19-dev-environment-design.md": {
+    "issue": 174,
+    "parent": null
+  },
   "GitHub-Issues-Lifecycle.md": {
     "issue": 53,
     "parent": null

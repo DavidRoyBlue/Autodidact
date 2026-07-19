@@ -38,6 +38,7 @@ A spec's **status is the subfolder it lives in** — this is the single source o
 | [2026-05-14 — Sync main: SessionStart hook](to-be-reviewed/2026-05-14-sync-main-session-start-hook.md) | [to-be-reviewed](../plans/to-be-reviewed/2026-05-14-sync-main-session-start-hook.md) |
 | [2026-06-19 — Onboarding Course + Auto-Enroll](to-be-reviewed/2026-06-19-onboarding-course-design.md) (Spec 3/4) | _pending_ |
 | [2026-06-27 — UI/UX Overhaul](to-be-reviewed/2026-06-27-mobile-ui-ux-overhaul.md) (umbrella, issue #85) | _6 parts below_ |
+| [2026-07-19 — Working Mobile Dev Environment](to-be-reviewed/2026-07-19-dev-environment-design.md) | _pending_ |
 | &nbsp;&nbsp;↳ [Part 1 — Inspiration & component research](to-be-reviewed/2026-06-27-mobile-uiux-1-inspiration-research.md) | _pending_ |
 | &nbsp;&nbsp;↳ [Part 2 — Current-app audit](to-be-reviewed/2026-06-27-mobile-uiux-2-current-app-audit.md) | _pending_ |
 | &nbsp;&nbsp;↳ [Part 3 — Information architecture](to-be-reviewed/2026-06-27-mobile-uiux-3-information-architecture.md) | _pending_ |
