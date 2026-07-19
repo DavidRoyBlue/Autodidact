@@ -39,12 +39,15 @@ Reads `workspace.yml` (the source of truth), starts the Supabase stack if it isn
 ```bash
 pnpm workspace                                  # create / repair / attach
 ./scripts/dev-workspace.sh --no-attach          # repair only (agents, scripts)
+./scripts/dev-workspace.sh --check              # validate workspace.yml + tools, change nothing
 tmux attach -t autodidact                       # attach later
 tmux list-windows -t autodidact                 # what windows exist
-tmux list-panes -a -F '#S:#W.#P #{pane_title} #{pane_current_command}'
-tmux capture-pane -pt autodidact:app.1          # inspect a pane's output
+tmux list-panes -a -F '#S:#W.#P #{@ws_id} #{pane_current_command}'
+tmux capture-pane -pt autodidact:app.1          # inspect a pane's output (index from list-panes)
 docker ps --filter name=supabase                # infra containers
 ```
+
+Caveats: the script assumes it owns the `autodidact` tmux session — don't reuse that name for unrelated work. On WSL2, ports held by Windows-side processes are invisible to `ss`, so conflict detection only sees Linux-side listeners.
 
 **Restart one service:** press `Ctrl+C` in its pane (or `tmux send-keys -t autodidact:app.<pane> C-c`), then re-run `pnpm workspace` — only the dead service is relaunched, in the same pane.
 

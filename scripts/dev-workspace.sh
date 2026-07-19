@@ -3,7 +3,8 @@
 # tmux session described by workspace.yml, and starts the Supabase stack.
 #
 #   pnpm workspace              # create / repair / attach
-#   pnpm workspace --no-attach  # create / repair only (agents, CI)
+#   pnpm workspace --no-attach  # create / repair only (agents, scripts)
+#   pnpm workspace --check      # validate tools + workspace.yml, change nothing
 #
 # Safe to run repeatedly: reuses healthy services, restarts dead ones in their
 # designated pane, never duplicates processes, never starts on alternate ports,
@@ -22,8 +23,14 @@ ok()   { echo -e "${GREEN}✓ $*${NC}"; }
 warn() { echo -e "${YELLOW}⚠ $*${NC}"; }
 die()  { echo -e "${RED}✗ $*${NC}"; exit 1; }
 
-NO_ATTACH=0
-[[ "${1:-}" == "--no-attach" ]] && NO_ATTACH=1
+NO_ATTACH=0; CHECK=0
+for arg in "$@"; do
+  case "$arg" in
+    --no-attach) NO_ATTACH=1 ;;
+    --check)     CHECK=1 ;;
+    *) die "Unknown argument: $arg (usage: dev-workspace.sh [--no-attach|--check])" ;;
+  esac
+done
 
 # ── Pre-flight ───────────────────────────────────────────────────────────────
 step "Pre-flight checks"
@@ -63,6 +70,12 @@ EOF
 
 SESSION="$(awk -F'\t' '$1=="SESSION"{print $2}' <<<"$CONFIG")"
 
+if [[ "$CHECK" == 1 ]]; then
+  NPANES="$(awk -F'\t' '$1=="PANE"' <<<"$CONFIG" | wc -l)"
+  ok "workspace.yml valid: session '$SESSION', $NPANES managed pane(s). Nothing changed."
+  exit 0
+fi
+
 # ── Infra: Supabase stack (idempotent; supabase start reuses running stack) ──
 if grep -q $'^INFRA\tsupabase$' <<<"$CONFIG"; then
   if pnpm exec supabase status &>/dev/null; then
@@ -75,11 +88,14 @@ if grep -q $'^INFRA\tsupabase$' <<<"$CONFIG"; then
 fi
 
 # ── Process-tree helpers ─────────────────────────────────────────────────────
+# Note: children that daemonize (reparent to init) escape the tree — fine for
+# pnpm dev / expo, which keep their process groups under the pane shell.
 descendants() { # pid → all descendant pids
-  local kids; kids="$(ps -o pid= --ppid "$1" 2>/dev/null | tr -d ' ')"
+  local kids; kids="$(ps -o pid= --ppid "$1" 2>/dev/null | tr -d ' ' || true)"
   local k; for k in $kids; do echo "$k"; descendants "$k"; done
 }
 
+# An empty MATCH_RE matches any process (any descendant counts as the service).
 tree_matches() { # pids... — does any cmdline match regex $MATCH_RE?
   local p; for p in "$@"; do
     tr '\0' ' ' <"/proc/$p/cmdline" 2>/dev/null | grep -qE "$MATCH_RE" && return 0
@@ -120,9 +136,11 @@ while IFS=$'\t' read -r _ WNAME WMODE _; do
 done < <(awk -F'\t' '$1=="WINDOW"' <<<"$CONFIG")
 
 # ── Managed panes ────────────────────────────────────────────────────────────
-find_pane() { # window ws_id → pane_id or empty
-  tmux list-panes -t "=$SESSION:$1" -F $'#{pane_id}\t#{@ws_id}' 2>/dev/null \
-    | awk -F'\t' -v id="$2" '$2==id{print $1; exit}'
+# Session-wide on purpose: a managed pane that was moved to another window or
+# survived a window rename must still be found, or we'd start a duplicate.
+find_pane() { # ws_id → pane_id or empty
+  tmux list-panes -s -t "=$SESSION" -F $'#{pane_id}\t#{@ws_id}' 2>/dev/null \
+    | awk -F'\t' -v id="$1" '$2==id{print $1; exit}'
 }
 
 claim_idle_pane() { # window → untagged pane running a bare shell, or empty
@@ -135,13 +153,14 @@ claim_idle_pane() { # window → untagged pane running a bare shell, or empty
   done < <(tmux list-panes -t "=$SESSION:$1" -F $'#{pane_id}\t#{@ws_id}\t#{pane_current_command}')
 }
 
-start_cmd_in_pane() { # pane_id cwd cmd
-  tmux send-keys -t "$1" "cd $(printf '%q' "$ROOT/$2") && $3" Enter
+start_cmd_in_pane() { # pane_id cwd cmd — C-u first clears any half-typed input
+  tmux send-keys -t "$1" C-u "cd $(printf '%q' "$ROOT/$2") && $3" Enter
 }
 
 step "Reconciling managed panes"
+declare -A CREATED_IN=()   # window → 1 when this run added a pane there
 while IFS=$'\t' read -r _ WNAME PANE_ID_NAME CWD MATCH_RE HEALTH_PORT CMD; do
-  PANE="$(find_pane "$WNAME" "$PANE_ID_NAME")"
+  PANE="$(find_pane "$PANE_ID_NAME")"
 
   if [[ -z "$PANE" ]]; then
     # Pane missing: claim the fresh pane we created, else an idle untagged
@@ -156,6 +175,7 @@ while IFS=$'\t' read -r _ WNAME PANE_ID_NAME CWD MATCH_RE HEALTH_PORT CMD; do
     fi
     tmux set-option -p -t "$PANE" @ws_id "$PANE_ID_NAME"
     tmux select-pane -t "$PANE" -T "$PANE_ID_NAME"
+    CREATED_IN[$WNAME]=1
     if [[ -n "$HEALTH_PORT" ]] && port_listening "$HEALTH_PORT"; then
       warn "[$PANE_ID_NAME] port $HEALTH_PORT already in use by a process outside this workspace — NOT starting '$CMD' (no alternate ports). Stop the other process, then re-run."
       continue
@@ -188,13 +208,14 @@ while IFS=$'\t' read -r _ WNAME PANE_ID_NAME CWD MATCH_RE HEALTH_PORT CMD; do
       ok "[$PANE_ID_NAME] process running, port $HEALTH_PORT not up yet (starting or building) — leaving it alone"
     fi
   else
-    warn "[$PANE_ID_NAME] pane is running an unexpected process (doesn't match /$MATCH_RE/) — not touching it. Inspect: tmux capture-pane -pt '$SESSION:$WNAME' (pane title '$PANE_ID_NAME')"
+    warn "[$PANE_ID_NAME] pane is running an unexpected process (doesn't match /$MATCH_RE/) — not touching it. Inspect: tmux capture-pane -pt '$PANE'"
   fi
 done < <(awk -F'\t' '$1=="PANE"' <<<"$CONFIG")
 
-# ── Layouts ──────────────────────────────────────────────────────────────────
+# ── Layouts — only for windows that gained a pane this run, so repeated runs
+# never clobber manual pane resizing ─────────────────────────────────────────
 while IFS=$'\t' read -r _ WNAME _ LAYOUT; do
-  [[ -n "$LAYOUT" ]] || continue
+  [[ -n "$LAYOUT" && -n "${CREATED_IN[$WNAME]:-}" ]] || continue
   NPANES="$(tmux list-panes -t "=$SESSION:$WNAME" -F x | wc -l)"
   [[ "$NPANES" -gt 1 ]] && tmux select-layout -t "=$SESSION:$WNAME" "$LAYOUT" >/dev/null || true
 done < <(awk -F'\t' '$1=="WINDOW" && $3=="managed"' <<<"$CONFIG")
