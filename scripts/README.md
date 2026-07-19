@@ -54,7 +54,7 @@ WSL2-specific. Ensures the Windows adb server owns `:5037`, launches the AVD
 (default `Medium_Phone`, override with `AVD=…`) detached on Windows, and waits
 until it registers and finishes booting. Idempotent — re-running while the AVD is
 already booted exits immediately. Self-heals the common "stray Linux adb server"
-failure. See `apps/mobile/README.md` → "Running on the Android emulator (WSL2)".
+failure. See `apps/mobile/docs/android-emulator-wsl2.md`.
 
 ---
 

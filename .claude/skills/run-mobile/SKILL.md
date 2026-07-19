@@ -8,7 +8,7 @@ description: Run the Autodidact mobile app on the Android emulator from WSL2. Us
 This project runs in WSL2; the Android emulator lives on the Windows host. Two
 scripts encapsulate the cross-boundary adb wiring (Windows adb server owns :5037,
 Linux adb is a pure client over mirrored networking). See
-`apps/mobile/README.md` → "Running on the Android emulator (WSL2)" for the why.
+`apps/mobile/docs/android-emulator-wsl2.md` for the why.
 
 ### Steps
 
@@ -33,8 +33,8 @@ mobile-mcp must be configured with `ANDROID_HOME=~/.android-sdk-wsl` (a WSL shim
 whose `platform-tools/adb` is the Linux adb; `emulator.sh` maintains it) plus
 `ADB_SERVER_SOCKET=tcp:localhost:5037` in its server env, then Claude restarted
 once. Without this, `mobile_list_available_devices` returns `[]` even though
-`~/android-platform-tools/adb devices` shows the emulator. See `apps/mobile/README.md`
-→ "Letting mobile-mcp see the emulator". If devices are empty but the script
+`~/android-platform-tools/adb devices` shows the emulator. See
+`apps/mobile/docs/android-emulator-wsl2.md` → "Letting mobile-mcp see the emulator". If devices are empty but the script
 succeeded, this config is the likely cause — report it rather than looping.
 
 ### Notes

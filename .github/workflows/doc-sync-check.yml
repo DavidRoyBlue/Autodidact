@@ -107,7 +107,7 @@ jobs:
 
             | Changed file | Doc to update | Reason |
             |---|---|---|
-            | path/to/file.ts | services/api/README.md | One-sentence reason. |
+            | path/to/file.ts | PRODUCTION.md | One-sentence reason. |
 
             _This comment updates automatically on each push._
 

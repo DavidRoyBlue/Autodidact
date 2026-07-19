@@ -1,0 +1,39 @@
+name: PRODUCTION.md Freshness
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Every Monday 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flag sections not verified in 30 days
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cutoff=$(date -d '30 days ago' +%F)
+          stale=$(awk -v cutoff="$cutoff" '
+            /^## /      { heading = $0 }
+            /^_verified:/ { d = $2; gsub(/_/, "", d); if (d < cutoff) print "- " substr(heading, 4) " — last verified " d }
+          ' PRODUCTION.md)
+          if [ -z "$stale" ]; then
+            echo "All sections verified within 30 days."
+            exit 0
+          fi
+          echo "Stale sections:"
+          echo "$stale"
+          title="PRODUCTION.md has stale sections"
+          body=$(printf 'Sections not verified in the last 30 days (cutoff %s):\n\n%s\n\nRe-verify each section and bump its `_verified:` date.' "$cutoff" "$stale")
+          existing=$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi

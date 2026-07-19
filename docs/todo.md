@@ -26,11 +26,10 @@
 ## .claude folder setup
 - [x] agents, commands, hooks, skills, settings in place
 
-## Deploy & operate (PROJECT_STATE progression path)
+## Deploy & operate
 
-> MVP is code-complete and CI-green but **never run end-to-end against real
-> infra**. These close the "builds" → "deployable & operable" gap. See
-> `PROJECT_STATE.md` for the full rationale.
+> MVP is code-complete and CI-green. These close the "builds" → "deployable &
+> operable" gap. Per-deployable status lives in the root `PRODUCTION.md`.
 
 ### 1. Provision + reconcile environment (current bottleneck)
 - [x] Fix Terraform/code secret-name drift — `main.tf` now injects `SUPABASE_SECRET_KEY` (matching `packages/env/src/schema.ts`); dropped the unread `SUPABASE_JWT_SECRET` / `SUPABASE_SERVICE_ROLE_KEY`

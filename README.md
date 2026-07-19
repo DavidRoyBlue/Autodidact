@@ -126,11 +126,12 @@ prod DB migrations, see the [GCP setup runbook](docs/gcp_infra_setup.md).
 which defines three profiles: `development` (dev client → local backend), `preview`
 (internal APK → prod Cloud Run API), and `production` (Play Store AAB → prod Cloud
 Run API). The backend URL and Supabase keys are injected per profile and resolved at
-runtime via `apps/mobile/app.config.ts`. See
-[`apps/mobile/README.md`](apps/mobile/README.md) for build and run details.
+runtime via `apps/mobile/app.config.ts`. See the Mobile section of
+[`PRODUCTION.md`](PRODUCTION.md) for build and run details.
 
 ## Documentation
 
+- [Production map — per-deployable status, stack, secrets](PRODUCTION.md)
 - [Architecture](docs/architecture/overview.md)
 - [GCP / production setup](docs/gcp_infra_setup.md)
 - [Stack decisions](docs/stack.md)

@@ -13,8 +13,8 @@
 
 ## Phase 1.5 — Deploy & operate (MVP hardening)
 
-> Bridge from "code-complete + CI-green" to "deployable + operable". The stack
-> has never run end-to-end against real infra. See `PROJECT_STATE.md`.
+> Bridge from "code-complete + CI-green" to "deployable + operable". Per-deployable
+> status lives in the root `PRODUCTION.md`.
 
 - [x] Fix Terraform/code secret-name drift — `main.tf` now injects `SUPABASE_SECRET_KEY` (matching the code); dropped the unread `SUPABASE_JWT_SECRET` / `SUPABASE_SERVICE_ROLE_KEY`
 - [ ] Flip `CHECKPOINTER=postgres` (currently in-memory default) and verify

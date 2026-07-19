@@ -51,7 +51,7 @@ Internal only — never exposed publicly. Scales to zero between tasks.
 - Queue and task name constants: `src/queues/definitions.ts` (task name = URL path segment)
 - HTTP task contract and retry semantics: `src/app.ts`
 - Processor logic: `src/processors/` (pure functions, no transport coupling)
-- Agent HTTP contract: `src/services/agent.client.ts` and `services/agent/README.md`
+- Agent HTTP contract: `src/services/agent.client.ts` and `services/agent/CLAUDE.md` (Routes table)
 - Database schema: `packages/db/src/schema/`
 - Production retry policy: `infra/modules/cloud-tasks/main.tf` (`retry_config`) — `TASK_MAX_ATTEMPTS` must mirror its `max_attempts`
 

@@ -1,7 +1,7 @@
 # Subtree Instructions — apps/mobile/
 
 > Agent-binding rules for this subtree. Extends root `CLAUDE.md`.
-> Pair file: [`./README.md`](./README.md) — narrative, workflows, gotchas.
+> Descriptive overview (stack, status, secrets): Mobile section of the root [`PRODUCTION.md`](../../PRODUCTION.md).
 
 ## Purpose
 
@@ -243,7 +243,8 @@ eas submit --profile production --platform android   # upload to Google Play (ne
 
 ## Deeper docs
 
-- [`apps/mobile/README.md`](./README.md) — stack table, folder structure, running commands
+- [`PRODUCTION.md`](../../PRODUCTION.md) — stack, build profiles, secrets, status
+- [`apps/mobile/docs/android-emulator-wsl2.md`](./docs/android-emulator-wsl2.md) — WSL2 emulator + adb wiring, troubleshooting
 - [`apps/mobile/docs/architecture.md`](./docs/architecture.md) — monorepo position, runtime dependencies, auth flow
 - [`apps/mobile/docs/frontend-architecture.md`](./docs/frontend-architecture.md) — routing, screens, provider stack
 - [`apps/mobile/docs/ui-system.md`](./docs/ui-system.md) — design tokens, themes, component library

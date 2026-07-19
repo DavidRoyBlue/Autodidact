@@ -6,16 +6,7 @@
 
 ## Project overview
 
-AI-powered learning platform. Three backend services plus an Expo mobile app in a pnpm + Turborepo monorepo.
-
-| Layer | Package | Role |
-|-------|---------|------|
-| Public HTTP | `services/api` | NestJS — auth, courses, chat proxy, progress |
-| AI runtime | `services/agent` | Fastify + LangGraph — all LLM and embedding calls (internal only, port 3001) |
-| Background | `services/worker` | Fastify task handler — course generation and embedding tasks, invoked per-task by Cloud Tasks (prod) / loopback (dev) |
-| Client | `apps/mobile` | Expo React Native — the only UI |
-
-Shared packages: `packages/db` (Drizzle + pgvector), `packages/types`, `packages/schemas` (Zod), `packages/providers` (LLM/queue/auth abstractions), `packages/prompts`, `packages/observability` (pino + OTEL), `packages/config` (tsconfig, eslint, vitest bases).
+AI-powered learning platform: three backend services (`services/api`, `services/agent`, `services/worker`) plus an Expo mobile app (`apps/mobile`) in a pnpm + Turborepo monorepo. Per-deployable/package description — status, stack, secrets, key files — lives in [`PRODUCTION.md`](PRODUCTION.md). Read the relevant section there before working on a deployable.
 
 ---
 
@@ -45,18 +36,10 @@ pnpm db:reset:dev       # DESTRUCTIVE: supabase db reset → re-apply all Drizzl
 
 ## Environment
 
-Copy `.env.example` → `.env.dev` (`pnpm setup` does this). Minimum required to boot:
+Copy `.env.example` → `.env.dev` (`pnpm setup` does this). `.env.example` documents every var and provider-swap option (`LLM_PROVIDER`, `CHECKPOINTER`, etc.); per-deployable secret locations are in `PRODUCTION.md`.
 
-| Var | Used by | Note |
-|-----|---------|------|
-| `DATABASE_URL` | api, agent, worker | WSL2: must be transaction pooler URL (port 6543) |
-| `SUPABASE_URL` | api | Supabase project URL |
-| `SUPABASE_PUBLISHABLE_KEY` | mobile | Also set in `apps/mobile/app.json` → `extra` |
-| `SUPABASE_SECRET_KEY` | packages/db | Admin client — never expose to clients |
-| `OPENAI_API_KEY` | agent | Default LLM and embedding provider |
-| `AGENT_SERVICE_URL` | api, worker | Default: `http://localhost:3001` |
-
-See `.env.example` for all vars and provider-swap options (`LLM_PROVIDER`, `CHECKPOINTER`, etc.).
+- WSL2: `DATABASE_URL` against hosted Supabase must be the transaction pooler URL (port 6543) — the direct host is IPv6-only and unreachable.
+- Supabase key naming is `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY` — never `ANON_KEY` / `SERVICE_ROLE_KEY`. Never expose the secret key to clients.
 
 ## New branch / worktree setup
 When starting work in a new worktree, symlink env files from the main workspace:
@@ -66,19 +49,12 @@ ln -sf $(git rev-parse --show-superproject-working-tree || git rev-parse --show-
 
 ## Production & deployment
 
-Production runs on **GCP** (project `autodidact-494819`, region `northamerica-northeast1`): Cloud Run ×3 (api public, agent internal, worker scale-to-zero), Cloud Tasks queues, Artifact Registry, and GCP Secret Manager — all defined as Terraform IaC under `infra/` (remote state in GCS). The hosted prod DB is the Supabase project reached via its transaction pooler (port 6543).
+Prod shape (GCP project, Cloud Run services, queues, mobile build profiles) is described in `PRODUCTION.md`. Binding rules:
 
-- **Full setup runbook:** [`docs/gcp_infra_setup.md`](docs/gcp_infra_setup.md) — GCP bootstrap, Terraform apply, Secret Manager, Workload Identity Federation. Read this before touching prod infra.
-- **Deploy:** promoting `master` → the `production` branch (`git push origin master:production`) triggers `.github/workflows/deploy.yml`. Its `ci` job lints/typechecks/tests and builds & pushes the three images; its `deploy` job (`environment: production`) then runs DB migrations, seeds the onboarding course, and `gcloud run deploy`s — authenticated via Workload Identity Federation (no key files). Pushing to `master` does **not** deploy; PRs are validated separately by `.github/workflows/ci.yml`. Promotion to `production` is the human release gate.
-- **Prod secrets:** `infra/secrets.env` is the single source (seeds Secret Manager via `scripts/gcp-bootstrap.sh`); never committed. There is **no `.env.prod`**.
-- **Prod DB tools** (run locally, sparingly — CI already migrates on deploy):
-
-```bash
-pnpm migrate:prod       # apply pending Drizzle migrations to the prod DB (loads infra/secrets.env)
-pnpm db:studio:prod     # open Drizzle Studio against the prod DB (loads infra/secrets.env)
-```
-
-The mobile app's prod target (Cloud Run API + hosted Supabase) is selected by EAS build profiles in `apps/mobile/eas.json`; local `expo start` uses `.env.dev`.
+- **Read [`docs/gcp_infra_setup.md`](docs/gcp_infra_setup.md) before touching prod infra.**
+- **Deploy gate:** only promoting `master` → the `production` branch (`git push origin master:production`) deploys, via `.github/workflows/deploy.yml`. Pushing to `master` does **not** deploy; PRs are validated by `.github/workflows/ci.yml`. Promotion to `production` is the human release gate — never do it unprompted.
+- **Prod secrets:** `infra/secrets.env` is the single source (seeds Secret Manager via `scripts/gcp-bootstrap.sh`); never committed. There is **no `.env.prod`** — never create one.
+- **Prod DB tools** (run locally, sparingly — CI already migrates on deploy): `pnpm migrate:prod`, `pnpm db:studio:prod` (both load `infra/secrets.env`).
 
 ---
 
@@ -87,7 +63,7 @@ The mobile app's prod target (Cloud Run API + hosted Supabase) is selected by EA
 Every code change must respect these:
 
 1. **Test what you change.** Add or update focused tests for new or changed behavior. If a test isn't practical, explain why and describe how you verified it manually.
-2. **Single source of truth.** Don't duplicate facts, config, schemas, business rules, or ownership info in code. Update the authoritative source; reference it from elsewhere. (Documentation reference content is exempt — see Authority: README vs CLAUDE.md.)
+2. **Single source of truth.** Don't duplicate facts, config, schemas, business rules, or ownership info in code. Update the authoritative source; reference it from elsewhere.
 3. **Modular design.** Isolated responsibilities, clear interfaces, small modules. Don't couple unrelated concerns to ship faster.
 4. **Simplicity first.** Write the minimum code that solves the problem. No speculative features, no abstractions for single-use code, no "configurability" that wasn't asked for. If you wrote 200 lines and it could be 50, rewrite it.
 5. **Surgical changes.** Touch only what the task requires. No drive-by cleanup of adjacent code, comments, or formatting. Match existing style — exception: if it violates an invariant stated in a nested `CLAUDE.md`, the invariant wins. Remove only dead code your changes created, not pre-existing orphans. Tests for code you're modifying count as part of the change, not cleanup.
@@ -123,8 +99,8 @@ For multi-step tasks, state a brief plan with verifiable checkpoints:
 For non-trivial changes, read existing docs before editing.
 
 Start with:
-1. Nearest relevant `README.md`
-2. Parent `README.md` files, up to 2 levels up
+1. The relevant `PRODUCTION.md` section (what it is, stack, secrets, key files)
+2. Nearest `CLAUDE.md` (invariants and rules for the subtree)
 3. Relevant `docs/architecture/` files if the change crosses boundaries
 4. Relevant ADRs if the change touches a durable decision
 5. Graph layer for structural navigation — locating implementations, tracing calls, assessing blast radius (see MCP Tools below)
@@ -138,29 +114,17 @@ For trivial fixes, use judgment and avoid unnecessary context loading.
 ## Layered documentation model
 
 - Root `README.md` = product/repo overview
-- `docs/architecture/` = system architecture, C4, infra, data model
-- `docs/architecture/decisions/` = durable decisions and tradeoffs
-- Folder `README.md` = local narrative, ownership, workflows, gotchas (human-facing)
-- Nested `CLAUDE.md` = subtree invariants, source-of-truth, agent rules (agent-binding)
+- Root `PRODUCTION.md` = descriptive map — one section per deployable/package (status, stack, secrets, state, key files), each stamped `_verified: YYYY-MM-DD`
+- `docs/architecture/` = system architecture, C4, infra, data model; `docs/architecture/ADRs/` = durable decisions and tradeoffs
+- Nested `CLAUDE.md` = **imperative only** — invariants, library rules, testing rules, commands (agent-binding)
+- Folder `README.md` = only for genuinely local operational narrative (e.g. `scripts/`, `e2e/`, `issuekit/`); **no per-service READMEs** — their descriptive content belongs in `PRODUCTION.md`
 - Code comments = non-obvious implementation details only
 
-Higher-level docs explain broad context. Lower-level docs explain local implementation details. Link upward instead of duplicating.
+Link upward instead of duplicating.
 
----
+**Descriptive vs imperative is the split that matters.** CLAUDE.md loads into context on every agent run in its scope — descriptive content there is a tax on every run for something needed rarely. Keep CLAUDE.md to conventions and constraints ("Drizzle is the sole migration authority, never `supabase migration`"); put "what this is / what it's built on / where things live" in `PRODUCTION.md`.
 
-## Authority: README vs CLAUDE.md
-
-Both files coexist in many folders. They serve different audiences and may overlap on reference content — that's fine.
-
-**Binding rules need a single source of truth.** Imperative rules ("must use X," "must not Y," invariants) live authoritatively in `CLAUDE.md`. README does not restate them — if relevant to humans, link to `CLAUDE.md`.
-
-**Reference content can appear in both.** Source-of-truth maps, component relationships, file locations, commands — duplicate freely. Both audiences benefit from self-contained files, and drift in pointer data is obvious when it happens.
-
-**Audience split for narrative:**
-- Narrative purpose, ownership, gotchas, onboarding → README
-- Agent-binding rules, invariants, testing rules → `CLAUDE.md`
-
-Each file cross-links to its pair at the top.
+**Maintaining PRODUCTION.md:** when you change a deployable's stack, secrets location, or deploy shape, update its section and bump its `_verified:` date. When you re-verify a section is accurate, bump the date. Write `none`, not a sentence; no prose padding. Sections older than 30 days are flagged weekly by `.github/workflows/production-doc-freshness.yml`.
 
 ---
 
@@ -187,13 +151,12 @@ Nested rules extend this root file and narrow it within their subtree — a nest
 
 ## Where to document
 
-- Local implementation detail → nearest folder `README.md`
-- Service/package responsibility → service/package `README.md`
-- Cross-boundary contract → README of the lowest common ancestor folder
+- Deployable/package description (status, stack, secrets, key files) → its `PRODUCTION.md` section
+- Subtree invariant, library rule, testing rule, verification command → nearest `CLAUDE.md`
 - System-wide relationship → `docs/architecture/`
 - Durable decision/tradeoff → ADR
-- Verification commands (tests, typecheck, lint) → nearest `CLAUDE.md`
-- Broader workflows → nearest README, plus root README if globally relevant
+- HTTP/task contracts → the code (controllers, routes, schemas) is the source of truth; don't maintain parallel endpoint docs
+- Local operational workflow (scripts, e2e harness) → that folder's `README.md`
 - Non-obvious code behavior → code comment
 
 ---
@@ -216,6 +179,7 @@ Update docs for changes to:
 - recurring gotchas
 - testing strategy
 - future agent behavior
+- a deployable's stack/secrets/deploy shape → its `PRODUCTION.md` section (+ bump `_verified:`)
 
 Do not update docs for trivial refactors or obvious implementation details.
 
@@ -227,9 +191,9 @@ If documentation contradicts current code, fix or delete the stale documentation
 
 ---
 
-## README style
+## Doc style
 
-Keep README updates short, factual, specific, and link upward instead of duplicating.
+Short, factual, specific; link upward instead of duplicating. In `PRODUCTION.md`, keep every section to the shared template headings in the same order — the file must stay greppable and scriptable.
 
 ---
 
@@ -249,7 +213,7 @@ Structural knowledge graph (Tree-sitter + SQLite, MCP-exposed) tracking imports,
 
 Two complementary layers with distinct domains — neither substitutes for the other.
 
-**Doc layer** (`CLAUDE.md` files, READMEs, `docs/architecture/`) owns **intent, rules, and decisions**: what invariants apply, why things were built a certain way, what tradeoffs were made.
+**Doc layer** (`CLAUDE.md` files, `PRODUCTION.md`, `docs/architecture/`) owns **intent, rules, and decisions**: what invariants apply, why things were built a certain way, what tradeoffs were made.
 
 **Graph layer** (code-review-graph MCP tools) owns **structure and topology**: where code lives, what calls what, blast radius of a change. The graph carries no rules or intent — it can tell you *that* X calls Y, not *why*.
 
@@ -275,7 +239,7 @@ Use Grep/Glob/Read as a fallback for **code** when the graph doesn't have the an
 
 For non-trivial changes (extends Documentation-first and Before you code):
 
-1. **Docs first** — READMEs, ADRs, nearest `CLAUDE.md`.
+1. **Docs first** — `PRODUCTION.md` section, ADRs, nearest `CLAUDE.md`.
 2. **Graph next** — start with `get_minimal_context` (~100 tokens), then drill in.
 3. **Source last** — read implementation only after the graph narrows where.
 
