@@ -33,23 +33,25 @@
 
 **Interfaces:** Produces: plan at `docs/superpowers/plans/in-progress/2026-07-19-dev-environment.md` — all later tasks update checkboxes there.
 
-- [ ] **Step 1: Move spec and plan to in-progress**
+- [x] **Step 1: Move spec and plan to in-progress**
 
 ```bash
 git mv docs/superpowers/specs/to-be-reviewed/2026-07-19-dev-environment-design.md docs/superpowers/specs/in-progress/
 git mv docs/superpowers/plans/to-be-reviewed/2026-07-19-dev-environment.md docs/superpowers/plans/in-progress/
 ```
 
-- [ ] **Step 2: Update both README indexes** — in `docs/superpowers/specs/README.md` move the `2026-07-19 — Working Mobile Dev Environment` row from "🔵 To be reviewed" to "🟡 In progress" with Related plan `[in-progress](../plans/in-progress/2026-07-19-dev-environment.md)`; add the equivalent row to `docs/superpowers/plans/README.md`'s in-progress section (match the existing row format in that file).
+- [x] **Step 2: Update both README indexes** — in `docs/superpowers/specs/README.md` move the `2026-07-19 — Working Mobile Dev Environment` row from "🔵 To be reviewed" to "🟡 In progress" with Related plan `[in-progress](../plans/in-progress/2026-07-19-dev-environment.md)`; add the equivalent row to `docs/superpowers/plans/README.md`'s in-progress section (match the existing row format in that file).
 
-- [ ] **Step 3: Delete the stray root app.json** — first confirm it is still the 16-byte stray (`cat app.json` must print exactly `{"expo":{}}` — if it prints anything else, STOP and surface it), then `rm app.json`.
+- [x] **Step 3: Delete the stray root app.json** — first confirm it is still the 16-byte stray (`cat app.json` must print exactly `{"expo":{}}` — if it prints anything else, STOP and surface it), then `rm app.json`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -u && git add docs/superpowers/
 git commit -m "chore(dev-env): pick up dev-environment plan; drop stray root app.json"
 ```
+
+> **Executed 2026-07-19 (deviation):** `git add -u` swept in unrelated uncommitted owner changes (infra main.tf, note-to-self.md); commit was reset and redone staging explicit paths only. Use explicit paths, never bare `-u`/`-A`, in later tasks.
 
 ---
 
@@ -60,7 +62,7 @@ git commit -m "chore(dev-env): pick up dev-environment plan; drop stray root app
 
 **Interfaces:** Produces: the three asset paths `app.json` already references — Task 3's prebuild rehearsal and every EAS build depend on them.
 
-- [ ] **Step 1: Generate the three PNGs** — run from repo root:
+- [x] **Step 1: Generate the three PNGs** — run from repo root:
 
 ```bash
 .venv/bin/python3 - <<'EOF'
@@ -97,7 +99,7 @@ EOF
 
 Expected output: `done`
 
-- [ ] **Step 2: Verify all three are valid PNGs at the right sizes**
+- [x] **Step 2: Verify all three are valid PNGs at the right sizes**
 
 ```bash
 .venv/bin/python3 -c "
@@ -111,7 +113,7 @@ print('assets OK')"
 
 Expected: `assets OK`
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/mobile/assets/
@@ -128,7 +130,7 @@ git commit -m "feat(mobile): placeholder app icons + splash (unblocks EAS prebui
 
 **Interfaces:** Consumes: Task 2 assets. Produces: proof that EAS prebuild will pass — gate for Task 4.
 
-- [ ] **Step 1: Gitignore the native dirs** — append to root `.gitignore`:
+- [x] **Step 1: Gitignore the native dirs** — append to root `.gitignore`:
 
 ```gitignore
 
@@ -137,7 +139,7 @@ apps/mobile/android/
 apps/mobile/ios/
 ```
 
-- [ ] **Step 2: Run the prebuild rehearsal**
+- [x] **Step 2: Run the prebuild rehearsal**
 
 ```bash
 cd apps/mobile && npx expo prebuild --platform android --no-install; cd ../..
@@ -145,7 +147,7 @@ cd apps/mobile && npx expo prebuild --platform android --no-install; cd ../..
 
 Expected: exits 0, prints `✔ Created native directory` (and may print `✔ Updated package.json`). If it fails with an asset ENOENT, Task 2 is broken — stop and fix there.
 
-- [ ] **Step 3: Restore a clean tree (MANDATORY — even if Step 2 failed)**
+- [x] **Step 3: Restore a clean tree (MANDATORY — even if Step 2 failed)**
 
 ```bash
 rm -rf apps/mobile/android
@@ -155,7 +157,7 @@ git status --porcelain apps/mobile
 
 Expected: `git status --porcelain apps/mobile` prints **nothing** except `?? apps/mobile/assets/` lines if Task 2 wasn't committed (it should have been). A leftover `android/` dir or a modified `package.json` here will corrupt every later EAS build — do not proceed until this is empty.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .gitignore
@@ -170,7 +172,7 @@ git commit -m "chore: gitignore generated native dirs (keep EAS managed workflow
 
 **Interfaces:** Produces: a queued EAS build for profile `development`; Task 7 finds it via `eas build:list` (no ID handoff needed — it is the newest `development`-profile build).
 
-- [ ] **Step 1: Confirm login + kick the build**
+- [x] **Step 1: Confirm login + kick the build**
 
 ```bash
 cd apps/mobile
@@ -181,7 +183,11 @@ cd ../..
 
 Expected: prints a build page URL and exits. Build runs ~30–60 min in the cloud while Tasks 5–6 proceed.
 
-- [ ] **Step 2: Record the kicked build** — note the build ID/URL in the task-completion message (no repo file). If the command errors with a quota/outage message: per spec, wait; only escalate to the owner about the local-Gradle fallback if blocked > 1 day.
+- [x] **Step 2: Record the kicked build** — note the build ID/URL in the task-completion message (no repo file). If the command errors with a quota/outage message: per spec, wait; only escalate to the owner about the local-Gradle fallback if blocked > 1 day.
+
+> **Executed 2026-07-19 (deviation):** build 1 (`0f3cdd0d`) ERRORED in Gradle — expo-modules-core's Compose Compiler 1.5.15 requires Kotlin 1.9.25 vs RN-default 1.9.24 (expo doctor had flagged SDK/package skew). Fix: `expo install --fix` (rn 0.76.9, screens ~4.4, svg ^15.8) + `expo-build-properties` plugin pinning `android.kotlinVersion=1.9.25` in `app.config.ts`; prebuild rehearsal re-run clean, mobile typecheck + 68/68 jest green. Build 2: `fa4baf49-8c74-47b4-a766-6c6cf75e0e6b`.
+
+> **Executed 2026-07-19 (deviation 2):** build 2 (`fa4baf49`) ERRORED — RN core autolinking generated `import expo.core.ExpoModulesPackage;` (uncompilable). Root cause: from the generated `android/` cwd, expo-modules-autolinking fails to load expo's `react-native.config.js` and falls back to the library namespace (`expo.core`). Fix: app-level `apps/mobile/react-native.config.js` pinning `packageImportPath` for `expo`; verified against the exact settings.gradle command from `android/` cwd. Build 3: `d8fbfd24-586a-45cf-be69-4c6b3e777038`.
 
 ---
 
@@ -193,7 +199,7 @@ Expected: prints a build page URL and exits. Build runs ~30–60 min in the clou
 
 **Interfaces:** Consumes: existing `GOOGLE_WEB_CLIENT_ID` in `.env.dev`. Produces: local GoTrue accepting Google ID tokens — Task 9's Google sign-in depends on it.
 
-- [ ] **Step 1: Add the provider block to `supabase/config.toml`**
+- [x] **Step 1: Add the provider block to `supabase/config.toml`**
 
 ```toml
 [auth.external.google]
@@ -206,7 +212,7 @@ secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
 skip_nonce_check = true  # dev-only: the Android native sheet sends no nonce
 ```
 
-- [ ] **Step 2: Add the env vars** — in `.env.example`, directly under the existing `GOOGLE_WEB_CLIENT_ID=` line (~109), add:
+- [x] **Step 2: Add the env vars** — in `.env.example`, directly under the existing `GOOGLE_WEB_CLIENT_ID=` line (~109), add:
 
 ```bash
 # Local Supabase Google provider (supabase/config.toml env() substitution).
@@ -216,7 +222,7 @@ SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=dev-dummy-not-used
 
 Add the same line (with the same dummy value) to `.env.dev`.
 
-- [ ] **Step 3: Robustness check — `supabase start` with the vars UNSET** (the `pnpm setup` path runs `supabase start` without the dotenv wrapper):
+- [x] **Step 3: Robustness check — `supabase start` with the vars UNSET** (the `pnpm setup` path runs `supabase start` without the dotenv wrapper):
 
 ```bash
 pnpm exec supabase stop
@@ -225,7 +231,7 @@ env -u GOOGLE_WEB_CLIENT_ID -u SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET pnpm exec su
 
 Expected: stack boots (warnings about empty env are OK). **Decision rule if it hard-fails on the unresolved `env()`:** replace both `env()` references in the toml block with committed literals — the real Web client ID string (public, copy from `apps/mobile/eas.json`) and `"dev-dummy-not-used"` — re-test, and note the deviation in this plan file under Task 5.
 
-- [ ] **Step 4: Restart with real env and verify GoTrue advertises Google**
+- [x] **Step 4: Restart with real env and verify GoTrue advertises Google**
 
 ```bash
 pnpm exec supabase stop
@@ -237,7 +243,7 @@ curl -fsS --max-time 5 http://127.0.0.1:55321/auth/v1/settings | .venv/bin/pytho
 
 Expected: `google enabled: True`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add supabase/config.toml .env.example
@@ -255,7 +261,7 @@ git commit -m "feat(supabase): enable Google provider on the local stack (id-tok
 
 **Interfaces:** Consumes: booted emulator from `emulator.sh` (unchanged). Produces: `pnpm mobile:run` = dev-client launcher; fail-fast message names the Task 4 build command and `adb install`.
 
-- [ ] **Step 1: Replace steps 2–4 of the script** with the block below. Constants first: next to the existing `METRO_LOG`/`METRO_TIMEOUT` definitions add `APP_ID="com.autodidact.app"` and **move** `LINUX_ADB="$HOME/android-platform-tools/adb"` there too (today it's defined mid-script inside the section being replaced — the new code uses it earlier):
+- [x] **Step 1: Replace steps 2–4 of the script** with the block below. Constants first: next to the existing `METRO_LOG`/`METRO_TIMEOUT` definitions add `APP_ID="com.autodidact.app"` and **move** `LINUX_ADB="$HOME/android-platform-tools/adb"` there too (today it's defined mid-script inside the section being replaced — the new code uses it earlier):
 
 ```bash
 # --- 2. device + dev client check --------------------------------------------
@@ -319,7 +325,7 @@ echo -e "${YELLOW}  Note: backend is NOT started by this script — run 'pnpm de
 
 Also update the header comment block (lines 2–12) to describe the dev-client flow instead of Expo Go, and delete the now-unused Expo Go references.
 
-- [ ] **Step 2: Syntax-check and test the fail-fast path** (no dev client is installed yet — Task 7 hasn't run):
+- [x] **Step 2: Syntax-check and test the fail-fast path** (no dev client is installed yet — Task 7 hasn't run):
 
 ```bash
 bash -n scripts/run-mobile.sh && echo "syntax OK"
@@ -328,7 +334,7 @@ pnpm mobile:run
 
 Expected: `syntax OK`; then the script boots/fast-paths the emulator and **dies** with the "no dev client on emulator-5554" message naming the build and install commands. That failure IS the passing test at this stage.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add scripts/run-mobile.sh
