@@ -417,7 +417,7 @@ Expected: ≥ 1
 
 - [x] **Step 3: Email sign-up/sign-in** — create a throwaway account (e.g. `dev-check@example.com`), confirm it lands in the app shell. If sign-up demands email confirmation, the local stack catches all mail in Inbucket — open `http://127.0.0.1:55324`, find the message, click the confirm link, retry sign-in.
 
-- [ ] **Step 4: Google sign-in** — tap "Continue with Google"; native sheet appears; pick the device account; the app must land in `(app)`. On `DEVELOPER_ERROR` → Task 8 client mismatch. On a GoTrue 400 → check auth logs: `docker logs $(docker ps --format '{{.Names}}' | grep supabase_auth) --tail 50`, verify JWKS reachability and `aud` vs `client_id`; if the dummy secret is the cause, report to the owner per spec §4.
+- [x] **Step 4: Google sign-in** — tap "Continue with Google"; native sheet appears; pick the device account; the app must land in `(app)`. On `DEVELOPER_ERROR` → Task 8 client mismatch. On a GoTrue 400 → check auth logs: `docker logs $(docker ps --format '{{.Names}}' | grep supabase_auth) --tail 50`, verify JWKS reachability and `aud` vs `client_id`; if the dummy secret is the cause, report to the owner per spec §4.
 
 - [x] **Step 5: Confirm rows in the local DB**
 
@@ -428,9 +428,11 @@ docker exec $(docker ps --format '{{.Names}}' | grep supabase_db) psql -U postgr
 
 Expected: the guest row (`is_anonymous=t`), the email row, and a row with `google_ids=1`. Also confirm the same users appear in `public.users` (`select id, email from public.users order by created_at desc limit 5;`).
 
-- [ ] **Step 6: Update this plan's checkboxes and note results** (screenshots + any deviations) under this task.
+- [x] **Step 6: Update this plan's checkboxes and note results** (screenshots + any deviations) under this task.
 
 > **Progress 2026-07-19:** T9 steps 1–3+5 verified ahead of the T8 gate: guest sign-in routes into `(app)` (row `ef381f7c…`, `is_anonymous=t`); guest→email upgrade via UpgradeAccountCard succeeds ("Account saved", same UUID, email set, `is_anonymous=f`, provider `email`, synced to `public.users`). Email test used the upgrade card rather than sign-out/sign-up — exercises `updateUser` against local GoTrue. Step 4 (Google) awaits the Task 8 owner gate.
+
+> **Completed 2026-07-19 (T9 step 4):** owner signed a Google account into the AVD (persists across reboots on the AVD data partition). Re-ran `pnpm mobile:run` after a full session restart (backend + Metro had died with the prior session — restarted `pnpm dev`, re-booted the emulator, re-fired the dev-client deep link manually since the script's own foreground-confirm loop hung once). "Continue with Google" → native account picker → app landed in `(app)` shell. DB confirmed: new `auth.users` row `d8373e17…`, `provider=google`, `is_anonymous=f`, real email, synced to `public.users`. All T9 checkpoints (guest, email upgrade, Google, DB rows) now verified.
 
 ---
 
