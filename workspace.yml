@@ -1,0 +1,41 @@
+# Declarative dev workspace — consumed by scripts/dev-workspace.sh (pnpm workspace).
+#
+# Schema:
+#   session               tmux session name
+#   infra.supabase        start the local Supabase stack (supabase start) before tmux
+#   windows.<name>:
+#     preserve: true      never create panes in, send commands to, or kill this window
+#     layout              tmux layout applied when the window has >1 pane
+#     panes[]:
+#       id                stable pane identifier (stored as tmux pane option @ws_id)
+#       cwd               working directory relative to repo root
+#       cmd               long-running command launched in the pane
+#       match             extended regex; a process in the pane's tree must match it
+#                         to count as the designated service
+#       health:           optional — { type: port, value: N }: the port must be
+#                         listening AND owned by a process in the pane's tree
+#
+# Infra note: Postgres/Auth/Studio run as Supabase CLI containers (supabase start).
+# There is deliberately no docker-compose stack — it would duplicate the DB stack.
+
+session: autodidact
+
+infra:
+  supabase: true
+
+windows:
+  app:
+    layout: even-horizontal
+    panes:
+      - id: backend
+        cwd: .
+        cmd: pnpm dev
+        match: 'pnpm dev|dev\.sh|turbo'
+        health: { type: port, value: 3000 }
+      - id: mobile
+        cwd: .
+        cmd: pnpm mobile
+        match: 'pnpm mobile|mobile\.sh|expo'
+        health: { type: port, value: 8081 }
+  claude:
+    preserve: true
