@@ -321,6 +321,15 @@ max_frequency = "5s"
 # Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
+[auth.external.google]
+enabled = true
+# Reuses the .env.dev entry (same public Web client ID the EAS profiles in apps/mobile/eas.json carry)
+client_id = "env(GOOGLE_WEB_CLIENT_ID)"
+# Expected unnecessary for the signInWithIdToken flow (GoTrue validates via Google JWKS);
+# dummy keeps env() resolvable. NEVER put the prod secret here or in .env.dev (spec §4).
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+skip_nonce_check = true  # dev-only: the Android native sheet sends no nonce
+
 [auth.external.apple]
 enabled = false
 client_id = ""
