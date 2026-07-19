@@ -91,3 +91,7 @@ docs/architecture/graphs/*.svg
 # Android signing keystores (EAS credential backups) — never commit
 *.jks
 *.keystore
+
+# Expo managed workflow: native dirs are generated; committing them flips EAS to bare workflow
+apps/mobile/android/
+apps/mobile/ios/
