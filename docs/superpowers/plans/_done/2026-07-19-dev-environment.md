@@ -1,3 +1,5 @@
+> Completed: 2026-07-19
+
 # Working Mobile Dev Environment Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -6,7 +8,7 @@
 
 **Goal:** A working mobile dev environment — dev-client APK built and installed, `pnpm mobile:run` opens it, and guest/email/Google sign-in all work against the local Supabase stack.
 
-**Architecture:** Placeholder assets unblock EAS prebuild → cloud dev-client build (existing EAS project/profile/keystore) → `run-mobile.sh` targets the dev client (fail-fast without it) → `[auth.external.google]` in the local Supabase config gives dev the same `signInWithIdToken` → GoTrue flow as prod. One `preview` build proves the release path. Spec: [`../../specs/in-progress/2026-07-19-dev-environment-design.md`](../../specs/in-progress/2026-07-19-dev-environment-design.md).
+**Architecture:** Placeholder assets unblock EAS prebuild → cloud dev-client build (existing EAS project/profile/keystore) → `run-mobile.sh` targets the dev client (fail-fast without it) → `[auth.external.google]` in the local Supabase config gives dev the same `signInWithIdToken` → GoTrue flow as prod. One `preview` build proves the release path. Spec: [`../../specs/_done/2026-07-19-dev-environment-design.md`](../../specs/_done/2026-07-19-dev-environment-design.md).
 
 **Tech Stack:** Expo SDK 52 + expo-dev-client (already deps) · EAS cloud builds (`eas-cli` 20.x) · Supabase CLI local stack · PIL 12.2.0 from the repo venv (`.venv/bin/python3`) · bash + adb (WSL client → Windows server).
 

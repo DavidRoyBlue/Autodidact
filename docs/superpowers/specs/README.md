@@ -50,7 +50,6 @@ A spec's **status is the subfolder it lives in** — this is the single source o
 | Spec | Related plan |
 |---|---|
 | [2026-06-22 — Social Sign-In (Google + Facebook)](in-progress/2026-06-22-social-sign-in-design.md) | [Phase 1](../plans/in-progress/2026-06-22-social-sign-in-phase1-oauth-sign-in.md) + [Phase 2](../plans/in-progress/2026-06-22-social-sign-in-phase2-guest-oauth-upgrade.md) (code merged; provider config + verification owner-gated) |
-| [2026-07-19 — Working Mobile Dev Environment](in-progress/2026-07-19-dev-environment-design.md) | [2026-07-19 — Dev Environment](../plans/in-progress/2026-07-19-dev-environment.md) |
 
 ### ⚪ Done
 
@@ -63,6 +62,7 @@ A spec's **status is the subfolder it lives in** — this is the single source o
 | [2026-06-18 — Production Auth](_done/2026-06-18-production-auth-design.md) (Spec 2/4) | Plans [A/B1/B2/C1/C2 done](../plans/_done/) — shipped to prod 2026-06-26 (issue #50) |
 | [2026-06-19 — Local Supabase Stack](_done/2026-06-19-local-supabase-stack-design.md) (Spec 1/4) | [2026-06-19 — Local Supabase Stack](../plans/_done/2026-06-19-local-supabase-stack.md) |
 | [2026-06-19 — DEV_AUTO_LOGIN](_done/2026-06-19-dev-auto-login-design.md) (Spec 4/4) | _shipped in `apps/mobile/app/_layout.tsx` (no standalone plan)_ |
+| [2026-07-19 — Working Mobile Dev Environment](_done/2026-07-19-dev-environment-design.md) | [2026-07-19 — Dev Environment](../plans/_done/2026-07-19-dev-environment.md) |
 
 ---
 
