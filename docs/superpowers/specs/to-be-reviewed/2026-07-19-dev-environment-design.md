@@ -38,20 +38,28 @@ build included.
 
 Three committed PNGs in `apps/mobile/assets/`: `icon.png` (1024×1024), `adaptive-icon.png`
 (foreground layer), `splash.png`. Placeholder style: dark navy `#0f172a` + "A" glyph. Generated
-once with a throwaway script (not committed). Real branding swaps in later with zero code changes.
+once with a throwaway script (not committed). Real branding swaps in later with zero code
+changes — but needs a rebuild (see §2 rebuild triggers).
 
 ### 2. Dev client build
 
 `eas build --profile development --platform android` (cloud). **Prebuild gate first** (the
 anti-waste mechanism must not itself corrupt builds): verify the three asset files exist and are
-valid PNGs, then rehearse with `npx expo prebuild --platform android --no-install` followed by a
-**mandatory** `rm -rf apps/mobile/android` — a leftover `android/` dir silently flips EAS from
-managed to bare workflow. The plan must also confirm `android/` is gitignored for `apps/mobile`.
+valid PNGs, then rehearse with `npx expo prebuild --platform android --no-install`. Cleanup =
+**restore a clean tree, not just remove `android/`**: prebuild also rewrites the `scripts` field
+of `apps/mobile/package.json` (`expo start --android` → `expo run:android`), so after the
+rehearsal, remove `android/`, restore `package.json`, and assert
+`git status --porcelain apps/mobile` is empty — a leftover `android/` dir silently flips EAS from
+managed to bare workflow, and a committed script rewrite changes `pnpm --filter` command
+semantics. The plan must also confirm `android/` is gitignored for `apps/mobile`.
 Install the APK on the `Medium_Phone` AVD via adb.
 
 Rebuild triggers (the top future footgun — be concrete): any change to `app.json` /
-`app.config.ts` plugins, or adding/upgrading a dependency that contains native code. Pure JS/TS
-changes never need a rebuild; Metro serves them.
+`app.config.ts` plugins or native config (`android.package`, `scheme`, splash/icon blocks);
+changes to the committed assets themselves (icon/splash/adaptive-icon are baked at prebuild —
+swapping in real branding later **requires a rebuild**, though no code changes); or
+adding/upgrading a dependency that contains native code. Pure JS/TS changes never need a
+rebuild; Metro serves them.
 
 If EAS cloud is unavailable (outage, queue, free-tier quota): wait — the effort is only 2–3
 builds total; lift the local-Gradle exclusion only if blocked more than a day.
@@ -64,9 +72,11 @@ builds total; lift the local-Gradle exclusion only if blocked more than a day.
   on the same AVD — the script warning should say so).
 - Dev client found → open the project via the dev-client deep link to Metro on 8081.
   Not found → fail fast with the exact build/install commands.
-- The three `adb reverse` calls (8081 Metro, 3000 API, 55321 Supabase) must run on **every**
-  path — hoist them out of the current Expo-Go-only branch, including the "Metro already
-  running" early-exit (today an emulator reboot after that exit leaves no reverses).
+- Detection, the three `adb reverse` calls (8081 Metro, 3000 API, 55321 Supabase), **and** the
+  deep-link open must run on **every** path — hoist them out of the current Expo-Go-only branch,
+  including the "Metro already running" early-exit, which today `exit 0`s before any of them
+  (an emulator reboot while Metro survives would otherwise leave no reverses and never open the
+  app). The open is idempotent via the script's existing `topResumedActivity` retry pattern.
 
 ### 4. Google auth against the local stack
 
@@ -75,8 +85,8 @@ builds total; lift the local-Gradle exclusion only if blocked more than a day.
 ```toml
 [auth.external.google]
 enabled = true
-# Same Web client ID as the EAS build profiles (eas.json is the source of truth; public value)
-client_id = "232057392869-226j0moceo2m8kbhkhjo8i6bb10iullb.apps.googleusercontent.com"
+# Reuses the existing .env.dev entry (same public Web client ID the EAS profiles carry)
+client_id = "env(GOOGLE_WEB_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
 skip_nonce_check = true  # dev-only divergence: the Android native sheet sends no nonce
 ```
@@ -114,7 +124,8 @@ Do not install it on the dev AVD (package-name collision with the dev client, §
 |---|---|
 | Cloud build fails | Diagnose from EAS logs (log-fetch flow proven 2026-07-18); prebuild gate makes this unlikely |
 | Cloud build unavailable (outage/quota) | Wait; escalate to local Gradle only if blocked > 1 day |
-| `DEVELOPER_ERROR` from native sheet | Android client ID mismatch — re-verify package + SHA-1 (troubleshooting table in social-sign-in.md) |
+| `DEVELOPER_ERROR` from native sheet | Google-side: Android client ID mismatch — re-verify package + SHA-1 (troubleshooting table in social-sign-in.md) |
+| GoTrue 400 on `signInWithIdToken` | Local-side (don't conflate with the above): check auth container logs (`supabase logs`/docker), JWKS reachability, and token `aud` vs `client_id`; if the dummy secret is the cause, same escalate-to-owner rule as §4 |
 | config.toml edits | Require local stack restart only; no migration |
 | No dev client on device | `run-mobile.sh` fails fast with build/install instructions (Expo Go would crash on boot — not a fallback) |
 
