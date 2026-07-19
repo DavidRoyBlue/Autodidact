@@ -14,6 +14,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...(config.plugins ?? []),
     'expo-router',
     '@react-native-google-signin/google-signin',
+    // Kotlin 1.9.25: expo-modules-core's Compose Compiler 1.5.15 rejects the
+    // RN-default 1.9.24 (EAS build 0f3cdd0d failed on exactly this).
+    ['expo-build-properties', { android: { kotlinVersion: '1.9.25' } }],
   ],
   extra: {
     ...config.extra,
