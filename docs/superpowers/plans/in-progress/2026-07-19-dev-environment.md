@@ -444,7 +444,7 @@ Expected: the guest row (`is_anonymous=t`), the email row, and a row with `googl
 
 **Interfaces:** Consumes: green Task 9.
 
-- [ ] **Step 1: Fire the preview build and confirm green**
+- [x] **Step 1: Fire the preview build and confirm green**
 
 ```bash
 cd apps/mobile && npx eas-cli build --profile preview --platform android --non-interactive --no-wait; cd ../..
@@ -453,7 +453,7 @@ cd apps/mobile && npx eas-cli build --profile preview --platform android --non-i
 
 Expected: newest `preview` build reaches `FINISHED` with an artifact URL. **Do NOT install it on the dev AVD** (package-name collision would replace the dev client).
 
-- [ ] **Step 2: Docs updates** — apply the three file updates listed above. Keep each edit short; link to the spec instead of duplicating design rationale.
+- [x] **Step 2: Docs updates** — apply the three file updates listed above. Keep each edit short; link to the spec instead of duplicating design rationale.
 
 - [ ] **Step 3: Close out statuses**
 
@@ -471,3 +471,5 @@ git commit -m "docs(dev-env): dev environment shipped — statuses, runbooks, pl
 git push origin master
 gh issue edit <session issue #> --add-label in-review --remove-label in-progress   # never close it
 ```
+
+> **Progress 2026-07-19 (T10):** preview attempt 1 (`b609a5c7`) failed — release bundling could not resolve `expo-asset` under pnpm (local `expo export` also silently emitted no bundle); fixed by adding `expo-asset` as a direct dep. Preview attempt 2 (`37a8f470`) FINISHED. Docs updated (deployment.md, social-sign-in.md local-stack section, mobile CLAUDE.md dev-client rules, PRODUCTION.md mobile state). Close-out (status moves + in-review) awaits the Google device E2E (T9 step 4).

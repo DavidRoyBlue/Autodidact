@@ -178,6 +178,27 @@ This starts the Expo development server (Metro bundler). The app will hot-reload
 
 ---
 
+## Local stack (dev)
+
+Google sign-in works against the **local** Supabase stack — same `signInWithIdToken` → GoTrue
+flow as prod. Wiring (all committed 2026-07-19):
+
+- `supabase/config.toml` has `[auth.external.google]` with `client_id = "env(GOOGLE_WEB_CLIENT_ID)"`,
+  a **dummy** secret (`SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=dev-dummy-not-used` in `.env.dev` —
+  the id-token flow validates via Google's JWKS, no real secret; never put the prod secret in dev
+  env), and `skip_nonce_check = true` (the Android native sheet sends no nonce).
+- The dev client reaches the local stack at `http://10.0.2.2:55321` (set by `run-mobile.sh` for
+  Metro; **not** `adb reverse` — broken across the Windows-adb-server/WSL split).
+- **One-time per AVD:** a Google account must be signed into the emulator (Settings → Accounts,
+  or complete the sheet's sign-in form once). The account lives on the AVD's data partition and
+  survives reboots; only `-wipe-data`/AVD recreation loses it.
+
+| Local-stack symptom | Cause / fix |
+|---|---|
+| `DEVELOPER_ERROR` from the native sheet | Google-side: Android client package/SHA-1 mismatch (see §2) |
+| GoTrue 400 on `signInWithIdToken` | Local-side: `docker logs supabase_auth_Autodidact`; check JWKS reachability and token `aud` vs `client_id` |
+| Sheet asks for full Google credentials | No account on the AVD yet — the one-time step above |
+
 ## Phase 2 — guest → OAuth upgrade
 
 When a guest (anonymous) user reaches the profile screen, `UpgradeAccountCard` offers "Continue with Google" and "Continue with Facebook" buttons. Tapping either invokes the web `linkIdentity` flow via `linkWithGoogle()` or `linkWithFacebook()` (in [`src/lib/social-auth.ts`](../src/lib/social-auth.ts)), which links the OAuth provider to the existing guest account without requiring a password.

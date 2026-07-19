@@ -30,7 +30,8 @@ Expo React Native app — the only client; talks exclusively to the API service.
 - dev: [.env.example](.env.example) → `.env.dev` (self-loaded by `app.config.ts`)
 
 **State** — Set for prod and dev; social sign-in requires the custom dev build (not Expo Go).
-- dev run: [scripts/run-mobile.sh](scripts/run-mobile.sh) (`pnpm mobile:run`)
+- dev run: [scripts/run-mobile.sh](scripts/run-mobile.sh) (`pnpm mobile:run`) — opens the dev client; device reaches host via `10.0.2.2`
+- dev client: EAS `development` build green + installed on the `Medium_Phone` AVD (2026-07-19); `preview` profile green
 - prod build: `eas build --profile production --platform android` ([eas.json](apps/mobile/eas.json))
 
 **Useful Files**

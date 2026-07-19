@@ -198,10 +198,17 @@ pnpm --filter @autodidact/mobile android    # Android emulator
 pnpm --filter @autodidact/mobile typecheck  # Type-check
 pnpm --filter @autodidact/mobile test       # Jest unit/component tests (jest-expo)
 
-# WSL2 + Windows-host Android emulator (see README → "Running on the Android emulator")
+# WSL2 + Windows-host Android emulator
 pnpm emulator      # boot the AVD on Windows, make it visible to WSL adb / mobile-mcp
-pnpm mobile:run    # boot emulator + start Metro + open the app in Expo Go
+pnpm mobile:run    # boot emulator + start Metro + open the app in the DEV CLIENT
 ```
+
+The app runs **only in the custom dev client** (Expo Go crashes on the native Google module).
+Rebuild the dev client (`npx eas-cli build --profile development --platform android`, then
+`adb install -r`) when `app.json`/`app.config.ts` plugins or native config change, committed
+assets change, or a native-code dependency is added/upgraded — never for JS/TS-only changes.
+The device reaches Metro/api/Supabase via `10.0.2.2`; do not add `adb reverse` calls (broken
+across the Windows-adb-server/WSL split — see `scripts/run-mobile.sh`).
 
 ### Build & release (EAS → Google Play)
 
