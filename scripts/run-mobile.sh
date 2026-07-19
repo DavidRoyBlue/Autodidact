@@ -54,12 +54,12 @@ if ! timeout 15 "$LINUX_ADB" -s "$serial" shell dumpsys package "$APP_ID" 2>/dev
   then re-run: pnpm mobile:run"
 fi
 
-# --- 3. adb reverses (EVERY path, incl. Metro-already-up) --------------------
-# The device reaches Metro (8081), the local API (3000) and the local Supabase
-# stack (55321) via localhost thanks to these.
-for port in 8081 3000 55321; do
-  timeout 10 "$LINUX_ADB" -s "$serial" reverse "tcp:$port" "tcp:$port" >/dev/null 2>&1 || true
-done
+# --- 3. host loopback --------------------------------------------------------
+# The emulator reaches WSL services via 10.0.2.2 (qemu's host-loopback → Windows
+# localhost → WSL mirrored networking). Do NOT use `adb reverse` here: across the
+# Windows-adb-server/WSL-client split the tunnels accept connections but deliver
+# no data (verified 2026-07-19: device nc through reverse = empty; 10.0.2.2 = 200).
+HOST_LOOPBACK="10.0.2.2"
 
 # --- 4. Metro (start only if not already serving) ----------------------------
 # --max-time everywhere: under WSL mirrored networking, closed loopback ports
@@ -67,7 +67,14 @@ done
 if ! curl -fsS --max-time 2 "http://localhost:8081/status" >/dev/null 2>&1; then
   info "▶ Starting Expo/Metro (log: .expo-dev.log)"
   : > "$METRO_LOG"
-  ( cd apps/mobile && CI=1 ANDROID_HOME="$ADB_SHIM" nohup pnpm start >>"$METRO_LOG" 2>&1 & )
+  # Device-facing URLs must use the host-loopback IP, not 127.0.0.1 (which is the
+  # device itself). Exporting here beats .env.dev: app.config.ts loads dotenv
+  # without override, so existing env wins for Metro's `extra` resolution only —
+  # backend services still read the 127.0.0.1 values from .env.dev.
+  ( cd apps/mobile && CI=1 ANDROID_HOME="$ADB_SHIM" \
+      SUPABASE_URL="http://$HOST_LOOPBACK:55321" \
+      AUTODIDACT_API_BASE_URL="http://$HOST_LOOPBACK:3000/v1" \
+      nohup pnpm start >>"$METRO_LOG" 2>&1 & )
   info "… waiting for Metro on :8081 (≤ ${METRO_TIMEOUT}s)"
   deadline=$(( SECONDS + METRO_TIMEOUT ))
   ready=""
@@ -90,7 +97,7 @@ for _ in 1 2 3 4 5 6; do
   fg=$(timeout 10 "$LINUX_ADB" -s "$serial" shell dumpsys activity activities 2>/dev/null | grep -i topResumedActivity || true)
   [[ "$fg" == *"$APP_ID"* ]] && break
   timeout 10 "$LINUX_ADB" -s "$serial" shell am start -a android.intent.action.VIEW \
-    -d "autodidact://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081" "$APP_ID" >/dev/null 2>&1 || true
+    -d "autodidact://expo-development-client/?url=http%3A%2F%2F${HOST_LOOPBACK}%3A8081" "$APP_ID" >/dev/null 2>&1 || true
   sleep 3
 done
 [[ "$fg" == *"$APP_ID"* ]] || warn "app not confirmed foregrounded — check the emulator screen"
