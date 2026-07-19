@@ -349,7 +349,7 @@ git commit -m "feat(scripts): run-mobile targets the dev client (fail-fast witho
 
 **Interfaces:** Consumes: Task 4's build (newest `development` build), Task 6's script. Produces: dev client installed on the AVD; keystore SHA-1 string for Task 8's owner checklist.
 
-- [ ] **Step 1: Wait for the build and get the artifact URL**
+- [x] **Step 1: Wait for the build and get the artifact URL**
 
 ```bash
 cd apps/mobile
@@ -359,7 +359,7 @@ cd ../..
 
 Expected: `development FINISHED https://…apk`. If `ERRORED`: fetch the log (`eas build:view <id> --json` → `logFiles[0]`, curl with `--compressed`, it is NDJSON — the same diagnosis flow that found the assets bug on 2026-07-18) and fix before continuing. If still `IN_QUEUE`/`IN_PROGRESS`: poll every ~5 min.
 
-- [ ] **Step 2: Download + install on the emulator** (emulator must be booted — `pnpm emulator`):
+- [x] **Step 2: Download + install on the emulator** (emulator must be booted — `pnpm emulator`):
 
 ```bash
 curl -fsSL --max-time 300 "<buildUrl>" -o "$CLAUDE_JOB_DIR/tmp/autodidact-dev.apk"
@@ -368,7 +368,7 @@ ADB_SERVER_SOCKET=tcp:localhost:5037 ~/android-platform-tools/adb install -r "$C
 
 Expected: `Success`
 
-- [ ] **Step 3: Extract the keystore SHA-1 from the APK** (no Google console needed):
+- [x] **Step 3: Extract the keystore SHA-1 from the APK** (no Google console needed):
 
 ```bash
 keytool -printcert -jarfile "$CLAUDE_JOB_DIR/tmp/autodidact-dev.apk" | grep -A2 'SHA1'
@@ -376,7 +376,9 @@ keytool -printcert -jarfile "$CLAUDE_JOB_DIR/tmp/autodidact-dev.apk" | grep -A2 
 
 Expected: a `SHA1: XX:XX:…` fingerprint line. Record it for Task 8.
 
-- [ ] **Step 4: Verify detection** — `pnpm mobile:run` now must pass the dev-client check and open the app (Metro + deep link). App may show errors until backend/auth wiring is verified in Task 9; foregrounding the dev client is the pass condition here.
+- [x] **Step 4: Verify detection** — `pnpm mobile:run` now must pass the dev-client check and open the app (Metro + deep link). App may show errors until backend/auth wiring is verified in Task 9; foregrounding the dev client is the pass condition here.
+
+> **Executed 2026-07-19 (deviation 3):** build 3 (`d8fbfd24`) FINISHED — first green EAS build. APK installed; SHA-1 `E5:1A:B1:0B:A9:5E:44:79:7C:1B:2E:D1:E5:3F:EB:F7:B4:7C:AF:45` (via apksigner; keytool can't read v2-only signatures). Dev client could NOT reach Metro through `adb reverse` (tunnels accept but pass no data across the Windows-adb-server/WSL split) — replaced reverses with the `10.0.2.2` host-loopback (deep link + Metro-scoped SUPABASE_URL/AUTODIDACT_API_BASE_URL env). Verified: bundle loads, sign-in screen renders in the dev client.
 
 ---
 
@@ -409,15 +411,15 @@ Expected: ≥ 1
 
 **Interfaces:** Consumes: everything above; `pnpm dev` running in a separate terminal (owner keeps it up, or start it backgrounded).
 
-- [ ] **Step 1: Full stack up** — backend `pnpm dev` running (verify: `curl -fsS --max-time 3 http://localhost:3000/v1/health` or the repo's health route; check `curl -fsS --max-time 3 http://127.0.0.1:55321/auth/v1/settings` for the local stack), then `pnpm mobile:run`.
+- [x] **Step 1: Full stack up** — backend `pnpm dev` running (verify: `curl -fsS --max-time 3 http://localhost:3000/v1/health` or the repo's health route; check `curl -fsS --max-time 3 http://127.0.0.1:55321/auth/v1/settings` for the local stack), then `pnpm mobile:run`.
 
-- [ ] **Step 2: Guest sign-in** — via mobile-mcp: screenshot the sign-in screen, tap "Continue as guest", confirm the app routes into `(app)`. 
+- [x] **Step 2: Guest sign-in** — via mobile-mcp: screenshot the sign-in screen, tap "Continue as guest", confirm the app routes into `(app)`. 
 
-- [ ] **Step 3: Email sign-up/sign-in** — create a throwaway account (e.g. `dev-check@example.com`), confirm it lands in the app shell. If sign-up demands email confirmation, the local stack catches all mail in Inbucket — open `http://127.0.0.1:55324`, find the message, click the confirm link, retry sign-in.
+- [x] **Step 3: Email sign-up/sign-in** — create a throwaway account (e.g. `dev-check@example.com`), confirm it lands in the app shell. If sign-up demands email confirmation, the local stack catches all mail in Inbucket — open `http://127.0.0.1:55324`, find the message, click the confirm link, retry sign-in.
 
 - [ ] **Step 4: Google sign-in** — tap "Continue with Google"; native sheet appears; pick the device account; the app must land in `(app)`. On `DEVELOPER_ERROR` → Task 8 client mismatch. On a GoTrue 400 → check auth logs: `docker logs $(docker ps --format '{{.Names}}' | grep supabase_auth) --tail 50`, verify JWKS reachability and `aud` vs `client_id`; if the dummy secret is the cause, report to the owner per spec §4.
 
-- [ ] **Step 5: Confirm rows in the local DB**
+- [x] **Step 5: Confirm rows in the local DB**
 
 ```bash
 docker exec $(docker ps --format '{{.Names}}' | grep supabase_db) psql -U postgres -d postgres -c \
@@ -427,6 +429,8 @@ docker exec $(docker ps --format '{{.Names}}' | grep supabase_db) psql -U postgr
 Expected: the guest row (`is_anonymous=t`), the email row, and a row with `google_ids=1`. Also confirm the same users appear in `public.users` (`select id, email from public.users order by created_at desc limit 5;`).
 
 - [ ] **Step 6: Update this plan's checkboxes and note results** (screenshots + any deviations) under this task.
+
+> **Progress 2026-07-19:** T9 steps 1–3+5 verified ahead of the T8 gate: guest sign-in routes into `(app)` (row `ef381f7c…`, `is_anonymous=t`); guest→email upgrade via UpgradeAccountCard succeeds ("Account saved", same UUID, email set, `is_anonymous=f`, provider `email`, synced to `public.users`). Email test used the upgrade card rather than sign-out/sign-up — exercises `updateUser` against local GoTrue. Step 4 (Google) awaits the Task 8 owner gate.
 
 ---
 
