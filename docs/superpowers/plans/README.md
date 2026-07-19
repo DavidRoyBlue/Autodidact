@@ -39,7 +39,6 @@ Done plans are never deleted; they record how and why something was built. Their
 |---|---|
 | [2026-05-14 — Sync main: SessionStart hook](to-be-reviewed/2026-05-14-sync-main-session-start-hook.md) | Proposed; hook script not yet created |
 | [2026-06-22 — Onboarding Course (Spec 3/4)](to-be-reviewed/2026-06-22-onboarding-course-implementation.md) | Auto-enroll + placeholder seed + first-launch deep-link; resolves Spec 3 D9/D10 |
-| [2026-07-19 — Working Mobile Dev Environment](to-be-reviewed/2026-07-19-dev-environment.md) | Assets → EAS dev client → run-mobile wiring → local Google auth; spec in [specs/to-be-reviewed](../specs/to-be-reviewed/2026-07-19-dev-environment-design.md) |
 
 ### 🟡 In progress
 
@@ -50,6 +49,7 @@ Done plans are never deleted; they record how and why something was built. Their
 | [2026-06-22 — Social Sign-In Phase 1: OAuth Sign-In](in-progress/2026-06-22-social-sign-in-phase1-oauth-sign-in.md) (Google native + Facebook web-PKCE) | Code merged; OAuth provider config + dev-build verification owner-gated |
 | [2026-06-22 — Social Sign-In Phase 2: Guest→OAuth Upgrade](in-progress/2026-06-22-social-sign-in-phase2-guest-oauth-upgrade.md) (`0011`+`0012`, `linkIdentity`) | Code merged; prod migration apply + manual-linking + verification owner-gated |
 | [2026-06-26 — Social Sign-In Phase 1: Provider Config & Device Verification](in-progress/2026-06-26-social-sign-in-phase1-provider-config.md) (sub-issue of Phase 1) | Owner-gated runbook checklist: Supabase/Google/Facebook config + EAS dev-build verification |
+| [2026-07-19 — Working Mobile Dev Environment](in-progress/2026-07-19-dev-environment.md) | Assets → EAS dev client → run-mobile wiring → local Google auth; spec: [in-progress](../specs/in-progress/2026-07-19-dev-environment-design.md) |
 | [2026-06-26 — Social Sign-In: Finish Config, Prod Migrations & Verification](in-progress/2026-06-26-social-sign-in-finish-config-and-verification.md) (sub-issue of design spec #51) | Authoritative end-to-end finish checklist to close #51 |
 
 ### ⚪ Done
