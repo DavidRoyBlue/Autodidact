@@ -51,7 +51,7 @@ ok "tmux, docker, pnpm, node, ss available"
 # ── Parse workspace.yml → tab-separated records ──────────────────────────────
 # SESSION\t<name>
 # INFRA\tsupabase
-# WINDOW\t<name>\tmanaged|preserve\t<layout>
+# WINDOW\t<name>\tmanaged|preserve\t<layout>\t<panes_on_create>
 # PANE\t<window>\t<id>\t<cwd>\t<match>\t<health_port>\t<cmd>
 CONFIG="$(node - "$ROOT/workspace.yml" <<'EOF'
 const fs = require('fs');
@@ -62,12 +62,16 @@ if (!c.session) throw new Error('workspace.yml: session is required');
 out.push(['SESSION', c.session].join('\t'));
 if (c.infra && c.infra.supabase) out.push(['INFRA', 'supabase'].join('\t'));
 for (const [name, w] of Object.entries(c.windows || {})) {
-  if (w && w.preserve) { out.push(['WINDOW', name, 'preserve', ''].join('\t')); continue; }
-  out.push(['WINDOW', name, 'managed', (w && w.layout) || ''].join('\t'));
+  const layout = (w && w.layout) || '';
+  const seed = w && w.panes_on_create ? String(w.panes_on_create) : '';
+  if (w && w.preserve) { out.push(['WINDOW', name, 'preserve', layout, seed].join('\t')); continue; }
+  out.push(['WINDOW', name, 'managed', layout, ''].join('\t'));
   for (const p of (w && w.panes) || []) {
-    if (!p.id || !p.cmd) throw new Error(`workspace.yml: pane in window "${name}" needs id and cmd`);
+    if (!p.id) throw new Error(`workspace.yml: pane in window "${name}" needs an id`);
     const port = p.health && p.health.type === 'port' ? String(p.health.value) : '';
-    out.push(['PANE', name, p.id, p.cwd || '.', p.match || '', port, p.cmd].join('\t'));
+    // cmd is optional: a pane without one is a free terminal — created and
+    // tagged once, then never written to or restarted.
+    out.push(['PANE', name, p.id, p.cwd || '.', p.match || '', port, p.cmd || ''].join('\t'));
   }
 }
 process.stdout.write(out.join('\n') + '\n');
@@ -133,12 +137,26 @@ fi
 
 window_exists() { tmux list-windows -t "=$SESSION" -F '#{window_name}' | grep -Fxq "$1"; }
 
-while IFS=$'\t' read -r _ WNAME WMODE _; do
+while IFS=$'\t' read -r _ WNAME WMODE WLAYOUT WSEED; do
+  FRESH=0
   if ! window_exists "$WNAME"; then
     BOOTSTRAP[$WNAME]="$(tmux new-window -d -t "=$SESSION" -n "$WNAME" -c "$ROOT" -P -F '#{pane_id}')"
+    FRESH=1
     ok "Created window '$WNAME'"
   fi
-  [[ "$WMODE" == "preserve" ]] && ok "Window '$WNAME' preserved (never managed)"
+  if [[ "$WMODE" == "preserve" ]]; then
+    # Seed the requested pane count once, at creation only. On every later run
+    # the window is untouched, however the user has since rearranged it.
+    if [[ "$FRESH" == 1 && -n "$WSEED" ]]; then
+      for ((i = 1; i < WSEED; i++)); do
+        tmux split-window -d -t "=$SESSION:$WNAME" -c "$ROOT" >/dev/null
+        [[ -n "$WLAYOUT" ]] && tmux select-layout -t "=$SESSION:$WNAME" "$WLAYOUT" >/dev/null
+      done
+      ok "Window '$WNAME' seeded with $WSEED panes (${WLAYOUT:-default} layout) — never managed again"
+    else
+      ok "Window '$WNAME' preserved (never managed)"
+    fi
+  fi
 done < <(awk -F'\t' '$1=="WINDOW"' <<<"$CONFIG")
 
 # ── Managed panes ────────────────────────────────────────────────────────────
@@ -177,17 +195,28 @@ while IFS=$'\t' read -r _ WNAME PANE_ID_NAME CWD MATCH_RE HEALTH_PORT CMD; do
     fi
     [[ -z "$PANE" ]] && PANE="$(claim_idle_pane "$WNAME")"
     if [[ -z "$PANE" ]]; then
-      PANE="$(tmux split-window -d -t "=$SESSION:$WNAME" -c "$ROOT" -P -F '#{pane_id}')"
+      PANE="$(tmux split-window -d -t "=$SESSION:$WNAME" -c "$ROOT/$CWD" -P -F '#{pane_id}')"
     fi
     tmux set-option -p -t "$PANE" @ws_id "$PANE_ID_NAME"
     tmux select-pane -t "$PANE" -T "$PANE_ID_NAME"
     CREATED_IN[$WNAME]=1
+    if [[ -z "$CMD" ]]; then
+      ok "[$PANE_ID_NAME] free terminal ready (never managed after creation)"
+      continue
+    fi
     if [[ -n "$HEALTH_PORT" ]] && port_listening "$HEALTH_PORT"; then
       warn "[$PANE_ID_NAME] port $HEALTH_PORT already in use by a process outside this workspace — NOT starting '$CMD' (no alternate ports). Stop the other process, then re-run."
       continue
     fi
     start_cmd_in_pane "$PANE" "$CWD" "$CMD"
     ok "[$PANE_ID_NAME] pane created, started: $CMD"
+    continue
+  fi
+
+  # A cmd-less pane is the user's own terminal: it exists, so we're done.
+  # Whatever is running in it (or not) is none of the script's business.
+  if [[ -z "$CMD" ]]; then
+    ok "[$PANE_ID_NAME] free terminal (left alone)"
     continue
   fi
 

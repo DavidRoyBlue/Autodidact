@@ -4,12 +4,15 @@
 #   session               tmux session name
 #   infra.supabase        start the local Supabase stack (supabase start) before tmux
 #   windows.<name>:
-#     preserve: true      never create panes in, send commands to, or kill this window
-#     layout              tmux layout applied when the window has >1 pane
+#     preserve: true      never send commands to or kill anything in this window;
+#                         only ever created (and optionally seeded) once
+#     panes_on_create: N  preserve-only: split to N panes at creation, then hands off
+#     layout              tmux layout applied when the window gains a pane
 #     panes[]:
 #       id                stable pane identifier (stored as tmux pane option @ws_id)
 #       cwd               working directory relative to repo root
-#       cmd               long-running command launched in the pane
+#       cmd               long-running command launched in the pane; omit it for a
+#                         free terminal — created once, then never written to
 #       match             extended regex; a process in the pane's tree must match it
 #                         to count as the designated service
 #       health:           optional — { type: port, value: N }: the port must be
@@ -25,7 +28,7 @@ infra:
 
 windows:
   app:
-    layout: even-horizontal
+    layout: tiled
     panes:
       - id: backend
         cwd: .
@@ -37,5 +40,10 @@ windows:
         cmd: pnpm mobile
         match: 'pnpm mobile|mobile\.sh|expo'
         health: { type: port, value: 8081 }
+      - id: shell
+        cwd: .
+        # no cmd — free terminal for ad-hoc commands (tests, git, migrations)
   claude:
     preserve: true
+    panes_on_create: 4
+    layout: tiled
