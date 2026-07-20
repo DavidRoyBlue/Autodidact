@@ -41,7 +41,7 @@ module "api" {
   service_name          = "autodidact-api"
   region                = var.region
   image                 = "${local.registry}/api:latest"
-  min_instances         = 1
+  min_instances         = 0
   max_instances         = 10
   cpu                   = "1"
   memory                = "512Mi"
@@ -70,7 +70,7 @@ module "agent" {
   service_name          = "autodidact-agent"
   region                = var.region
   image                 = "${local.registry}/agent:latest"
-  min_instances         = 1
+  min_instances         = 0
   max_instances         = 5
   cpu                   = "2"
   memory                = "2Gi"
