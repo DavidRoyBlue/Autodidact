@@ -30,6 +30,7 @@ This folder is not responsible for:
 | [data-model.md](data-model.md) | ERD, table reference, enums, pgvector usage, RLS, migrations |
 | [infrastructure.md](infrastructure.md) | GCP topology, Cloud Run config, Terraform structure, CI/CD, local dev |
 | [c4/](c4/) | C4 architecture diagrams: Context → Containers → Components |
+| [likec4/](likec4/) | Machine-readable architecture model; the same three levels as interactive diagrams |
 | [decisions/](decisions/) | Architecture Decision Records (ADRs) |
 
 ---

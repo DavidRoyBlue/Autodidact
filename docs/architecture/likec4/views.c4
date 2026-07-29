@@ -1,0 +1,61 @@
+views {
+
+  view index {
+    title 'L1 — System Context'
+    description 'Autodidact as a single box, with every external actor and dependency.'
+
+    include *
+
+    style * {
+      color muted
+    }
+    style autodidact {
+      color primary
+    }
+    style learner {
+      color green
+    }
+  }
+
+  view containers of autodidact {
+    title 'L2 — Containers'
+    description 'Deployable units inside Autodidact and how they communicate.'
+
+    include
+      *,
+      learner,
+      supabase,
+      llm,
+      tasks
+
+    style learner, supabase, llm, tasks {
+      color muted
+    }
+  }
+
+  view apiComponents of autodidact.api {
+    title 'L3 — API Service Components'
+
+    include
+      *,
+      autodidact.agent,
+      autodidact.postgres
+
+    style autodidact.agent, autodidact.postgres {
+      color muted
+    }
+  }
+
+  view agentComponents of autodidact.agent {
+    title 'L3 — Agent Service Components'
+
+    include
+      *,
+      llm,
+      autodidact.postgres
+
+    style llm, autodidact.postgres {
+      color muted
+    }
+  }
+}

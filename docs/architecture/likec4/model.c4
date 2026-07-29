@@ -1,0 +1,100 @@
+model {
+
+  learner = person 'Learner' {
+    description 'Creates courses and completes modules through AI chat on their mobile device.'
+  }
+
+  autodidact = system 'Autodidact' {
+    description '''
+      AI-native learning platform.
+      Generates structured courses and teaches them through module-based conversations.
+    '''
+
+    mobile = mobileApp 'Mobile App' {
+      #public
+      technology 'Expo / React Native'
+      description 'Course creation, module learning and progress tracking. iOS and Android.'
+    }
+
+    api = container 'API Service' {
+      #public
+      technology 'NestJS / Node.js :3000'
+      description 'Public REST API. Auth, course orchestration, SSE chat proxy, progress tracking.'
+
+      authModule     = component 'AuthModule'     { description 'Verifies Supabase JWT on every protected route.' }
+      coursesModule  = component 'CoursesModule'  { description 'Course lifecycle: similarity check, enroll, enqueue, status polling.' }
+      chatModule     = component 'ChatModule'     { description 'Creates chat sessions and proxies Agent SSE to the client.' }
+      progressModule = component 'ProgressModule' { description 'Module progress, start and unlock logic.' }
+      agentClient    = component 'ApiAgentClient' { description 'Thin HTTP wrapper for the Agent service.' }
+
+      coursesModule -> agentClient 'embeddings + generation'
+      chatModule    -> agentClient 'streams chat'
+      coursesModule -> progressModule 'seeds progress'
+      chatModule    -> progressModule 'completes module, unlocks next'
+    }
+
+    agent = container 'Agent Service' {
+      #internal
+      technology 'Fastify / LangGraph :3001'
+      description 'Internal AI service. Runs LangGraph graphs for course generation and module chat.'
+
+      courseGraph = component 'CourseGenerationGraph' { description 'generateBlueprint node.' }
+      chatGraph   = component 'ModuleChatGraph'       { description 'teacher and evaluator nodes.' }
+      embeddings  = component 'Embeddings Route'      { description 'POST /embeddings/text' }
+    }
+
+    worker = container 'Worker Service' {
+      #internal
+      technology 'Fastify / Node.js'
+      description 'Background task handler. Processes course generation and embedding tasks.'
+    }
+
+    postgres = database 'PostgreSQL' {
+      technology 'Supabase / pgvector'
+      description 'Courses, modules, enrollments, progress, chat sessions, user profiles.'
+    }
+  }
+
+  supabase = externalSystem 'Supabase' {
+    description 'Managed PostgreSQL with pgvector. Also provides JWT-based authentication.'
+  }
+
+  llm = externalSystem 'LLM Provider' {
+    description 'OpenAI (GPT-4o) by default, or Anthropic (Claude) via LLM_PROVIDER env var.'
+  }
+
+  tasks = externalSystem 'Cloud Tasks' {
+    description 'GCP managed task queues. Owns retry and backoff, delivers work over OIDC-authenticated HTTP.'
+  }
+
+  gcp = externalSystem 'Google Cloud Platform' {
+    description 'Cloud Run, Artifact Registry, Secret Manager.'
+  }
+
+  otel = externalSystem 'OpenTelemetry Collector' {
+    #optional
+    description 'Optional trace aggregation. No-op unless OTEL_EXPORTER_OTLP_ENDPOINT is set.'
+  }
+
+  // Level 1 + Level 2 relationships
+  learner -> autodidact.mobile 'uses' 'Touch / UI'
+
+  autodidact.mobile -> autodidact.api 'REST + SSE' 'HTTPS'
+
+  autodidact.api -> autodidact.agent 'course gen, embeddings, chat stream' 'HTTP (internal)'
+  autodidact.api -> tasks 'creates generation tasks' 'Cloud Tasks API'
+  autodidact.api -> autodidact.postgres 'reads/writes course, enrollment, progress, session data' 'PostgreSQL'
+  autodidact.api -> supabase 'verifies JWT tokens' 'HTTPS'
+
+  tasks -> autodidact.worker 'delivers tasks to /tasks/:name' 'OIDC POST'
+  autodidact.worker -> tasks 'creates embedding follow-up task' 'Cloud Tasks API'
+  autodidact.worker -> autodidact.agent 'generate-course and embeddings routes' 'HTTP (internal)'
+  autodidact.worker -> autodidact.postgres 'updates status, inserts modules, stores embeddings' 'PostgreSQL'
+
+  autodidact.agent -> llm 'invokes LLM for generation and teaching' 'HTTPS'
+  autodidact.agent -> autodidact.postgres 'reads/writes LangGraph checkpoints' 'PostgreSQL'
+
+  autodidact.postgres -> supabase 'hosted by'
+  autodidact -> gcp 'runs on, stores secrets, pushes images' 'GCP APIs'
+  autodidact -> otel 'sends traces' 'OTLP HTTP'
+}
