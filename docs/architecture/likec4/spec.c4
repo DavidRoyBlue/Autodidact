@@ -1,0 +1,57 @@
+specification {
+  element person {
+    notation 'Person'
+    style {
+      shape person
+      color green
+    }
+  }
+
+  element system {
+    notation 'Software System'
+    style {
+      opacity 25%
+    }
+  }
+
+  element externalSystem {
+    notation 'External System'
+    style {
+      color secondary
+      opacity 20%
+    }
+  }
+
+  element container {
+    notation 'Container'
+    style {
+      opacity 40%
+    }
+  }
+
+  element database {
+    notation 'Database'
+    style {
+      shape storage
+      color indigo
+    }
+  }
+
+  element mobileApp {
+    notation 'Mobile App'
+    style {
+      shape mobile
+    }
+  }
+
+  element component {
+    notation 'Component'
+  }
+
+  relationship uses
+  relationship async
+
+  tag internal
+  tag public
+  tag optional
+}
