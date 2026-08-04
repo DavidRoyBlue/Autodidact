@@ -2,7 +2,7 @@
 
 Shared Testcontainers harness for real-DB integration tests.
 
-> Agent-binding rules: see `CLAUDE.md`. Canonical mocks live in `@autodidact/config/test-utils` — this package provides *real* infrastructure, not mocks.
+> Agent-binding rules: see `AGENTS.md`. Canonical mocks live in `@autodidact/config/test-utils` — this package provides *real* infrastructure, not mocks.
 
 ## What it provides
 

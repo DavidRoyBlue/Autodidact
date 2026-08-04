@@ -67,7 +67,7 @@ Do **not** touch any code, file, or git state in this phase. Read only.
 Work through the **AUTONOMOUS** issues in dependency order (a dependency before its
 dependent), **one at a time**. For each issue #N:
 
-1. **Implement** the change. Follow the repo's engineering values in `CLAUDE.md`
+1. **Implement** the change. Follow the repo's engineering values in `AGENTS.md`
    (test what you change; surgical, minimal edits).
 
 2. **Reclassify guard.** If, mid-implementation, you hit anything that would make you

@@ -2,7 +2,7 @@
   "$comment": "Single source of truth for the GitHub issue system. Consumed by issuekit/cli.mjs; documented in issuekit/README.md. Change rules here, nowhere else.",
   "map": ".claude/issue-map.json",
   "plans": {
-    "$comment": "Plan/spec files mirrored to issues. Folder = live status SSOT (docs/superpowers/CLAUDE.md); labels are a creation-time snapshot.",
+    "$comment": "Plan/spec files mirrored to issues. Folder = live status SSOT (docs/superpowers/AGENTS.md); labels are a creation-time snapshot.",
     "root": "docs/superpowers",
     "statusFolders": ["to-be-reviewed", "in-progress", "_done"],
     "doneFolder": "_done",

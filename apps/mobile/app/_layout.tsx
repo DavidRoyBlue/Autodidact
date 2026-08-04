@@ -66,7 +66,7 @@ export default function RootLayout() {
 // AuthGate owns the canonical auth-flow precedence (Spec 2, D8) AND the Spec 3 (D10)
 // first-launch onboarding deep-link. It lives inside QueryClientProvider so it can read
 // the courses query; keeping it in this file preserves the single-redirect-owner invariant
-// (apps/mobile/CLAUDE.md).
+// (apps/mobile/AGENTS.md).
 function AuthGate({ children }: { children: ReactNode }) {
   const accessToken = useAuthStore((s) => s.accessToken);
   const hasSeenOnboarding = useAuthStore((s) => s.hasSeenOnboarding);

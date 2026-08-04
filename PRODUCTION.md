@@ -3,7 +3,7 @@
 > One section per deployable/package: what it is, what it runs on, where its secrets live.
 > Status: 🟢 deployed · 🔵 ready · 🟡 deployed but buggy · 🔴 in build
 > Bump `_verified:` when you re-check a section. Sections older than 30 days are flagged weekly by [production-doc-freshness.yml](.github/workflows/production-doc-freshness.yml).
-> Imperative rules live in `CLAUDE.md` files; architecture and decisions in [docs/](docs/README.md).
+> Imperative rules live in `AGENTS.md` files; architecture and decisions in [docs/](docs/README.md).
 
 ## Mobile 🟢
 _verified: 2026-07-19_

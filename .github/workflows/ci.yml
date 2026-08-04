@@ -83,3 +83,39 @@ jobs:
         run: pnpm build
       - name: Cross-service golden-path (real api+agent+worker, mock LLM)
         run: pnpm --filter @autodidact/e2e test:e2e
+
+  agents-config:
+    name: Agent config drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Inline copy of the agents-drift-check contract (kept self-contained):
+      # CLAUDE.md = @AGENTS.md shim + sibling AGENTS.md; extra content only
+      # below <!-- claude-only -->; skills in .claude/skills are symlinks.
+      - name: CLAUDE.md files are @AGENTS.md shims
+        run: |
+          fail=0
+          find . \( -name .git -o -name node_modules -o -name .claude \) -prune \
+            -o \( -name CLAUDE.md -o -name AGENTS.md \) -print | sort -u > /tmp/agentfiles
+          while IFS= read -r f; do
+            dir=$(dirname "$f")
+            case "$(basename "$f")" in
+              CLAUDE.md)
+                [ -f "$dir/AGENTS.md" ] || { echo "::error file=$f::no sibling AGENTS.md"; fail=1; }
+                first=$(grep -m1 -v '^[[:space:]]*$' "$f" || true)
+                [ "$first" = "@AGENTS.md" ] || { echo "::error file=$f::not an @AGENTS.md shim"; fail=1; }
+                stray=$(sed '/<!-- claude-only -->/,$d' "$f" | grep -v '^[[:space:]]*$' | grep -vcx '@AGENTS.md' || true)
+                [ "$stray" = 0 ] || { echo "::error file=$f::content outside claude-only section"; fail=1; }
+                ;;
+              AGENTS.md)
+                [ -f "$dir/CLAUDE.md" ] || { echo "::error file=$f::AGENTS.md without CLAUDE.md shim"; fail=1; }
+                ;;
+            esac
+          done < /tmp/agentfiles
+          if [ -d .claude/skills ]; then
+            for entry in .claude/skills/*; do
+              [ -e "$entry" ] || [ -L "$entry" ] || continue
+              [ -L "$entry" ] && [ -e "$entry" ] || { echo "::error file=$entry::skill must be a resolving symlink into .agents/skills"; fail=1; }
+            done
+          fi
+          exit $fail

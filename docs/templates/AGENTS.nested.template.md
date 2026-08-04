@@ -1,6 +1,6 @@
 # Subtree Instructions — <folder name>
 
-> Agent-binding rules for this subtree. Extends root `CLAUDE.md`.
+> Agent-binding rules for this subtree. Extends root `AGENTS.md`.
 > Pair file: [`./README.md`](./README.md) — narrative, workflows, gotchas.
 > Fill in applicable sections. Delete sections with no meaningful content — a short focused file beats a complete empty one.
 

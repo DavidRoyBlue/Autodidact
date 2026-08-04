@@ -20,7 +20,7 @@ Code-level documentation (README files in service directories) lives alongside t
 | [deployment.md](deployment.md) | Operator runbook: how to run/ship dev and prod, what's wired and what isn't |
 | [architecture/](architecture/) | System design: overview, data model, infrastructure, C4 diagrams, ADRs |
 | [superpowers/](superpowers/) | Implementation plans and design specs |
-| [templates/](templates/) | Templates for `CLAUDE.md` and `README.md` files |
+| [templates/](templates/) | Templates for `AGENTS.md` and `README.md` files |
 
 ---
 

@@ -2,7 +2,7 @@
 
 How to run and ship Autodidact — dev and prod, backend and mobile. Reference detail lives in
 [`gcp_infra_setup.md`](gcp_infra_setup.md) (GCP/Terraform) and
-[`apps/mobile/CLAUDE.md`](../apps/mobile/CLAUDE.md) (EAS invariants); this file is the operator view.
+[`apps/mobile/AGENTS.md`](../apps/mobile/AGENTS.md) (EAS invariants); this file is the operator view.
 
 **Status legend:** ✅ wired and verified · ⚠️ wired but unverified · ❌ needs wiring
 

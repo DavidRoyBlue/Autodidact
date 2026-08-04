@@ -5,7 +5,7 @@
 #   → Workload Identity Federation → generate terraform.tfvars.
 #
 # It deliberately does NOT run `terraform apply` — that targets live prod and the
-# infra/CLAUDE.md invariant is "always plan before apply". The script prints the
+# infra/AGENTS.md invariant is "always plan before apply". The script prints the
 # exact next steps when it finishes.
 #
 # Prereqs: gcloud + terraform installed, and `gcloud auth login` +

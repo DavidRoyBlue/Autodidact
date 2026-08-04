@@ -21,7 +21,7 @@ This folder is not responsible for:
 ## Where this fits
 
 - Parent: [docs/README.md](../README.md)
-- Rules: [CLAUDE.md](CLAUDE.md)
+- Rules: [AGENTS.md](AGENTS.md)
 
 ---
 

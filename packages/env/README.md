@@ -1,6 +1,6 @@
 # @autodidact/env
 
-> Agent-binding rules for this package live in [CLAUDE.md](./CLAUDE.md).
+> Agent-binding rules for this package live in [AGENTS.md](./AGENTS.md).
 
 ## Purpose
 
@@ -56,7 +56,7 @@ All services also share `NODE_ENV`, `LOG_LEVEL`, and `OTEL_EXPORTER_OTLP_ENDPOIN
 ## Why boot-time, not import-time
 
 Validation must run inside `main.ts`, not at module load, to respect the lazy
-`getDb()` invariant in [`@autodidact/db`](../db/CLAUDE.md): the `pg.Pool` is built
+`getDb()` invariant in [`@autodidact/db`](../db/AGENTS.md): the `pg.Pool` is built
 at import time but only connects on the first query, so a boot-time `loadXEnv()`
 gates before any real DB access. The provider factory
 ([`@autodidact/providers`](../providers)) keeps reading `process.env` directly —

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run pending database migrations against the database in DATABASE_URL.
 # Works for local (Supabase CLI stack, 127.0.0.1:55322) and production (Supabase pooler).
-# Drizzle is the sole migration authority (packages/db/CLAUDE.md).
+# Drizzle is the sole migration authority (packages/db/AGENTS.md).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

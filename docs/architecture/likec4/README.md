@@ -24,7 +24,7 @@ This folder is not responsible for:
 
 - Parent: [architecture/README.md](../README.md)
 - Sibling: [c4/README.md](../c4/README.md) — the Mermaid diagrams this model was derived from
-- Rules: [CLAUDE.md](CLAUDE.md)
+- Rules: [AGENTS.md](AGENTS.md)
 
 ---
 

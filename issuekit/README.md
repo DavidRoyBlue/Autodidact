@@ -4,7 +4,7 @@ The repo's GitHub issue system: one codebase, one config. Plan/spec files under
 `docs/superpowers/` are mirrored to a GitHub issue tree (create / label / nest), and
 server-side workflows enforce the tree's integrity. Every rule lives in
 [`rules.json`](rules.json) — **that file is the single source of truth**; nothing here or in
-CLAUDE.md restates a rule it owns.
+AGENTS.md restates a rule it owns.
 
 ## Layout
 
@@ -24,7 +24,7 @@ CLAUDE.md restates a rule it owns.
 - **`labels`** + **`flow`** — the label taxonomy and its state machine. `flow.closeAuthority:
   "owner"` is the system's hard rule: agents hand off with `flow.handoffLabel` and never close.
 - **`plans`** — which folders are watched and the folder → label snapshot taken at creation
-  (the folder itself stays the live status SSOT, per `docs/superpowers/CLAUDE.md`).
+  (the folder itself stays the live status SSOT, per `docs/superpowers/AGENTS.md`).
 - **`board`** — Projects V2 mapping: project number, Status field, label → column, forward-only
   movement, terminal status.
 - **`integrity`** — parent/child rules enforced server-side.
@@ -68,7 +68,7 @@ Behavior preserved, with these deliberate exceptions:
 
 - `plan-in-action/` was dropped from the status folders — the directory never existed.
 - `in-review` is now declared in `rules.json` and created by `labels --ensure` — it was
-  referenced by CLAUDE.md and the board sync but never bootstrapped.
+  referenced by AGENTS.md and the board sync but never bootstrapped.
 - `claude-auto-issue-triage.yml` and its `scripts/gh.sh` / `scripts/edit-issue-labels.sh`
   were deleted — nearly all issues come from plan files, so it triaged a stream that
   barely exists.

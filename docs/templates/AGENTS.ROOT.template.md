@@ -1,6 +1,6 @@
 # Claude Project Instructions
 
-> Root agent-binding rules for this repository. Nested `CLAUDE.md` files extend and narrow these within their subtree.
+> Root agent-binding rules for this repository. Nested `AGENTS.md` files extend and narrow these within their subtree.
 > Pair file: [`../README.md`](../README.md) — product/repo overview for humans.
 > Fill in applicable sections. Delete sections with no meaningful content — a short focused file beats a complete empty one.
 
@@ -64,10 +64,10 @@ See `.env.example` for all vars and provider-swap options.
 Every code change must respect these. Edit/extend to fit the project, but keep the spirit.
 
 1. **Test what you change.** Add or update focused tests for new or changed behavior. If a test isn't practical, explain why and describe how you verified it manually.
-2. **Single source of truth.** Don't duplicate facts, config, schemas, business rules, or ownership info in code. Update the authoritative source; reference it from elsewhere. (Documentation reference content is exempt — see Authority: README vs CLAUDE.md.)
+2. **Single source of truth.** Don't duplicate facts, config, schemas, business rules, or ownership info in code. Update the authoritative source; reference it from elsewhere. (Documentation reference content is exempt — see Authority: README vs AGENTS.md.)
 3. **Modular design.** Isolated responsibilities, clear interfaces, small modules. Don't couple unrelated concerns to ship faster.
 4. **Simplicity first.** Write the minimum code that solves the problem. No speculative features, no abstractions for single-use code, no "configurability" that wasn't asked for. If you wrote 200 lines and it could be 50, rewrite it.
-5. **Surgical changes.** Touch only what the task requires. No drive-by cleanup of adjacent code, comments, or formatting. Match existing style — exception: if it violates an invariant stated in a nested `CLAUDE.md`, the invariant wins. Remove only dead code your changes created, not pre-existing orphans. Tests for code you're modifying count as part of the change, not cleanup.
+5. **Surgical changes.** Touch only what the task requires. No drive-by cleanup of adjacent code, comments, or formatting. Match existing style — exception: if it violates an invariant stated in a nested `AGENTS.md`, the invariant wins. Remove only dead code your changes created, not pre-existing orphans. Tests for code you're modifying count as part of the change, not cleanup.
 
 ---
 
@@ -110,39 +110,39 @@ For trivial fixes, use judgment and avoid unnecessary context loading.
 - `docs/architecture/` = system architecture, C4, infra, data model
 - `docs/architecture/decisions/` = durable decisions and tradeoffs (ADRs)
 - Folder `README.md` = local narrative, ownership, workflows, gotchas (human-facing)
-- Nested `CLAUDE.md` = subtree invariants, source-of-truth, agent rules (agent-binding)
+- Nested `AGENTS.md` = subtree invariants, source-of-truth, agent rules (agent-binding)
 - Code comments = non-obvious implementation details only
 
 Higher-level docs explain broad context. Lower-level docs explain local implementation details. Link upward instead of duplicating.
 
 ---
 
-## Authority: README vs CLAUDE.md
+## Authority: README vs AGENTS.md
 
 Both files coexist in many folders. They serve different audiences and may overlap on reference content — that's fine.
 
-**Binding rules need a single source of truth.** Imperative rules ("must use X," "must not Y," invariants) live authoritatively in `CLAUDE.md`. README does not restate them — if relevant to humans, link to `CLAUDE.md`.
+**Binding rules need a single source of truth.** Imperative rules ("must use X," "must not Y," invariants) live authoritatively in `AGENTS.md`. README does not restate them — if relevant to humans, link to `AGENTS.md`.
 
 **Reference content can appear in both.** Source-of-truth maps, component relationships, file locations, commands — duplicate freely. Both audiences benefit from self-contained files, and drift in pointer data is obvious when it happens.
 
 **Audience split for narrative:**
 - Narrative purpose, ownership, gotchas, onboarding → README
-- Agent-binding rules, invariants, testing rules → `CLAUDE.md`
+- Agent-binding rules, invariants, testing rules → `AGENTS.md`
 
 Each file cross-links to its pair at the top.
 
 ---
 
-## Nested CLAUDE.md
+## Nested AGENTS.md
 
-Subtree-specific behavior rules belong in nested `CLAUDE.md` files.
+Subtree-specific behavior rules belong in nested `AGENTS.md` files.
 
 Examples:
-- `services/<name>/CLAUDE.md`
-- `packages/<name>/CLAUDE.md`
-- `apps/<name>/CLAUDE.md`
+- `services/<name>/AGENTS.md`
+- `packages/<name>/AGENTS.md`
+- `apps/<name>/AGENTS.md`
 
-Use nested `CLAUDE.md` files for:
+Use nested `AGENTS.md` files for:
 - local invariants
 - library choices
 - verification commands (tests, typecheck, lint)
@@ -161,7 +161,7 @@ Nested rules extend this root file and narrow it within their subtree — a nest
 - Cross-boundary contract → README of the lowest common ancestor folder
 - System-wide relationship → `docs/architecture/`
 - Durable decision/tradeoff → ADR
-- Verification commands (tests, typecheck, lint) → nearest `CLAUDE.md`
+- Verification commands (tests, typecheck, lint) → nearest `AGENTS.md`
 - Broader workflows → nearest README, plus root README if globally relevant
 - Non-obvious code behavior → code comment
 
@@ -221,7 +221,7 @@ Delete this section entirely if the project has no graph/structural tool. Otherw
 
 Two complementary layers with distinct domains — neither substitutes for the other.
 
-**Doc layer** (`CLAUDE.md`, READMEs, `docs/architecture/`) owns **intent, rules, and decisions**: what invariants apply, why things were built a certain way, what tradeoffs were made.
+**Doc layer** (`AGENTS.md`, READMEs, `docs/architecture/`) owns **intent, rules, and decisions**: what invariants apply, why things were built a certain way, what tradeoffs were made.
 
 **Structural layer** (<tool name>) owns **structure and topology**: where code lives, what calls what, blast radius of a change. The structural layer carries no rules or intent — it can tell you *that* X calls Y, not *why*.
 
@@ -231,7 +231,7 @@ Most tasks need both: read relevant docs first to absorb rules and context, then
 
 | Question | Layer | Where |
 |----------|-------|-------|
-| What invariants apply here? What must not be broken? | Doc | Nearest `CLAUDE.md` → parent `CLAUDE.md` |
+| What invariants apply here? What must not be broken? | Doc | Nearest `AGENTS.md` → parent `AGENTS.md` |
 | Why was X built this way? What tradeoffs were made? | Doc | `docs/architecture/decisions/` (ADRs) |
 | How does the system work at a high level? | Doc | `docs/architecture/overview.md` |
 | Where is X implemented? | Structural | <tool/command> |
@@ -239,7 +239,7 @@ Most tasks need both: read relevant docs first to absorb rules and context, then
 | What will break if I change X? | Structural | <tool/command> |
 | Is X covered by tests? | Structural | <tool/command> |
 | Broad boundary map | Both | <tool> → `docs/architecture/` for depth |
-| Reviewing a diff | Both | Nearest `CLAUDE.md` for invariants → <tool> for impact |
+| Reviewing a diff | Both | Nearest `AGENTS.md` for invariants → <tool> for impact |
 
 Use Grep/Glob/Read as a fallback for **code** when the structural tool doesn't have the answer — not as a substitute for reading doc files directly.
 
@@ -247,7 +247,7 @@ Use Grep/Glob/Read as a fallback for **code** when the structural tool doesn't h
 
 For non-trivial changes (extends Documentation-first and Before you code):
 
-1. **Docs first** — READMEs, ADRs, nearest `CLAUDE.md`.
+1. **Docs first** — READMEs, ADRs, nearest `AGENTS.md`.
 2. **Structural tool next** — start with a minimal-context query, then drill in.
 3. **Source last** — read implementation only after structure has narrowed where.
 

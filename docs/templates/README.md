@@ -20,8 +20,8 @@ These templates define the structure for recurring documentation types used thro
 
 | File | Use when |
 |---|---|
-| [CLAUDE.ROOT.template.md](CLAUDE.ROOT.template.md) | Creating the root `CLAUDE.md` for a new repository — captures the universal engineering values, documentation model, and agent workflow this project standardizes on |
-| [CLAUDE.nested.template.md](CLAUDE.nested.template.md) | Creating a `CLAUDE.md` inside any subfolder to give Claude folder-specific rules that extend the parent `CLAUDE.md` |
+| [AGENTS.ROOT.template.md](AGENTS.ROOT.template.md) | Creating the root `AGENTS.md` for a new repository — captures the universal engineering values, documentation model, and agent workflow this project standardizes on |
+| [AGENTS.nested.template.md](AGENTS.nested.template.md) | Creating a `AGENTS.md` inside any subfolder to give Claude folder-specific rules that extend the parent `AGENTS.md` |
 | [README.template.md](README.template.md) | Creating a `README.md` for any new folder |
 
 ---

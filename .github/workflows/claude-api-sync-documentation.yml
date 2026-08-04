@@ -36,7 +36,7 @@ jobs:
             1. Review the API changes in services/api (the NestJS public HTTP API)
             2. The HTTP contract's source of truth is the controllers themselves — do not create endpoint docs
             3. Update the API section of PRODUCTION.md only if the stack, secrets, or deploy shape changed
-            4. Update services/api/CLAUDE.md only if an invariant changed
+            4. Update services/api/AGENTS.md only if an invariant changed
 
             Use standard REST API documentation format.
             Commit any documentation updates to this PR branch.

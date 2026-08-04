@@ -1,6 +1,6 @@
 # Agent eval harness
 
-> Local-first evaluation + regression gate for the agent graphs. Binding rules live in the parent `services/agent/CLAUDE.md`.
+> Local-first evaluation + regression gate for the agent graphs. Binding rules live in the parent `services/agent/AGENTS.md`.
 
 The regression gate that protects the capability phases (RAG, tools, memory, multi-agent). It runs the
 graphs against seed datasets, applies deterministic scorers, and fails when a scorer's pass rate drops

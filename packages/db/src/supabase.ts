@@ -9,7 +9,7 @@ let client: SupabaseClient | undefined;
  * throws synchronously when `SUPABASE_URL` is empty, so an eager top-level
  * construction would crash before a service's boot-time env validation
  * (`@autodidact/env`) could report the missing variable. This mirrors the lazy
- * `getDb()` pattern; see CLAUDE.md.
+ * `getDb()` pattern; see AGENTS.md.
  */
 export function getSupabaseAdmin(): SupabaseClient {
   if (!client) {

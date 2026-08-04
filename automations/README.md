@@ -48,7 +48,7 @@ system).
 | Parent close guard | GH issue closed | repo workflow | [issue-triage.md](issue-triage.md) |
 | Board status sync | GH issue opened/labeled/reopened | repo workflow | [issue-triage.md](issue-triage.md) |
 | Label bootstrap | manual (setup) | human via issuekit CLI | [issue-triage.md](issue-triage.md) |
-| Code-graph update / status | CC Edit/Write/Bash hook; session start | local hook | pre-dates registry — `code-review-graph` (CLAUDE.md § MCP Tools) |
+| Code-graph update / status | CC Edit/Write/Bash hook; session start | local hook | pre-dates registry — `code-review-graph` (AGENTS.md § MCP Tools) |
 | Plan-review suggestion | CC `Write` hook | local hook | pre-dates registry — `.claude/hooks/suggest-plan-review.sh` |
 | CI validation | GH pull request | repo workflow | pre-dates registry — `.github/workflows/ci.yml` |
 | Deploy | GH push to `production` | repo workflow | pre-dates registry — `.github/workflows/deploy.yml` (docs/gcp_infra_setup.md) |

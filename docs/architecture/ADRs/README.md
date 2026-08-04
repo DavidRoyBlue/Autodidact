@@ -6,7 +6,7 @@ Durable records of architectural decisions for Autodidact.
 
 Each ADR frames an **architectural decision area** (e.g., "Database platform"),
 surveys multiple valid options neutrally, and concludes with a choice. ADRs are
-a thinking tool, not a checklist. See [CLAUDE.md](./CLAUDE.md) for the rules
+a thinking tool, not a checklist. See [AGENTS.md](./AGENTS.md) for the rules
 and the bar.
 
 ## Folder layout
@@ -84,7 +84,7 @@ to 3 digits, never reused.
 
 **Append-only for decisions.** Documentation-quality improvements on accepted
 ADRs are allowed in-place; decision changes require a new superseding ADR. See
-[CLAUDE.md](./CLAUDE.md) for full rules.
+[AGENTS.md](./AGENTS.md) for full rules.
 
 **Scope.** Decision-area ADRs, not per-tool. One architectural problem per ADR;
 multiple options compared neutrally; first-principles reasoning required.
@@ -94,4 +94,4 @@ multiple options compared neutrally; first-principles reasoning required.
 - [Architecture overview](../README.md)
 - [Stack](../../stack.md) — links each tool to its decision-area ADR
 - [Template](./ADR-000-ADRtemplate.md)
-- Root [CLAUDE.md](../../../CLAUDE.md)
+- Root [AGENTS.md](../../../AGENTS.md)

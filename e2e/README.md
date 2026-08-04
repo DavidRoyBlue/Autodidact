@@ -1,6 +1,6 @@
 # @autodidact/e2e — Cross-service end-to-end tests
 
-> Agent-binding rules live in [CLAUDE.md](./CLAUDE.md).
+> Agent-binding rules live in [AGENTS.md](./AGENTS.md).
 
 The top of the test pyramid (ADR-024). Boots the **real** `api`, `agent`, and
 `worker` services as child processes against a Testcontainers Postgres,
@@ -28,7 +28,7 @@ pnpm build                              # services must be compiled to dist/ fir
 pnpm --filter @autodidact/e2e test:e2e
 ```
 
-Requires Docker. Not part of the default `pnpm test` gate (see CLAUDE.md).
+Requires Docker. Not part of the default `pnpm test` gate (see AGENTS.md).
 
 ## How it works
 

@@ -13,7 +13,7 @@ Plans are structured task lists written before implementation begins. They are t
 ## Where this fits
 
 - Parent: [superpowers/README.md](../README.md)
-- Rules: [../CLAUDE.md](../CLAUDE.md)
+- Rules: [../AGENTS.md](../AGENTS.md)
 
 ---
 

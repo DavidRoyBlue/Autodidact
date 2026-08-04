@@ -9,7 +9,7 @@ terraform {
   }
 
   # Remote state in GCS (bucket created by scripts/gcp-bootstrap.sh). State is
-  # never local — see infra/CLAUDE.md.
+  # never local — see infra/AGENTS.md.
   backend "gcs" {
     bucket = "autodidact-terraform-state"
     prefix = "terraform/state"

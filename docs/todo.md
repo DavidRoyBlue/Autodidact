@@ -20,7 +20,7 @@
 ## ADRS
 - [x] Go trough all my services one by one and set up adrs
 
-## READMEs and CLAUDE.md
+## READMEs and AGENTS.md
 - [x] Go trough all my services one by one and set em up.
 
 ## .claude folder setup

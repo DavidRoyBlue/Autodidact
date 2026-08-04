@@ -13,7 +13,7 @@ Specs explore and define a feature's design before implementation begins. A spec
 ## Where this fits
 
 - Parent: [superpowers/README.md](../README.md)
-- Rules: [../CLAUDE.md](../CLAUDE.md)
+- Rules: [../AGENTS.md](../AGENTS.md)
 
 ---
 

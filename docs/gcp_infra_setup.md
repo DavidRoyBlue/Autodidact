@@ -275,7 +275,7 @@ region     = "${REGION}"
 EOF
 ```
 
-Then the standard loop (the `infra/CLAUDE.md` invariant: **always `plan` before
+Then the standard loop (the `infra/AGENTS.md` invariant: **always `plan` before
 `apply`**):
 
 ```bash

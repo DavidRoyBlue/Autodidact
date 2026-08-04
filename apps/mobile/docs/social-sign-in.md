@@ -244,4 +244,4 @@ After both steps, guests on production can upgrade to OAuth accounts.
 - [`src/lib/social-auth.ts`](../src/lib/social-auth.ts) — seam implementation (Google native via `signInWithIdToken`, Facebook web-PKCE via `openAuthSessionAsync`, OAuth linking via `linkIdentity`)
 - [`src/components/auth/UpgradeAccountCard.tsx`](../src/components/auth/UpgradeAccountCard.tsx) — upgrade UI for guests
 - [`packages/db/migrations/0011_identity_link_sync.sql`](../../packages/db/migrations/0011_identity_link_sync.sql) — identity-link sync trigger
-- [`apps/mobile/CLAUDE.md`](../CLAUDE.md) — Auth invariants and dev-build requirement
+- [`apps/mobile/AGENTS.md`](../AGENTS.md) — Auth invariants and dev-build requirement

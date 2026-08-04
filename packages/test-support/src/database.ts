@@ -16,7 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // RLS migrations (0003/0004) reference — without them those migrations fail to compile.
 // (The local dev stack uses real Supabase GoTrue and needs none of this; the retired
 // docker/dev-db-init.sql once held these stubs — they now live here, with their sole
-// remaining consumer. See packages/test-support/CLAUDE.md.)
+// remaining consumer. See packages/test-support/AGENTS.md.)
 const DEV_DB_INIT_SQL = `
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

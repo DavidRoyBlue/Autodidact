@@ -62,11 +62,11 @@ jobs:
 
             ## Step 3 — Identify which docs should track each relevant change
 
-            This repo has both README.md and CLAUDE.md at nearly every directory level.
+            This repo has both README.md and AGENTS.md at nearly every directory level.
             For each doc-relevant changed file, identify:
-            - The nearest README.md and nearest CLAUDE.md by walking up the directory
+            - The nearest README.md and nearest AGENTS.md by walking up the directory
               tree from the changed file (stop at repo root)
-            - Root README.md and root CLAUDE.md for changes that are architecturally
+            - Root README.md and root AGENTS.md for changes that are architecturally
               significant (new service, new package, new env var, changed contracts)
 
             Use the Read tool to inspect a doc's content if you need to verify whether
