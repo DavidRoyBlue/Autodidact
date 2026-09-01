@@ -133,3 +133,12 @@ bug (service-to-service drift) that motivated this ADR.
 ### Follow-up
 - Mobile unit/component layer + second-runner rule — [ADR-025](./ADR-025-mobile-testing-second-runner.md).
 - Reconsider if: the cross-service compose harness becomes a CI bottleneck (a long-lived shared test environment may then be cheaper), or the provider abstraction changes such that the mock seam no longer represents real model behavior faithfully.
+
+## Update
+
+**2026-09-01** — [ADR-027](../services/worker/ADR-027-background-job-queue-cloud-tasks.md)
+executed ADR-007's flagged migration: Redis is gone from the stack. The
+"Postgres + Redis" mentions in Decision Drivers, Option A, and Consequences
+should read as Postgres only (the queue is Cloud Tasks in prod, `loopback` in
+dev and tests). The layering and driver logic are unaffected. The decision
+recorded here is unchanged.

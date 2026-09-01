@@ -3,6 +3,7 @@
 ## Status
 
 Accepted — 2026-06-02
+Documentation revised: 2026-09-01
 
 ## Context
 
@@ -68,8 +69,9 @@ The API now includes the module `id` in the `moduleBlueprint` payload so the age
   chunk table and documented here.
 - Indexing adds N embedding round-trips per course at generation time (one per chunk). Acceptable on
   the async job path; batch embedding is a future optimization.
-- `module_content_chunks` has no RLS policy yet. It is read server-side only (agent/worker via the
-  service connection; never the mobile client). Add RLS if direct client access is ever introduced.
+- `module_content_chunks` is read server-side only (agent/worker via the service connection; never
+  the mobile client). RLS was enabled on it by migration `0009_data_api_lockdown.sql` — see
+  [ADR-028](../../cross-cutting/ADR-028-production-auth-provisioning.md)'s 2026-06-21 Update.
 
 ### Neutral
 

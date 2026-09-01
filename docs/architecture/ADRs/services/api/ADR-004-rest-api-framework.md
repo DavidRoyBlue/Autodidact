@@ -192,3 +192,11 @@ clearest negative; it's accepted because the structural value dominates.
 - Specific module structure conventions, naming — owned by `services/api/CLAUDE.md`.
 - Integration with [ADR-016](../../packages/schemas/ADR-016-runtime-schema-validation.md) Zod via `nestjs-zod` or `@anatine/zod-nestjs` — operational, not architectural.
 - Reconsider this ADR if: cold-start performance becomes a user-visible problem (Hono delivers a 5–10× improvement we'd need to evaluate against migration cost), the API surface stops growing (overhead of NestJS structure stops earning its keep), or the mobile-only assumption changes (a TypeScript web client could change the calculus toward tRPC).
+
+## Update
+
+**2026-09-01** — [ADR-027](../worker/ADR-027-background-job-queue-cloud-tasks.md)
+executed ADR-007's flagged migration: the queue moved from BullMQ + Memorystore
+Redis to GCP Cloud Tasks. Option F's rejection cites "BullMQ on Memorystore" as
+an already-made choice; read that as Cloud Tasks — the argument is unaffected.
+The decision recorded here is unchanged.

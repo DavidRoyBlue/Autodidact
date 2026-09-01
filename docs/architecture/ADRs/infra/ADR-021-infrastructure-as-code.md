@@ -181,3 +181,11 @@ reserve as a license-driven escape hatch.
 ### Follow-up decisions
 - Module organization, environment layout — owned by `infra/README.md` and `infra/CLAUDE.md`.
 - Reconsider this ADR if: HashiCorp imposes paid-only features that block our use, OpenTofu's feature parity with Terraform diverges meaningfully (we'd switch defensively), or the team migrates en masse to a TypeScript-IaC paradigm.
+
+## Update
+
+**2026-09-01** — [ADR-027](../services/worker/ADR-027-background-job-queue-cloud-tasks.md)
+executed ADR-007's flagged migration: the Memorystore Redis instance named in
+the Context and Consequences no longer exists. Terraform now manages Cloud
+Tasks queues + invoker IAM in its place. The decision recorded here is
+unchanged.

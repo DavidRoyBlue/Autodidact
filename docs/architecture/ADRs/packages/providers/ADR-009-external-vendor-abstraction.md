@@ -4,6 +4,7 @@
 
 Accepted
 Date: 2026-05-10
+Documentation revised: 2026-09-01
 
 ## Context
 
@@ -75,7 +76,6 @@ restructuring the abstraction.
 - Adds an abstraction step: a developer reading service code must follow `createLLMProvider() → factory.ts → implementations/llm/anthropic.provider.ts` to see what's actually happening. The hop is small but real.
 - Vendor-specific features (OpenAI structured-output, Anthropic extended thinking) force a choice: generalize the interface, ignore the feature, or add an escape hatch. Bypassing undermines the abstraction.
 - Factory's env-var dispatch is hand-written `if/else`. Adding a third LLM provider is mechanical but easy to forget.
-- The `Embedding` and `Checkpointer` factories currently dispatch on env vars they don't read (`EMBEDDING_PROVIDER` is documented but `createEmbeddingProvider` always returns OpenAI). This is a documented inconsistency in the current code (`packages/providers/CLAUDE.md` notes it) — small, real cost.
 - Some interfaces wrap LangChain types; if we ever drop LangChain, the abstraction needs reshaping.
 
 ### Option C: Dependency-injection framework (InversifyJS or tsyringe)
@@ -160,10 +160,24 @@ first-principles answer for our scale, runtime mix, and test ergonomics.
 ### Negative
 - One layer of indirection between service code and SDK. Reading code requires a hop through `factory.ts`.
 - Vendor-specific features force a generalize-vs-bypass choice each time. We need editorial discipline to keep the interface useful.
-- Existing inconsistency: `EMBEDDING_PROVIDER` is in the docs but `createEmbeddingProvider` doesn't read it (only `openai` is implemented). To fix when a second embedding provider is added.
 - LangChain types in interfaces (`BaseChatModel`, `Embeddings`, `BaseCheckpointSaver`) couple us to LangChain. If [ADR-006](../../services/agent/ADR-006-ai-orchestration-framework.md) ever moves off LangGraph, the LLM/Embedding/Checkpointer interfaces need reshaping.
 
 ### Follow-up decisions
 - LLM, embedding, queue, auth, checkpointer vendor choices are made in their own ADRs and consume this abstraction.
 - Reconsider this ADR if: we drop LangGraph (interfaces lose their LangChain return types), provider count grows past ~10 (factory dispatch may justify a registry pattern), or a new vendor requires features the interface cannot reasonably generalize (forces a redesign of that interface).
-- A small fix is owed to the embedding factory to either honor `EMBEDDING_PROVIDER` or remove the env var from documentation.
+
+## Update
+
+**2026-09-01** — Two corrections since acceptance:
+
+- [ADR-027](../../services/worker/ADR-027-background-job-queue-cloud-tasks.md)
+  executed ADR-007's flagged migration: the queue implementation behind
+  `IQueueProvider` moved from BullMQ + Redis to GCP Cloud Tasks (with a
+  `loopback` provider for local dev). Context and Option A mention `bullmq`;
+  read those as Cloud Tasks.
+- The embedding-factory inconsistency this ADR originally flagged is fixed:
+  `createEmbeddingProvider` now reads `EMBEDDING_PROVIDER` (and supports
+  `mock`). The stale claims were removed from this document (see
+  `Documentation revised` in Status).
+
+The decision recorded here is unchanged.

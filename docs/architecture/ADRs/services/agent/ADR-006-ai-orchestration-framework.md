@@ -187,3 +187,11 @@ sweet spot.
 - Specific graph design (state shape, node responsibilities, retry semantics) — owned by `services/agent/src/graphs/*/CLAUDE.md`.
 - Checkpointer choice (memory dev / Postgres prod) — owned by [ADR-009](../../packages/providers/ADR-009-external-vendor-abstraction.md).
 - Reconsider this ADR if: our use case shifts toward heavy semantic memory or RAG (Mastra's integrated story would matter), LangChain TS development materially slows, or we need agentic patterns (MCP, tool-use loops, sub-agent delegation) Mastra or Vercel AI SDK supports more cleanly.
+
+## Update
+
+**2026-09-01** — [ADR-027](../worker/ADR-027-background-job-queue-cloud-tasks.md)
+executed ADR-007's flagged migration: the queue moved from BullMQ + Memorystore
+Redis to GCP Cloud Tasks. Options B and D reference BullMQ (ADR-007) as our job
+orchestrator; read those as Cloud Tasks — the arguments are unaffected. The
+decision recorded here is unchanged.

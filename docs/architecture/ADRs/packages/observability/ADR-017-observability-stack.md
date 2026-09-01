@@ -189,3 +189,13 @@ small team, TypeScript-first ergonomics).
 - Whether to add Sentry as a *secondary* error sink — operational, not architectural. Could ship under a feature flag without a new ADR.
 - Specific span-naming conventions and required attributes — owned by `packages/observability/CLAUDE.md`.
 - Reconsider this ADR if: log volume costs spike on Cloud Logging, error-triage time becomes the operational bottleneck (Sentry's value would dominate), or OTel JS logging closes the ergonomics gap with pino.
+
+## Update
+
+**2026-09-01** — [ADR-027](../../services/worker/ADR-027-background-job-queue-cloud-tasks.md)
+executed ADR-007's flagged migration: the queue moved from BullMQ + Memorystore
+Redis to GCP Cloud Tasks. The Context's "API → Worker via BullMQ" no longer
+holds — the worker is now an IAM-invoked HTTP service, so it receives a normal
+HTTP request with trace context in the headers; the BullMQ OTel-instrumentation
+concerns in this ADR no longer apply, and Cloud Tasks needs no queue-specific
+instrumentation. The decision recorded here is unchanged.

@@ -188,3 +188,12 @@ ESM-native, real-Postgres requirement, CI on GitHub Actions).
 - Coverage thresholds and CI gates — operational, per-package.
 - E2E test strategy if/when added — would deserve its own ADR.
 - Reconsider this ADR if: a faster runner emerges that is materially faster *and* pluggable into our workspace setup, or our integration-test footprint grows enough that Testcontainers' startup cost becomes a real CI bottleneck (at which point a long-lived test database in CI may be cheaper).
+
+## Update
+
+**2026-09-01** — [ADR-027](../services/worker/ADR-027-background-job-queue-cloud-tasks.md)
+executed ADR-007's flagged migration: Redis is gone from the stack. The
+Negative consequence citing "our `docker-compose` Postgres + Redis setup" is
+fossilized — there is no docker-compose file and no Redis; local dev runs on
+the Supabase CLI stack (`workspace.yml`). The invariant stands (Docker is
+still required, for Testcontainers). The decision recorded here is unchanged.
