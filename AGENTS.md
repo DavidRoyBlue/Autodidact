@@ -295,10 +295,11 @@ field into files); declare hierarchy with `**Parent:** <parent-filename.md>` in 
 Freeform sessions are tied to an issue at first prompt (`.claude/hooks/first-prompt-issue.mjs`)
 and recorded at Stop (`session-issues.mjs`); server-side workflows enforce the rules
 (registered in `automations/`). Do not manually create issues or edit labels — the hook and
-folder location handle status.
+folder location handle status; the sole exception is the `in-review` handoff below.
 
 **Hard rule — the owner closes, never Claude.** Never close an issue or set board Status to
-`Done`. When your part is done: `gh issue edit #N --add-label in-review --remove-label
-in-progress` and leave it open (never on a parent with open sub-issues — it stays
-`in-progress` until the owner closes its children). Write "Part of #N" in PR bodies, never
-"Closes #N".
+`Done` (the parent-close guard auto-reopens any parent closed while sub-issues are open).
+When your part is done: `gh issue edit #N --add-label in-review --remove-label in-progress`
+and leave it open — never on a parent with open sub-issues; a parent keeps its current label
+and isn't handed off until the owner closes its children. Write "Part of #N" in PR bodies,
+never "Closes #N".
