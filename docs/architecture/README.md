@@ -27,6 +27,7 @@ This folder is not responsible for:
 | File / Folder | Purpose |
 |---|---|
 | [overview.md](overview.md) | High-level design, request flows, monorepo layers, provider abstraction |
+| [agent-graphs.md](agent-graphs.md) | Audit of the current LangGraph agent graphs: node-by-node flow, API→Worker→Agent path, auto-generated diagrams |
 | [data-model.md](data-model.md) | ERD, table reference, enums, pgvector usage, RLS, migrations |
 | [infrastructure.md](infrastructure.md) | GCP topology, Cloud Run config, Terraform structure, CI/CD, local dev |
 | [c4/](c4/) | C4 architecture diagrams: Context → Containers → Components |
