@@ -6,7 +6,7 @@
 > Imperative rules live in `AGENTS.md` files; architecture and decisions in [docs/](docs/README.md).
 
 ## Mobile 🟢
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Expo React Native app — the only client; talks exclusively to the API service.
 
@@ -42,7 +42,7 @@ Expo React Native app — the only client; talks exclusively to the API service.
 - [docs/](apps/mobile/docs/)
 
 ## API 🟢
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course lifecycle, chat SSE proxy, progress. Runs no AI.
 
@@ -64,7 +64,7 @@ NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course l
 - prod: GCP Secret Manager (seeded from `infra/secrets.env`)
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — Live on Cloud Run (public, 1–10 instances); deploys on `master` → `production` promotion.
+**State** — Live on Cloud Run (public, 0–10 instances, scale-to-zero); deploys on `master` → `production` promotion.
 - deploy: [deploy.yml](.github/workflows/deploy.yml)
 
 **Useful Files**
@@ -73,7 +73,7 @@ NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course l
 - [main.ts](services/api/src/main.ts)
 
 ## Agent 🟢
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Fastify + LangGraph internal AI runtime (port 3001, never public) — all LLM and embedding calls.
 
@@ -96,7 +96,7 @@ Fastify + LangGraph internal AI runtime (port 3001, never public) — all LLM an
 - prod: GCP Secret Manager (seeded from `infra/secrets.env`)
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — Live on Cloud Run (internal-only ingress, 1–5 instances); deploys on `master` → `production` promotion.
+**State** — Live on Cloud Run (internal-only ingress, 0–5 instances, scale-to-zero); deploys on `master` → `production` promotion.
 - deploy: [deploy.yml](.github/workflows/deploy.yml)
 
 **Useful Files**
@@ -106,7 +106,7 @@ Fastify + LangGraph internal AI runtime (port 3001, never public) — all LLM an
 - [retriever.ts](services/agent/src/rag/retriever.ts)
 
 ## Worker 🟢
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Fastify background task handler invoked per-task by Cloud Tasks (prod) / loopback (dev); scale-to-zero.
 
@@ -137,7 +137,7 @@ Fastify background task handler invoked per-task by Cloud Tasks (prod) / loopbac
 - [agent.client.ts](services/worker/src/services/agent.client.ts)
 
 ## Infra 🟢
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Terraform IaC for the GCP production environment (project `autodidact-494819`, region `northamerica-northeast1`).
 
@@ -149,7 +149,7 @@ Terraform IaC for the GCP production environment (project `autodidact-494819`, r
 
 **Stack**
 - IaC: Terraform ≥ 1.9, GCP provider ~> 5.0, remote state in GCS (`autodidact-terraform-state`)
-- Compute: Cloud Run ×3 (api public 1–10, agent internal 1–5, worker internal 0–3)
+- Compute: Cloud Run ×3 (api public 0–10, agent internal 0–5, worker internal 0–3; all scale-to-zero)
 - Queues: Cloud Tasks (course-generation, embedding)
 - Images: Artifact Registry
 - CI/CD: GitHub Actions — PRs validated by ci.yml; deploy on `master` → `production` promotion (WIF, no key files)
@@ -167,7 +167,7 @@ Terraform IaC for the GCP production environment (project `autodidact-494819`, r
 - [deploy.yml](.github/workflows/deploy.yml)
 
 ## packages/db 🟢
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Drizzle client, schema, and migrations — single source of truth for DB structure (Supabase Postgres + pgvector).
 
@@ -194,7 +194,7 @@ Drizzle client, schema, and migrations — single source of truth for DB structu
 - [client.ts](packages/db/src/client.ts)
 
 ## packages/providers 🟢
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Vendor abstraction — interfaces + factories for LLM, embedding, queue, auth, and checkpointer providers.
 
@@ -222,7 +222,7 @@ Vendor abstraction — interfaces + factories for LLM, embedding, queue, auth, a
 - [implementations/](packages/providers/src/implementations/)
 
 ## packages/env 🟢
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Typed fail-fast Zod env validation, called once per service at boot (in `main.ts`, never at import time).
 
@@ -245,7 +245,7 @@ Typed fail-fast Zod env validation, called once per service at boot (in `main.ts
 - [src/](packages/env/src/)
 
 ## packages/schemas 🟢
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Zod schemas validating API request bodies and LLM output at service boundaries.
 
@@ -268,7 +268,7 @@ Zod schemas validating API request bodies and LLM output at service boundaries.
 - [src/](packages/schemas/src/)
 
 ## packages/prompts 🟢
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Centralized system prompts and prompt builders for all LLM interactions (agent-only consumer).
 
@@ -294,7 +294,7 @@ Centralized system prompts and prompt builders for all LLM interactions (agent-o
 - [completion-evaluator.ts](packages/prompts/src/completion-evaluator.ts)
 
 ## packages/types 🟢
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Pure compile-time domain types — no runtime code; Zod belongs in `packages/schemas`.
 
@@ -317,7 +317,7 @@ Pure compile-time domain types — no runtime code; Zod belongs in `packages/sch
 - [src/](packages/types/src/)
 
 ## packages/observability 🟢
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Structured logging (pino) + opt-in OpenTelemetry tracing for all services.
 
@@ -342,7 +342,7 @@ Structured logging (pino) + opt-in OpenTelemetry tracing for all services.
 - [tracer.ts](packages/observability/src/tracer.ts)
 
 ## packages/config 🔵
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Shared tooling config (tsconfig, ESLint, Prettier, Vitest bases) + canonical provider mock factories. Dev-only, never deployed.
 
@@ -368,7 +368,7 @@ Shared tooling config (tsconfig, ESLint, Prettier, Vitest bases) + canonical pro
 - [mock-factories.ts](packages/config/src/test-utils/mock-factories.ts)
 
 ## packages/test-support 🔵
-_verified: 2026-07-19_
+_verified: 2026-09-01_
 
 Testcontainers harness providing a real pgvector Postgres for integration tests (real infra only — mocks live in `packages/config`).
 
