@@ -13,7 +13,7 @@ concurrency:
 jobs:
   lint-typecheck:
     name: Lint & typecheck
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -37,8 +37,8 @@ jobs:
 
   test:
     name: Unit & integration (Vitest + jest-expo)
-    runs-on: ubuntu-latest
-    # ubuntu-latest ships Docker, so Testcontainers (Postgres) works.
+    runs-on: [self-hosted, Linux]
+    # Testcontainers requires Docker on the WSL2 runner.
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -62,7 +62,7 @@ jobs:
 
   e2e:
     name: Cross-service e2e
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -86,7 +86,7 @@ jobs:
 
   agents-config:
     name: Agent config drift
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]
     steps:
       - uses: actions/checkout@v4
       # Inline copy of the agents-drift-check contract (kept self-contained):
