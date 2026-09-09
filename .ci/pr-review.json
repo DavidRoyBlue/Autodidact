@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "reviewers": [
+    "dead-code",
+    "naming-contracts",
+    "comments-docs",
+    "architecture-security"
+  ],
+  "block_severities": ["critical", "high"],
+  "auto_fix": true,
+  "max_fix_rounds": 2,
+  "reviewer_timeout_seconds": 600,
+  "verify": "pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm test",
+  "verify_timeout_seconds": 1800,
+  "human_approvers": ["DavidRoyBlue"],
+  "project_context": "Autodidact is a TypeScript monorepo spanning learning/product flows, API, agents/workers, mobile and Supabase-backed data. Preserve cross-service contracts, migration/data compatibility, deterministic course/workflow behavior, mobile/API schema alignment, agent boundaries and testable business logic. Treat schema drift, broken golden-path flows and silent data-shape changes as merge-blocking when likely to regress production."
+}
