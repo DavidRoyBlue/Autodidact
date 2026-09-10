@@ -17,7 +17,7 @@ Usage:
       standalone it scans the whole plans tree (idempotent backfill).
 
   node issuekit/cli.mjs check <rule> --issue <n> [--fix]
-      Run one enforcement rule against one issue. Rules: ${Object.keys(CHECKS).join(", ")}.
+      Run one enforcement rule against one issue (a PR number for pr-label). Rules: ${Object.keys(CHECKS).join(", ")}.
       Detects by default; --fix applies the remedy. Exit 0 = pass/fixed, 1 = violation, 2 = usage.
 
   node issuekit/cli.mjs labels --ensure

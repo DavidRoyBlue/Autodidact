@@ -66,6 +66,17 @@ Recursion-guarded against its own nested `claude -p` call.
 | Side effects | Adds the issue to Project #4 and advances its Status (forward-only, never off Done) |
 | Failure mode | Board falls behind labels; self-heals on the issue's next open/label/reopen event, or run the check locally with `--fix` |
 
+# PR auto-label
+
+| Field | Value |
+|---|---|
+| Trigger | GH pull request opened |
+| Trigger owner | repo workflow |
+| Implementation | `issuekit/cli.mjs check pr-label --fix` (`issuekit/lib/pr-label.mjs`; Haiku via `lib/llm.mjs`) |
+| Invoked by | `.github/workflows/pr-autolabel.yml` (Claude Code CLI + `CLAUDE_CODE_OAUTH_TOKEN`) |
+| Side effects | Adds one kind label (`rules.pr.kinds`) to a PR opened with no labels; already-labelled PRs are skipped |
+| Failure mode | PR stays unlabelled — the check always passes, never blocks; run it locally with `--fix` to repair |
+
 # Label bootstrap
 
 | Field | Value |

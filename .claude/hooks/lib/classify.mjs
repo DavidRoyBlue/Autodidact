@@ -1,16 +1,9 @@
 import { sh } from "../../../issuekit/lib/gh.mjs";
+import { askHaiku as ask } from "../../../issuekit/lib/llm.mjs";
 
 function listOpenIssues() {
   return sh("gh", ["issue", "list", "--state", "open", "--json", "number,title",
     "--jq", '.[] | "\\(.number): \\(.title)"']);
-}
-
-// Nested claude -p call; ISSUES_SYNC_NESTED stops it re-triggering hooks.
-function ask(prompt) {
-  try {
-    return sh("claude", ["-p", "--model", "claude-haiku-4-5", prompt],
-      { env: { ...process.env, ISSUES_SYNC_NESTED: "1" } });
-  } catch { return ""; }
 }
 
 // Parses a three-line classification answer: issue number (or "null"), title, summary.

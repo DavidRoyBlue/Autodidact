@@ -1,0 +1,29 @@
+name: PR auto-label
+
+# Thin caller — the label choice lives in issuekit (see issuekit/README.md). The model call
+# goes through the Claude Code CLI with the same CLAUDE_CODE_OAUTH_TOKEN the review workflows
+# use. issuekit never fails this check: an unlabelled PR is never blocked.
+
+on:
+  pull_request:
+    types: [opened]
+
+concurrency:
+  group: pr-autolabel-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @anthropic-ai/claude-code
+      - run: node issuekit/cli.mjs check pr-label --issue "${{ github.event.pull_request.number }}" --fix
