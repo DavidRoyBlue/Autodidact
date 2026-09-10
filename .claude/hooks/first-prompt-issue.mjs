@@ -26,7 +26,7 @@ function run() {
   const prompt = input.prompt;
   if (!sessionId || typeof prompt !== "string") return;
   if (T.readTie(sessionId)) return; // already tied — only the first prompt counts
-  if (!T.isSubstantivePrompt(prompt)) return;
+  if (T.isScriptedSession() || !T.isSubstantivePrompt(prompt)) return;
 
   // 1. Prompt flags an issue → tie to it if it's open.
   const ref = T.extractIssueRef(prompt);

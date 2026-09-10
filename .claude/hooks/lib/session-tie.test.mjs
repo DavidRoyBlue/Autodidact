@@ -20,6 +20,21 @@ test("isSubstantivePrompt: skips slash commands and trivial prompts", () => {
   assert.equal(T.isSubstantivePrompt("refactor the course generation worker task"), true);
 });
 
+test("isSubstantivePrompt: rejects manager, CI context, and harness-injected prompts", () => {
+  assert.equal(T.isSubstantivePrompt("[manager pm:Autodidact · project_manager · mode=patrol]\n\nPatrol the sessions."), false);
+  assert.equal(T.isSubstantivePrompt("REPO: DavidRoyBlue/Autodidact\n\nPerform weekly repository maintenance."), false);
+  assert.equal(T.isSubstantivePrompt("<task-notification>agent abc finished</task-notification>"), false);
+  assert.equal(T.isSubstantivePrompt("null"), false);
+  assert.equal(T.isSubstantivePrompt("You were dispatched by pm:Autodidact. Fix the login bug in #57."), true);
+});
+
+test("isScriptedSession: headless/SDK entrypoints are scripts, not people", () => {
+  assert.equal(T.isScriptedSession({ CLAUDE_CODE_ENTRYPOINT: "sdk-cli" }), true);
+  assert.equal(T.isScriptedSession({ CLAUDE_CODE_ENTRYPOINT: "sdk-ts" }), true);
+  assert.equal(T.isScriptedSession({ CLAUDE_CODE_ENTRYPOINT: "cli" }), false);
+  assert.equal(T.isScriptedSession({}), false);
+});
+
 test("titleFromPrompt: first line, collapsed, capped at 70", () => {
   assert.equal(T.titleFromPrompt("\n\nFix   the\tlogin bug\nmore detail"), "Fix the login bug");
   assert.equal(T.titleFromPrompt("x".repeat(100)).length, 70);
