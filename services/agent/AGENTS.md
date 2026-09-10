@@ -98,3 +98,4 @@ pnpm --filter @autodidact/agent build       # compile to dist/
 - [ADR-006 — AI orchestration framework](../../docs/architecture/ADRs/services/agent/ADR-006-ai-orchestration-framework.md) (LangGraph)
 - [ADR-011 — Real-time streaming transport](../../docs/architecture/ADRs/services/agent/ADR-011-realtime-streaming-transport.md) (SSE)
 - [ADR-009 — External vendor abstraction](../../docs/architecture/ADRs/packages/providers/ADR-009-external-vendor-abstraction.md)
+- [ADR-030 — Course-generation graph: multi-node topology and execution model](../../docs/architecture/ADRs/services/agent/ADR-030-course-generation-graph-execution-model.md) (Proposed — target design for #84)

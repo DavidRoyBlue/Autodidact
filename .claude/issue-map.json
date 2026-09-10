@@ -171,6 +171,10 @@
     "issue": 175,
     "parent": "2026-07-19-dev-environment-design.md"
   },
+  "2026-09-10-course-generation-multi-node-graph-design.md": {
+    "issue": 89,
+    "parent": null
+  },
   "GitHub-Issues-Lifecycle.md": {
     "issue": 53,
     "parent": null

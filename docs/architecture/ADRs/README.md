@@ -51,6 +51,7 @@ Sort within each section by ADR number.
 - [ADR-011 — Real-time streaming transport](./services/agent/ADR-011-realtime-streaming-transport.md)
 - [ADR-024 — Content RAG storage & retrieval for grounded tutoring](./services/agent/ADR-024-content-rag-storage-and-retrieval.md)
 - [ADR-027 — Background job queue — migrate to GCP Cloud Tasks](./services/worker/ADR-027-background-job-queue-cloud-tasks.md) (supersedes [ADR-007](./_superseded/ADR-007-background-job-queue.md))
+- [ADR-030 — Course-generation graph — multi-node topology and execution model](./services/agent/ADR-030-course-generation-graph-execution-model.md) — Proposed 2026-09-10 (issue #89)
 
 ### Packages
 - [ADR-008 — ORM / data access layer](./packages/db/ADR-008-orm-data-access.md)
