@@ -3,9 +3,13 @@ name: PR auto-label
 # Thin caller — the label choice lives in issuekit (see issuekit/README.md). The model call
 # goes through the Claude Code CLI with the same CLAUDE_CODE_OAUTH_TOKEN the review workflows
 # use. issuekit never fails this check: an unlabelled PR is never blocked.
+#
+# pull_request_target (not pull_request): the job carries secrets, so it must run the base
+# branch's workflow and code. actions/checkout defaults to the base ref on this event — never
+# check out the PR head here. Only the PR's title/body reach the model, as data.
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened]
 
 concurrency:
