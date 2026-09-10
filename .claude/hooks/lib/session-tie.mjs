@@ -42,11 +42,22 @@ export function extractIssueRef(prompt) {
   return m ? Number(m[1]) : null;
 }
 
-// Slash commands and near-empty prompts don't describe work — wait for a real one.
+// Prompts that don't describe work — wait for a real one: slash commands,
+// near-empty text, manager-session headers ("[manager pm:X · mode=patrol]"),
+// CI context dumps ("REPO: owner/name"), and harness-injected markup
+// ("<task-notification>").
+const NOT_A_TASK = /^(\/|\[manager\b|REPO:|<[a-z][\w-]*>)/;
 export function isSubstantivePrompt(prompt) {
   const t = (prompt ?? "").trim();
-  if (t.startsWith("/")) return false;
+  if (NOT_A_TASK.test(t)) return false;
   return t.length >= 20;
+}
+
+// Headless runs (`claude -p`, the SDKs) set CLAUDE_CODE_ENTRYPOINT=sdk-*; their
+// prompts are written by scripts (summarizers, CI jobs), not by someone starting
+// work. Interactive sessions — including dispatched workers — report "cli".
+export function isScriptedSession(env = process.env) {
+  return /^sdk-/.test(env.CLAUDE_CODE_ENTRYPOINT ?? "");
 }
 
 export function titleFromPrompt(prompt) {
