@@ -48,6 +48,14 @@ export function closeIssue(issueNumber, comment) {
   gh(["issue", "close", String(issueNumber), "-c", comment]);
 }
 
+export function prJson(prNumber, fields) {
+  return JSON.parse(gh(["pr", "view", String(prNumber), "--json", fields]));
+}
+
+export function labelPr(prNumber, label) {
+  gh(["pr", "edit", String(prNumber), "--add-label", label]);
+}
+
 export function existingLabels() {
   return JSON.parse(gh(["label", "list", "--json", "name", "--limit", "200"])).map((l) => l.name);
 }

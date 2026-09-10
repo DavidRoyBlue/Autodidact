@@ -4,6 +4,7 @@
 // exported separately so they can be unit-tested without GitHub.
 import { loadRules } from "./rules.mjs";
 import { gh, graphql, nodeId, issueJson, repoOwner } from "./gh.mjs";
+import { checkPrLabel } from "./pr-label.mjs";
 
 const pass = (message) => ({ ok: true, message });
 const fail = (message) => ({ ok: false, message });
@@ -123,4 +124,4 @@ export function checkBoardSync(issueNumber, { fix = false } = {}) {
   return pass(`#${issueNumber} → Status '${target}'.`);
 }
 
-export const CHECKS = { "parent-close": checkParentClose, "board-sync": checkBoardSync };
+export const CHECKS = { "parent-close": checkParentClose, "board-sync": checkBoardSync, "pr-label": checkPrLabel };

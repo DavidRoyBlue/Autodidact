@@ -16,7 +16,9 @@ AGENTS.md restates a rule it owns.
 | `lib/files.mjs` | Plan-file logic: which files get issues, title/body/label/parent extraction |
 | `lib/map.mjs` | The sidecar `.claude/issue-map.json` (filename → `{ issue, parent }`) |
 | `lib/sync.mjs` | Mirroring: single-file (hook) and full-tree (backfill) share one core |
-| `lib/checks.mjs` | Enforcement rules: `parent-close`, `board-sync` |
+| `lib/checks.mjs` | Enforcement rules: `parent-close`, `board-sync` (+ registers `pr-label`) |
+| `lib/pr-label.mjs` | `pr-label` — one kind label for a PR opened without any (title prefix, else Haiku) |
+| `lib/llm.mjs` | `askHaiku` — one-shot Haiku call via the Claude Code CLI (shared with the session hooks) |
 | `lib/labels.mjs` | `labels --ensure` — reconcile repo labels with `rules.json` |
 
 ## What reads `rules.json`
@@ -28,6 +30,7 @@ AGENTS.md restates a rule it owns.
 - **`board`** — Projects V2 mapping: project number, Status field, label → column, forward-only
   movement, terminal status.
 - **`integrity`** — parent/child rules enforced server-side.
+- **`pr`** — conventional-commit type → kind label; its label set is what Haiku picks from.
 
 ## How it's invoked
 
@@ -36,6 +39,7 @@ AGENTS.md restates a rule it owns.
 | Claude Code `Write` hook (PostToolUse) | `.claude/settings.json` | `cli.mjs sync` (hook payload on stdin) |
 | GH issue closed | `.github/workflows/parent-close-guard.yml` | `cli.mjs check parent-close --issue N --fix` |
 | GH issue opened/labeled/reopened | `.github/workflows/project-status-sync.yml` | `cli.mjs check board-sync --issue N --fix` |
+| GH pull request opened | `.github/workflows/pr-autolabel.yml` | `cli.mjs check pr-label --issue N --fix` |
 | Manual (setup / repair) | you | `cli.mjs labels --ensure`, `cli.mjs sync [--dry-run]` |
 
 The session hooks (`.claude/hooks/first-prompt-issue.mjs`, `session-issues.mjs`) import

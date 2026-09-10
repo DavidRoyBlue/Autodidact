@@ -16,7 +16,27 @@
   "labels": {
     "ready": { "color": "0075ca", "description": "Created in to-be-reviewed/ — proposed, not started" },
     "in-progress": { "color": "e4e669", "description": "Created in in-progress/ or picked up by a session" },
-    "in-review": { "color": "d93f0b", "description": "Claude finished its part; awaiting owner review (never auto-Done)" }
+    "in-review": { "color": "d93f0b", "description": "Claude finished its part; awaiting owner review (never auto-Done)" },
+    "feature": { "color": "77d7d7", "description": "New feature / entire thing needs work" },
+    "bug": { "color": "d73a4a", "description": "Something isn't working" },
+    "documentation": { "color": "0075ca", "description": "Improvements or additions to documentation" },
+    "refactor": { "color": "bfd4f2", "description": "Restructuring with no behavior change" },
+    "chore": { "color": "ededed", "description": "Tooling, CI, deps, housekeeping" }
+  },
+  "pr": {
+    "$comment": "PR auto-label: a PR opened with no labels gets exactly one kind label. A conventional-commit title prefix maps directly via kinds; any other title is classified by Haiku among the kinds' labels.",
+    "kinds": {
+      "feat": "feature",
+      "fix": "bug",
+      "docs": "documentation",
+      "refactor": "refactor",
+      "perf": "refactor",
+      "chore": "chore",
+      "ci": "chore",
+      "build": "chore",
+      "test": "chore",
+      "revert": "chore"
+    }
   },
   "flow": {
     "$comment": "Label state machine, least → most advanced. Closing an issue (= board Done) is owner-only; the agent's terminal action is applying the handoff label.",
