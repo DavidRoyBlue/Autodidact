@@ -44,6 +44,7 @@ A spec's **status is the subfolder it lives in** — this is the single source o
 | &nbsp;&nbsp;↳ [Part 4 — Screen design (Figma)](to-be-reviewed/2026-06-27-mobile-uiux-4-screen-design.md) | _pending_ |
 | &nbsp;&nbsp;↳ [Part 5 — Design-system foundation](to-be-reviewed/2026-06-27-mobile-uiux-5-design-system-foundation.md) | _pending_ |
 | &nbsp;&nbsp;↳ [Part 6 — Implementation roadmap](to-be-reviewed/2026-06-27-mobile-uiux-6-implementation-roadmap.md) | _pending_ |
+| [2026-09-10 — Course Gen: target multi-node generation graph](to-be-reviewed/2026-09-10-course-generation-multi-node-graph-design.md) (issue #89, epic #84; decision in [ADR-030](../../architecture/ADRs/services/agent/ADR-030-course-generation-graph-execution-model.md)) | _build issues #91–#96_ |
 
 ### 🟡 In progress
 
