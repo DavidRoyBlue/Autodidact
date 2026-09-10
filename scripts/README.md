@@ -26,13 +26,16 @@ Or run the pieces manually in separate terminals: `pnpm dev` (backend stack) and
 
 Reads `workspace.yml` (the source of truth), starts the Supabase stack if it isn't running, then ensures the `autodidact` tmux session has:
 
-| Window   | Pane      | Command       | Health check                        |
-|----------|-----------|---------------|-------------------------------------|
-| `app`    | `backend` | `pnpm dev`    | port `3000` owned by pane's process |
-| `app`    | `mobile`  | `pnpm mobile` | port `8081` owned by pane's process |
-| `claude` | —         | — (preserved) | never touched by the script         |
+| Window   | Pane      | Command        | Health check                          |
+|----------|-----------|----------------|---------------------------------------|
+| `app`    | `backend` | `pnpm dev`     | port `3000` owned by pane's process   |
+| `app`    | `mobile`  | `pnpm mobile`  | port `8081` owned by pane's process   |
+| `app`    | `shell`   | — (free term.) | none — created once, never written to |
+| `claude` | —         | — (preserved)  | never touched by the script           |
 
-**Service detection.** Managed panes are tagged with the tmux pane option `@ws_id` (stable across pane-index changes). A pane is healthy when a process in its tree matches the pane's `match` regex **and** owns its health port. A pane sitting at a bare shell is restarted; a pane running an unexpected process is warned about, never killed. If a health port is held by a process outside the workspace, the script reports the conflict and does **not** start the service on an alternate port.
+The `claude` window is seeded with 4 tiled panes the first time it is created (`panes_on_create`), then handed off — later runs never re-seed or rearrange it, however you have since split or resized it.
+
+**Service detection.** Managed panes are tagged with the tmux pane option `@ws_id` (stable across pane-index changes). A pane is healthy when a process in its tree matches the pane's `match` regex **and** owns its health port. A pane sitting at a bare shell is restarted; a pane running an unexpected process is warned about, never killed. A pane with no `cmd` (the `shell` free terminal) is only ever created — whatever you run in it is never inspected or restarted. If a health port is held by a process outside the workspace, the script reports the conflict and does **not** start the service on an alternate port.
 
 **Common operations:**
 
