@@ -13,6 +13,21 @@ test("extractIssueRef: #N, issue N, issue #N, GitHub URLs", () => {
   assert.equal(T.extractIssueRef("there are 57 issues"), null);
 });
 
+test("isOpenIssue: open issue yes; PR, closed issue and unknown number no", () => {
+  const stub = (payload) => () => JSON.stringify(payload);
+  assert.equal(T.isOpenIssue(57, stub({ state: "open", isPr: false })), true);
+  assert.equal(T.isOpenIssue(258, stub({ state: "open", isPr: true })), false); // a PR — never label it
+  assert.equal(T.isOpenIssue(12, stub({ state: "closed", isPr: false })), false);
+  assert.equal(T.isOpenIssue(999, () => { throw new Error("gh: Not Found (HTTP 404)"); }), false);
+});
+
+test("isOpenIssue: asks the issues endpoint for the referenced number", () => {
+  let call;
+  T.isOpenIssue(57, (...a) => { call = a; return '{"state":"open","isPr":false}'; });
+  assert.deepEqual(call[0], "gh");
+  assert.ok(call[1].includes("repos/{owner}/{repo}/issues/57"));
+});
+
 test("isSubstantivePrompt: skips slash commands and trivial prompts", () => {
   assert.equal(T.isSubstantivePrompt("/clear"), false);
   assert.equal(T.isSubstantivePrompt("hi"), false);
