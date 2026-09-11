@@ -28,17 +28,12 @@ function run() {
   if (T.readTie(sessionId)) return; // already tied — only the first prompt counts
   if (T.isScriptedSession() || !T.isSubstantivePrompt(prompt)) return;
 
-  // 1. Prompt flags an issue → tie to it if it's open.
+  // 1. Prompt flags an issue → tie to it if it's an open issue (never a PR).
   const ref = T.extractIssueRef(prompt);
-  if (ref) {
-    try {
-      const state = sh("gh", ["issue", "view", String(ref), "--json", "state", "-q", ".state"]);
-      if (state === "OPEN") {
-        try { sh("gh", ["issue", "edit", String(ref), "--add-label", "in-progress"]); } catch { /* label is best-effort */ }
-        tie(sessionId, ref, "referenced in prompt");
-        return;
-      }
-    } catch { /* unknown issue number — fall through */ }
+  if (ref && T.isOpenIssue(ref)) {
+    try { sh("gh", ["issue", "edit", String(ref), "--add-label", "in-progress"]); } catch { /* label is best-effort */ }
+    tie(sessionId, ref, "referenced in prompt");
+    return;
   }
 
   // 2. One Haiku call: closest open issue + a publicly-safe title and summary.

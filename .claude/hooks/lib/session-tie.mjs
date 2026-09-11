@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { sh } from "../../../issuekit/lib/gh.mjs";
 
 // Session→issue ties live outside the repo so they never show up in git.
 const TIE_DIR = join(tmpdir(), "claude-session-issues");
@@ -34,6 +35,18 @@ export function writeTie(sessionId, data) {
   mkdirSync(TIE_DIR, { recursive: true });
   sweepStaleTies();
   writeFileSync(tiePath(sessionId), JSON.stringify(data));
+}
+
+// GitHub numbers issues and PRs from one sequence and `gh issue view` resolves
+// either, so a prompt citing a PR number would tie the session to it and land
+// `in-progress` on a pull request. The REST issue payload carries `pull_request`
+// only for PRs. `run` is injected so the logic is testable.
+export function isOpenIssue(ref, run = sh) {
+  try {
+    const { state, isPr } = JSON.parse(run("gh",
+      ["api", `repos/{owner}/{repo}/issues/${ref}`, "--jq", "{state, isPr: (.pull_request != null)}"]));
+    return state === "open" && !isPr;
+  } catch { return false; } // unknown number, or gh unavailable
 }
 
 // Matches "#123", "issue 123", "issue #123", and GitHub issue URLs (".../issues/123").
