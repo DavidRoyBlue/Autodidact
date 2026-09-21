@@ -84,7 +84,6 @@ docs/architecture/graphs/*.svg
 
 # GitHub Actions workflow changes may require a personal access token with the
 # `workflow` scope when pushing to GitHub.
-# Added by code-review-graph
 .code-review-graph/
 .claude/worktrees/
 
