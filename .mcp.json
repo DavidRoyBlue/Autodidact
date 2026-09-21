@@ -1,10 +1,12 @@
 {
   "mcpServers": {
     "code-review-graph": {
-      "command": "uvx",
+      "command": "/home/bkd/.local/bin/uvx",
       "args": [
-        "code-review-graph",
-        "serve"
+        "code-review-graph@2.3.9",
+        "serve",
+        "--tools",
+        "semantic_search_nodes_tool,query_graph_tool,get_impact_radius_tool,get_minimal_context_tool,detect_changes_tool,get_review_context_tool"
       ],
       "type": "stdio"
     },

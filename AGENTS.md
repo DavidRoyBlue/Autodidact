@@ -116,7 +116,7 @@ Start with:
 2. Nearest `AGENTS.md` (invariants and rules for the subtree)
 3. Relevant `docs/architecture/` files if the change crosses boundaries
 4. Relevant ADRs if the change touches a durable decision
-5. Graph layer for structural navigation — locating implementations, tracing calls, assessing blast radius (see MCP Tools below)
+5. Graph layer for structural navigation — locating implementations, tracing calls, assessing blast radius (see Code graph below)
 
 Do not guess project conventions when documentation exists.
 
@@ -224,67 +224,30 @@ When completing a task, mention:
 
 ---
 
-## MCP Tools: code-review-graph
+## Code graph
 
-Structural knowledge graph (Tree-sitter + SQLite, MCP-exposed) tracking imports, calls, inheritance, tests, and execution flows. Use for code-structure questions before scanning files.
+`.mcp.json` serves a [code-review-graph](https://github.com/tirth8205/code-review-graph)
+index of this repo (`.code-review-graph/`, gitignored, built per worktree by
+the `SessionStart` hook and refreshed by `PostToolUse`). Navigate through it
+before Grep/Glob/Read: a targeted query returns ~200 tokens where a grep
+sweep returns thousands that every later turn pays for again.
 
-Two complementary layers with distinct domains — neither substitutes for the other.
+- `semantic_search_nodes_tool(query, limit, detail_level="minimal")` — finds
+  symbols by **name, path or signature only**, never by source text; use
+  identifier-like queries (a function or class name), not prose.
+- `query_graph_tool(pattern, target)` — `callers_of`, `callees_of`,
+  `imports_of`, `tests_for`, `children_of`. `target` must be the
+  `qualified_name` a search returned; a bare name that matches several nodes
+  returns the whole candidate list, which costs more than the grep it
+  replaces.
+- `get_impact_radius_tool(changed_files, max_depth=1)` — blast radius of a
+  change; `get_minimal_context_tool(task, changed_files)` — one-call orientation.
+- `detect_changes_tool` / `get_review_context_tool` — review a diff without
+  reading whole files.
 
-**Doc layer** (`AGENTS.md` files, `PRODUCTION.md`, `docs/architecture/`) owns **intent, rules, and decisions**: what invariants apply, why things were built a certain way, what tradeoffs were made.
-
-**Graph layer** (code-review-graph MCP tools) owns **structure and topology**: where code lives, what calls what, blast radius of a change. The graph carries no rules or intent — it can tell you *that* X calls Y, not *why*.
-
-Most tasks need both: read relevant docs first to absorb rules and context, then use the graph for structural navigation.
-
-**What each layer answers:**
-
-| Question | Layer | Where |
-|----------|-------|-------|
-| What invariants apply here? What must not be broken? | Doc | Nearest `AGENTS.md` → parent `AGENTS.md` |
-| Why was X built this way? What tradeoffs were made? | Doc | `docs/architecture/decisions/` (ADRs) |
-| How does the system work at a high level? | Doc | `docs/architecture/overview.md` |
-| Where is X implemented? | Graph | `semantic_search_nodes` |
-| What calls X? What does X depend on? | Graph | `query_graph` |
-| What will break if I change X? | Graph | `get_impact_radius`, `get_affected_flows` |
-| Is X covered by tests? | Graph | `query_graph` pattern="tests_for" |
-| Broad boundary map | Both | `get_architecture_overview` → `docs/architecture/` for depth |
-| Reviewing a diff | Both | Nearest `AGENTS.md` for applicable invariants → `detect_changes` + `get_review_context` |
-
-Use Grep/Glob/Read as a fallback for **code** when the graph doesn't have the answer — not as a substitute for reading doc files directly.
-
-### Order of operations
-
-For non-trivial changes (extends Documentation-first and Before you code):
-
-1. **Docs first** — `PRODUCTION.md` section, ADRs, nearest `AGENTS.md`.
-2. **Graph next** — start with `get_minimal_context` (~100 tokens), then drill in.
-3. **Source last** — read implementation only after the graph narrows where.
-
-The graph gives structure, not implementation. Read source for what code actually does, and for non-code files (configs, markdown, scripts).
-
-### Tools
-
-**Explore** — `get_minimal_context` (start here), `get_architecture_overview`, `list_communities` / `get_community`, `semantic_search_nodes`, `query_graph` (callers_of / callees_of / imports_of / tests_for), `traverse_graph`, `find_large_functions`
-
-**Analyze changes** — `detect_changes` (risk-scored diff), `get_review_context` (compact snippets), `get_impact_radius`, `get_affected_flows`, `list_flows` / `get_flow`
-
-**Architecture & quality** — `get_hub_nodes` (hotspots), `get_bridge_nodes` (chokepoints), `get_surprising_connections`, `get_knowledge_gaps`, `get_suggested_questions`
-
-**Refactor** — `refactor_tool` (preview), `apply_refactor_tool`
-
-**Document** — `generate_wiki` (drafts from community structure), `get_wiki_page`
-
-### Workflows
-
-- **Code review** (Surgical changes, v5): `detect_changes` → `get_impact_radius` → `get_review_context` → `query_graph` tests_for.
-- **Bug**: `semantic_search_nodes` → `query_graph` callers_of → `get_affected_flows` → read source.
-- **New feature** (Modular design, v3): `get_architecture_overview` → `list_communities` → `semantic_search_nodes` for patterns → mirror existing.
-- **Refactor** (Simplicity, v4): `refactor_tool` preview → `query_graph` callers_of → `get_impact_radius` → `apply_refactor_tool`.
-- **Doc pass** (Compounding rule): `get_architecture_overview` → `get_hub_nodes` → `get_knowledge_gaps` → `list_communities` → `generate_wiki` to draft.
-
-### Maintenance
-
-Hooks auto-update on edit/commit. If stale, run `code-review-graph status`; re-run install if hooks aren't firing.
+`.mcp.json` exposes only these six (`serve --tools`); the other 24 cost
+~8k tokens of schema per turn and are not worth it. Grep/Read remain the
+right tool for source text and for anything the graph does not index.
 
 ## GitHub Issues
 
