@@ -33,4 +33,4 @@ jobs:
     runs-on: [self-hosted, Linux]
     timeout-minutes: 20
     steps:
-      - run: "$HOME/Automation/scripts/bin/ci-autoland" --repo "${{ github.repository }}" land
+      - run: $HOME/Automation/scripts/bin/ci-autoland --repo ${{ github.repository }} land
