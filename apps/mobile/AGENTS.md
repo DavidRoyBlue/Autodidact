@@ -227,9 +227,10 @@ eas submit --profile production --platform android   # upload to Google Play (ne
 
 > **WSL2 adb invariant:** the **Windows** adb server must own port `5037` and Linux
 > adb stays a pure client. The registered `adb-up` operation (`~/Automation`,
-> `docs/android-adb-wsl2.md` there) enforces it; `scripts/emulator.sh` calls it
-> first. Run `adb-up` **before any Linux adb call**, `adb-up --reset` when adb
-> hangs. Never `~/android-platform-tools/adb start-server`.
+> `docs/android-adb-wsl2.md` there) enforces it, and the registered
+> `android-emulator` operation calls it first. Run `adb-up` **before any Linux
+> adb call**, `adb-up --reset` when adb hangs. Never
+> `~/android-platform-tools/adb start-server`.
 
 ---
 
@@ -252,7 +253,7 @@ eas submit --profile production --platform android   # upload to Google Play (ne
 ## Deeper docs
 
 - [`PRODUCTION.md`](../../PRODUCTION.md) — stack, build profiles, secrets, status
-- [`apps/mobile/docs/android-emulator-wsl2.md`](./docs/android-emulator-wsl2.md) — WSL2 emulator + adb wiring, troubleshooting
+- [`apps/mobile/docs/android-emulator-wsl2.md`](./docs/android-emulator-wsl2.md) — running *this app* on the emulator; the emulator and adb wiring themselves are `~/Automation/docs/android-{emulator,adb}-wsl2.md`
 - [`apps/mobile/docs/architecture.md`](./docs/architecture.md) — monorepo position, runtime dependencies, auth flow
 - [`apps/mobile/docs/frontend-architecture.md`](./docs/frontend-architecture.md) — routing, screens, provider stack
 - [`apps/mobile/docs/ui-system.md`](./docs/ui-system.md) — design tokens, themes, component library

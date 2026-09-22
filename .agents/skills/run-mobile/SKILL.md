@@ -8,13 +8,15 @@ description: Run the Autodidact mobile app on the Android emulator from WSL2. Us
 This project runs in WSL2; the Android emulator lives on the Windows host. The
 cross-boundary adb wiring (Windows adb server owns :5037, Linux adb is a pure
 client over mirrored networking) is the registered `adb-up` operation in
-`~/Automation`; the scripts here call it first. See
-`apps/mobile/docs/android-emulator-wsl2.md` and `~/Automation/docs/android-adb-wsl2.md`.
+`~/Automation`, and booting the AVD is the registered `android-emulator`
+operation, which calls it first. See `apps/mobile/docs/android-emulator-wsl2.md`
+for this app, and `~/Automation/docs/android-{emulator,adb}-wsl2.md` for the
+machine-wide halves.
 
 ### Steps
 
 1. **Pick the scope:**
-   - "boot the emulator" only → run `bash scripts/emulator.sh`
+   - "boot the emulator" only → run `~/Automation/scripts/bin/android-emulator`
    - "run the app" / "open the app" / drive it → run `bash scripts/run-mobile.sh`
      (boots the emulator, then Expo/Metro opens the app in Expo Go).
 2. **Verify with mobile-mcp** (do not trust the script exit alone):
@@ -23,7 +25,7 @@ client over mirrored networking) is the registered `adb-up` operation in
      run, the screenshot should show the Autodidact sign-in screen once Metro finishes
      the first bundle (give it a few seconds; re-screenshot if still on the Expo splash).
 3. **If it fails, self-heal once, then report:**
-   - Run `~/Automation/scripts/bin/adb-up --reset` then re-run `bash scripts/emulator.sh`.
+   - Run `~/Automation/scripts/bin/adb-up --reset` then re-run `~/Automation/scripts/bin/android-emulator`.
      (Kills both adb servers and re-establishes the Windows one — the most common failure
      is a stray Linux adb server that grabbed :5037.)
    - Re-verify with `mobile_list_available_devices`. Only if it still fails, surface
@@ -36,7 +38,7 @@ whose `platform-tools/adb` is the Linux adb; `adb-up` maintains it) plus
 `ADB_SERVER_SOCKET=tcp:localhost:5037` in its server env, then Claude restarted
 once. Without this, `mobile_list_available_devices` returns `[]` even though
 `~/android-platform-tools/adb devices` shows the emulator. See
-`apps/mobile/docs/android-emulator-wsl2.md` → "Letting mobile-mcp see the emulator". If devices are empty but the script
+`~/Automation/docs/android-adb-wsl2.md` → Troubleshooting. If devices are empty but the script
 succeeded, this config is the likely cause — report it rather than looping.
 
 ### Notes
@@ -96,7 +98,7 @@ configuration` screen means a token group violates this — fix
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `adb devices` / mobile-mcp empty after boot, device flickers `offline`, or every `adb` call hangs | a stray Linux adb server grabbed :5037, or two servers fighting | `~/Automation/scripts/bin/adb-up --reset`; re-run `scripts/emulator.sh` (qemu VM survives) |
+| `adb devices` / mobile-mcp empty after boot, device flickers `offline`, or every `adb` call hangs | a stray Linux adb server grabbed :5037, or two servers fighting | `~/Automation/scripts/bin/adb-up --reset`; re-run `~/Automation/scripts/bin/android-emulator` (qemu VM survives) |
 | `adb-up` exits 3 | Linux and Windows adb builds differ | update platform-tools in the Windows SDK and unpack the same version's Linux zip into `~/android-platform-tools` |
 | "emulator did not register within Ns" | `emulator.exe` mis-launched or wrong AVD | check `AVD` (default `Medium_Phone`); `<sdk>/emulator/emulator.exe -list-avds` |
 | app stuck on Expo splash | Metro still bundling, or can't reach Metro | wait/re-screenshot; check `.expo-dev.log` (the device reaches Metro at `10.0.2.2:8081`, never through `adb reverse`) |
