@@ -18,7 +18,7 @@ cd "$ROOT"
 # Self-contained env so Metro/adb behave the same whether or not ~/.bashrc was sourced.
 export ADB_SERVER_SOCKET="tcp:localhost:5037"
 # Expo CLI resolves adb to $ANDROID_HOME/platform-tools/adb. We must give Expo the
-# WSL shim SDK (Linux adb) for that — but ONLY Expo: emulator.sh needs the real
+# WSL shim SDK (Linux adb) for that — but ONLY Expo: android-emulator needs the real
 # Windows ANDROID_HOME for emulator.exe/adb.exe, so we scope the shim to the expo
 # subshell below rather than exporting it globally here. adb-up maintains the shim.
 ADB_SHIM="$HOME/.android-sdk-wsl"
@@ -35,8 +35,10 @@ APP_ID="com.autodidact.app"
 LINUX_ADB="$HOME/android-platform-tools/adb"
 
 # --- 1. emulator -------------------------------------------------------------
+# The AVD is machine-wide, not this repo's: the registered android-emulator
+# operation boots it (~/Automation/docs/android-emulator-wsl2.md).
 info "▶ Step 1/3 — booting the emulator"
-bash "$SCRIPT_DIR/emulator.sh"
+"$HOME/Automation/scripts/bin/android-emulator"
 
 # --- 2. device + dev client check --------------------------------------------
 # The app REQUIRES a custom dev client (native Google sign-in); in Expo Go it
