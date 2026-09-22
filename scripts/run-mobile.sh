@@ -2,7 +2,7 @@
 # One command to run the Autodidact mobile app end-to-end from WSL2:
 #   1. Boot the Android emulator on the Windows host (idempotent, self-healing)
 #   2. Require the custom DEV CLIENT (com.autodidact.app) on the device
-#   3. adb reverse 8081/3000/55321, start Metro if needed, open the app
+#   3. start Metro if needed, open the app (host loopback 10.0.2.2, no adb reverse)
 #
 # Expo SDK 52 + expo-dev-client. The app CANNOT run in Expo Go (native Google
 # sign-in crashes it on boot), so a missing dev client is a hard stop with build
@@ -20,7 +20,7 @@ export ADB_SERVER_SOCKET="tcp:localhost:5037"
 # Expo CLI resolves adb to $ANDROID_HOME/platform-tools/adb. We must give Expo the
 # WSL shim SDK (Linux adb) for that — but ONLY Expo: emulator.sh needs the real
 # Windows ANDROID_HOME for emulator.exe/adb.exe, so we scope the shim to the expo
-# subshell below rather than exporting it globally here. emulator.sh maintains the shim.
+# subshell below rather than exporting it globally here. adb-up maintains the shim.
 ADB_SHIM="$HOME/.android-sdk-wsl"
 
 CYAN='\033[0;36m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
