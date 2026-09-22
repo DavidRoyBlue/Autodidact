@@ -238,28 +238,32 @@ commit or push straight to `master`, whatever tool is driving git.
 
 ## Code graph
 
-`.mcp.json` serves a [code-review-graph](https://github.com/tirth8205/code-review-graph)
-index of this repo (`.code-review-graph/`, gitignored, built per worktree by
-the `SessionStart` hook and refreshed by `PostToolUse`). Navigate through it
-before Grep/Glob/Read: a targeted query returns ~200 tokens where a grep
-sweep returns thousands that every later turn pays for again.
+This repo has a [code-review-graph](https://github.com/tirth8205/code-review-graph)
+index (`.code-review-graph/`, gitignored, built per worktree by the
+`SessionStart` hook, refreshed by `PostToolUse`, served by `.mcp.json`). Use
+it to narrow scope, then read the source. Grep is fine for a single lookup
+("where is X defined"); reach for the graph when the question is callers,
+impact, tests or an unfamiliar area. The `explore-codebase` skill carries the
+call order and budget.
 
-- `semantic_search_nodes_tool(query, limit, detail_level="minimal")` — finds
-  symbols by **name, path or signature only**, never by source text; use
+- Start with `get_minimal_context_tool(task="<task>")` (~100 tokens); it
+  orients and names the next tool.
+- `semantic_search_nodes_tool(query, limit, detail_level="minimal")` finds
+  symbols by name, path or signature only, never by source text; use
   identifier-like queries (a function or class name), not prose.
 - `query_graph_tool(pattern, target)` — `callers_of`, `callees_of`,
-  `imports_of`, `tests_for`, `children_of`. `target` must be the
-  `qualified_name` a search returned; a bare name that matches several nodes
-  returns the whole candidate list, which costs more than the grep it
-  replaces.
+  `imports_of`, `tests_for`, `children_of`; `target` is the `qualified_name`
+  a search returned.
 - `get_impact_radius_tool(changed_files, max_depth=1)` — blast radius of a
-  change; `get_minimal_context_tool(task, changed_files)` — one-call orientation.
-- `detect_changes_tool` / `get_review_context_tool` — review a diff without
-  reading whole files.
+  change; `detect_changes_tool` / `get_review_context_tool` — review a diff
+  without reading whole files.
 
-`.mcp.json` exposes only these six (`serve --tools`); the other 24 cost
-~8k tokens of schema per turn and are not worth it. Grep/Read remain the
-right tool for source text and for anything the graph does not index.
+When the graph and the source disagree, the source wins. An empty result
+means "not indexed" or "not statically visible", not "does not exist". A
+`PreToolUse` hook (`code-review-graph enrich`) adds the matching symbols'
+callers and callees to every Grep/Glob/Read and Bash grep call, so a search
+already carries its neighbourhood. `.mcp.json` exposes only these six tools
+(`serve --tools`); the other 24 cost ~8k tokens of schema per turn.
 
 ## GitHub Issues
 
