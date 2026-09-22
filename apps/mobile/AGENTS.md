@@ -225,10 +225,11 @@ eas submit --profile production --platform android   # upload to Google Play (ne
 
 > Production builds use `appVersionSource: "remote"` + `autoIncrement` — EAS bumps the Android `versionCode` each build, so Play never rejects a duplicate.
 
-> **WSL2 adb invariant:** the **Windows** adb server must own port `5037`; start it
-> (`scripts/emulator.sh` does, via `adb.exe start-server`) **before any Linux adb
-> call**, so Linux adb stays a pure client and never spawns a competing server. Do
-> not run `~/android-platform-tools/adb start-server` directly.
+> **WSL2 adb invariant:** the **Windows** adb server must own port `5037` and Linux
+> adb stays a pure client. The registered `adb-up` operation (`~/Automation`,
+> `docs/android-adb-wsl2.md` there) enforces it; `scripts/emulator.sh` calls it
+> first. Run `adb-up` **before any Linux adb call**, `adb-up --reset` when adb
+> hangs. Never `~/android-platform-tools/adb start-server`.
 
 ---
 

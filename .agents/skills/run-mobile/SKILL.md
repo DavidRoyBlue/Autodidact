@@ -5,10 +5,11 @@ description: Run the Autodidact mobile app on the Android emulator from WSL2. Us
 
 ## Run the mobile app (WSL2 + Windows-host Android emulator)
 
-This project runs in WSL2; the Android emulator lives on the Windows host. Two
-scripts encapsulate the cross-boundary adb wiring (Windows adb server owns :5037,
-Linux adb is a pure client over mirrored networking). See
-`apps/mobile/docs/android-emulator-wsl2.md` for the why.
+This project runs in WSL2; the Android emulator lives on the Windows host. The
+cross-boundary adb wiring (Windows adb server owns :5037, Linux adb is a pure
+client over mirrored networking) is the registered `adb-up` operation in
+`~/Automation`; the scripts here call it first. See
+`apps/mobile/docs/android-emulator-wsl2.md` and `~/Automation/docs/android-adb-wsl2.md`.
 
 ### Steps
 
@@ -22,15 +23,16 @@ Linux adb is a pure client over mirrored networking). See
      run, the screenshot should show the Autodidact sign-in screen once Metro finishes
      the first bundle (give it a few seconds; re-screenshot if still on the Expo splash).
 3. **If it fails, self-heal once, then report:**
-   - Run `~/android-platform-tools/adb kill-server` then re-run `bash scripts/emulator.sh`.
-     (Clears a stray Linux adb server that grabbed :5037 — the most common failure.)
+   - Run `~/Automation/scripts/bin/adb-up --reset` then re-run `bash scripts/emulator.sh`.
+     (Kills both adb servers and re-establishes the Windows one — the most common failure
+     is a stray Linux adb server that grabbed :5037.)
    - Re-verify with `mobile_list_available_devices`. Only if it still fails, surface
      the troubleshooting table to the human.
 
 ### Prerequisite for mobile-mcp (one-time)
 
 mobile-mcp must be configured with `ANDROID_HOME=~/.android-sdk-wsl` (a WSL shim
-whose `platform-tools/adb` is the Linux adb; `emulator.sh` maintains it) plus
+whose `platform-tools/adb` is the Linux adb; `adb-up` maintains it) plus
 `ADB_SERVER_SOCKET=tcp:localhost:5037` in its server env, then Claude restarted
 once. Without this, `mobile_list_available_devices` returns `[]` even though
 `~/android-platform-tools/adb devices` shows the emulator. See
@@ -71,11 +73,11 @@ rm -rf apps/mobile/.tamagui \
        apps/mobile/node_modules/.cache             # clear BOTH caches
 ( cd apps/mobile && CI=1 ANDROID_HOME="$HOME/.android-sdk-wsl" \
     nohup pnpm start -- -c >> "$PWD/../../.expo-dev.log" 2>&1 & )   # cold start (-c)
-# wait for http://localhost:8081/status, then force a fresh bundle on the device:
-~/android-platform-tools/adb -s emulator-5554 reverse tcp:8081 tcp:8081
-~/android-platform-tools/adb -s emulator-5554 shell am force-stop host.exp.exponent
+# wait for http://localhost:8081/status, then force a fresh bundle on the device
+# (10.0.2.2 is the host loopback; adb reverse is broken across the WSL split):
+~/android-platform-tools/adb -s emulator-5554 shell am force-stop com.autodidact.app
 ~/android-platform-tools/adb -s emulator-5554 shell am start -a android.intent.action.VIEW \
-    -d "exp://127.0.0.1:8081" host.exp.exponent
+    -d "autodidact://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081" com.autodidact.app
 ```
 
 A cold bundle takes ~12s (`Android Bundled … (1686 modules)` in the log). Then
@@ -94,10 +96,9 @@ configuration` screen means a token group violates this — fix
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `adb devices` / mobile-mcp empty after boot | a stray Linux adb server grabbed :5037 | `~/android-platform-tools/adb kill-server`, re-run `scripts/emulator.sh` |
-| device flickers `offline` | two adb servers fighting over the emulator | `<sdk>/platform-tools/adb.exe kill-server`; `~/android-platform-tools/adb kill-server`; re-run |
-| every `adb` call hangs (wedged server) | a stray Linux adb server grabbed `:5037` and stuck | `taskkill.exe /F /IM adb.exe`; `pkill -9 -f fork-server`; re-run `scripts/emulator.sh` (qemu VM survives) |
+| `adb devices` / mobile-mcp empty after boot, device flickers `offline`, or every `adb` call hangs | a stray Linux adb server grabbed :5037, or two servers fighting | `~/Automation/scripts/bin/adb-up --reset`; re-run `scripts/emulator.sh` (qemu VM survives) |
+| `adb-up` exits 3 | Linux and Windows adb builds differ | update platform-tools in the Windows SDK and unpack the same version's Linux zip into `~/android-platform-tools` |
 | "emulator did not register within Ns" | `emulator.exe` mis-launched or wrong AVD | check `AVD` (default `Medium_Phone`); `<sdk>/emulator/emulator.exe -list-avds` |
-| app stuck on Expo splash | Metro still bundling, or can't reach Metro | wait/re-screenshot; check `.expo-dev.log`; ensure `adb reverse tcp:8081` (Expo sets it) |
+| app stuck on Expo splash | Metro still bundling, or can't reach Metro | wait/re-screenshot; check `.expo-dev.log` (the device reaches Metro at `10.0.2.2:8081`, never through `adb reverse`) |
 | a source edit isn't taking effect; an already-fixed error keeps recurring | `CI=1` Metro doesn't watch, and the Metro/Tamagui caches replay old code | use the cache recipe in "Applying source edits"; clearing `apps/mobile/.tamagui` + `"${TMPDIR:-/tmp}"/metro-cache` is the part that matters |
 | red `createTamagui() invalid tokens.*` / `Can't find Tamagui configuration` | a token group violates Tamagui v2 rules (missing `true`, or `radius`/`zIndex` keys not a subset of `size`) | fix `apps/mobile/src/design/tokens.ts`, then apply via the cache recipe |

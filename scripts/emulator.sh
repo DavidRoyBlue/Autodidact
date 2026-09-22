@@ -4,12 +4,12 @@
 #
 # Idempotent: safe to re-run. If the target AVD is already booted, exits 0 fast.
 #
-# Design (see docs in apps/mobile/README.md → "Running on the Android emulator"):
-#   - The WINDOWS adb server owns :5037. The emulator (a Windows process) registers
-#     to it; Linux adb is a pure client reaching that same server over mirrored
-#     WSL networking (localhost:5037). adb versions must match (they do: 37.0.0).
-#   - This script is SELF-CONTAINED on env — it does not assume ~/.bashrc was
-#     inherited (MCP/daemon processes often don't source it).
+# Design (apps/mobile/docs/android-emulator-wsl2.md): the adb wiring across the
+# WSL/Windows boundary — one Windows adb server on :5037, Linux adb as its
+# client, matching versions, the ~/.android-sdk-wsl shim — is machine-wide and
+# lives in the registered `adb-up` operation (~/Automation/docs/android-adb-wsl2.md).
+# This script only boots the AVD. Self-contained on env: it does not assume
+# ~/.bashrc was inherited (MCP/daemon processes often don't source it).
 set -euo pipefail
 
 # --- self-contained env ------------------------------------------------------
@@ -18,15 +18,9 @@ export ANDROID_HOME
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
 export ADB_SERVER_SOCKET="tcp:localhost:5037"
 
+ADB_UP="${ADB_UP:-$HOME/Automation/scripts/bin/adb-up}"
 LINUX_ADB="$HOME/android-platform-tools/adb"
-WIN_ADB="$ANDROID_HOME/platform-tools/adb.exe"
 WIN_EMU="$ANDROID_HOME/emulator/emulator.exe"
-# WSL "shim SDK": mobile-mcp resolves adb to $ANDROID_HOME/platform-tools/adb, but
-# ANDROID_HOME (above) is the *Windows* SDK, which only ships adb.exe. The mobile-mcp
-# server is therefore configured with ANDROID_HOME=$ADB_SHIM (see apps/mobile/README
-# → "Letting mobile-mcp see the emulator"); we keep that shim's adb pointing at the
-# Linux adb here so the config target always exists.
-ADB_SHIM="$HOME/.android-sdk-wsl"
 AVD="${AVD:-Medium_Phone}"
 DEVICE_TIMEOUT="${DEVICE_TIMEOUT:-45}"   # fail-fast: device must REGISTER quickly
 BOOT_TIMEOUT="${BOOT_TIMEOUT:-180}"      # slower: full Android boot
@@ -37,13 +31,8 @@ ok()   { echo -e "${GREEN}✓ $*${NC}"; }
 warn() { echo -e "${YELLOW}⚠ $*${NC}"; }
 die()  { echo -e "${RED}✗ $*${NC}" >&2; exit 1; }
 
-[[ -x "$LINUX_ADB" ]] || die "Linux adb not found at $LINUX_ADB"
-[[ -f "$WIN_ADB"   ]] || die "Windows adb.exe not found at $WIN_ADB"
-[[ -f "$WIN_EMU"   ]] || die "Windows emulator.exe not found at $WIN_EMU"
-
-# Ensure the mobile-mcp shim adb exists and points at the Linux adb (idempotent).
-mkdir -p "$ADB_SHIM/platform-tools"
-ln -sfn "$LINUX_ADB" "$ADB_SHIM/platform-tools/adb"
+[[ -x "$ADB_UP"  ]] || die "adb-up not found at $ADB_UP (the registered ~/Automation operation that owns the WSL2 adb wiring)"
+[[ -f "$WIN_EMU" ]] || die "Windows emulator.exe not found at $WIN_EMU"
 
 # Returns the serial of the target AVD if it is present AND fully booted, else "".
 booted_serial() {
@@ -58,16 +47,11 @@ booted_serial() {
   done < <("$LINUX_ADB" devices | tail -n +2)
 }
 
-# --- (a) single-server self-heal preflight -----------------------------------
-# Kill any stray *Linux* adb fork-server so it can't own :5037, then start the
-# *Windows* server so it does. The Linux daemon's cmdline is
-# `adb -L tcp:localhost:5037 fork-server server` (basename only — match on that,
-# NOT a path), and it's a Linux process so this never touches the Windows server.
-# This is the self-heal for the "empty devices / wedged server" failure.
-pkill -9 -f 'adb -L tcp:localhost:5037 fork-server' 2>/dev/null || true
-info "Ensuring Windows adb server owns :5037…"
-timeout 30 "$WIN_ADB" start-server >/dev/null 2>&1 \
-  || die "Windows adb server won't start. Reset with:  taskkill.exe /F /IM adb.exe ; pkill -9 -f fork-server  then re-run."
+# --- (a) adb wiring: adb-up owns it -----------------------------------------
+# Version check, stray Linux server killed, Windows server started, shim kept.
+# --quiet: its "no device" hint is expected here, the emulator is not up yet.
+info "Ensuring the Windows adb server owns :5037 (adb-up)…"
+"$ADB_UP" --quiet 2>/dev/null || die "adb-up failed — run it by hand for the reason, or: adb-up --reset"
 
 # --- (b) idempotent fast path ------------------------------------------------
 serial="$(booted_serial)"
