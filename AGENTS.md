@@ -224,6 +224,18 @@ When completing a task, mention:
 
 ---
 
+## Landing
+
+Work in a worktree under `.claude/worktrees/<name>` on branch `worktree-<name>`;
+keep the PR as a draft while working, `gh pr ready` when it's done. `ci-autoland`
+(~/Automation) lands it on green once it's not a draft — it admits ready PRs
+into the runner's CI slots, watches the required checks in `.ci-policy`, and
+merges through `finishup` the moment they're all green. A red required check
+gets the PR labelled `ci-failed`, with the reason in a PR comment: fix it on
+the branch and push — a new head clears the label and the PR re-enters the
+queue on its own. The `.githooks/pre-commit` and `pre-push` hooks refuse a
+commit or push straight to `master`, whatever tool is driving git.
+
 ## Code graph
 
 `.mcp.json` serves a [code-review-graph](https://github.com/tirth8205/code-review-graph)
