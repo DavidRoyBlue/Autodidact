@@ -1,0 +1,28 @@
+# What evidence a change must produce before finishup will land it.
+#
+# fast-path      a change touching only these needs no full CI suite
+# standard-check must be present and SUCCESS on the PR head for everything else
+#
+# Fast is earned by the diff, never requested: one path outside this list and
+# the whole PR is standard.
+#
+# NOTE: the four CI jobs below carry a display `name:` with spaces
+# ("Lint & typecheck", etc). ci-autoland's own .ci-policy parser
+# (Repo.policy() in scripts/ci-autoland/autoland.py) splits each line on
+# whitespace and takes only the token immediately after `standard-check`, so
+# it cannot match a multi-word check name today — `required()` would end up
+# looking for a check literally named "Lint" and never see it go green. This
+# is written with the real check names anyway, since that's what actually
+# appears on the PR; the parser needs a fix (join the remaining tokens) or
+# the four jobs need single-word names before ci-autoland can land PRs here.
+
+fast-path      docs/**
+fast-path      *.md
+
+# PRs that are not drafts land on green through ci-autoland (~/Automation).
+autoland
+
+standard-check Lint & typecheck
+standard-check Unit & integration (Vitest + jest-expo)
+standard-check Cross-service e2e
+standard-check Agent config drift

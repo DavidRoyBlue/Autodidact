@@ -2,6 +2,7 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, reopened, synchronize, labeled]
 
 permissions:
   contents: read
@@ -13,6 +14,7 @@ concurrency:
 jobs:
   lint-typecheck:
     name: Lint & typecheck
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'integration-active') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -37,6 +39,7 @@ jobs:
 
   test:
     name: Unit & integration (Vitest + jest-expo)
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'integration-active') }}
     runs-on: ubuntu-latest
     # ubuntu-latest ships Docker, so Testcontainers (Postgres) works.
     timeout-minutes: 30
@@ -62,6 +65,7 @@ jobs:
 
   e2e:
     name: Cross-service e2e
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'integration-active') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -86,6 +90,7 @@ jobs:
 
   agents-config:
     name: Agent config drift
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'integration-active') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

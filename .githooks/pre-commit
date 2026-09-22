@@ -1,0 +1,17 @@
+#!/bin/sh
+# This repo lands through PRs (AGENTS.md, "Changing the system"): a commit on
+# main is refused here, whatever tool is driving git. Work in a worktree under
+# .claude/worktrees/<name> on branch worktree-<name>.
+#
+# Activate once per clone: git config core.hooksPath .githooks
+
+branch=$(git symbolic-ref --short -q HEAD) || exit 0
+
+if [ "$branch" = "master" ]; then
+	echo "refusing to commit on main: this repo lands through PRs." >&2
+	echo "  git worktree add .claude/worktrees/<name> -b worktree-<name>" >&2
+	echo "See AGENTS.md, \"Changing the system\"." >&2
+	exit 1
+fi
+
+exit 0

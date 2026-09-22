@@ -1,0 +1,36 @@
+# autoland — the standard listener every repo carries, byte-identical
+# (installed by `ci-autoland init`; source: ~/Automation/scripts/ci-autoland).
+#
+# Runs one `ci-autoland land` pass on this machine whenever a PR changes
+# (opened, pushed, marked ready, labelled) and whenever the CI workflow
+# finishes. The pass admits non-draft PRs into the runner's slots, lands the
+# ones whose required checks are green through `finishup`, and marks the ones
+# that failed `ci-failed`. A 30-minute sweep timer covers dropped events.
+#
+# The job runs as the machine user: `gh` and `git` use that user's login, not
+# a workflow token, so the merge is attributed like a hand-run finishup.
+# Never set GH_TOKEN here.
+name: autoland
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, labeled]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+# One pass at a time per repository; a pass reads the whole queue, so a
+# pending one is never stale and cancelling is never needed.
+concurrency:
+  group: autoland-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  land:
+    runs-on: [self-hosted, Linux]
+    timeout-minutes: 20
+    steps:
+      - run: "$HOME/Automation/scripts/bin/ci-autoland" --repo "${{ github.repository }}" land
