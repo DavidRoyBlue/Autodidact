@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/bkd/.local/bin/uvx code-review-graph@2.3.9 enrich",
+            "command": "/home/bkd/.local/bin/uvx code-review-graph@2.3.9 enrich 2>/dev/null",
             "timeout": 10
           }
         ]

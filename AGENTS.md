@@ -240,30 +240,16 @@ commit or push straight to `master`, whatever tool is driving git.
 
 This repo has a [code-review-graph](https://github.com/tirth8205/code-review-graph)
 index (`.code-review-graph/`, gitignored, built per worktree by the
-`SessionStart` hook, refreshed by `PostToolUse`, served by `.mcp.json`). Use
-it to narrow scope, then read the source. Grep is fine for a single lookup
-("where is X defined"); reach for the graph when the question is callers,
-impact, tests or an unfamiliar area. The `explore-codebase` skill carries the
-call order and budget.
+`SessionStart` hook and refreshed by `PostToolUse`), served via `.mcp.json`
+as six MCP tools (`serve --tools`; the other 24 cost ~8k tokens of schema per
+turn and aren't wired). A `PreToolUse` hook (`code-review-graph enrich`) also
+adds the matching symbols' callers and callees to every Grep/Glob/Read and
+Bash grep call, so a search already carries its neighbourhood.
 
-- Start with `get_minimal_context_tool(task="<task>")` (~100 tokens); it
-  orients and names the next tool.
-- `semantic_search_nodes_tool(query, limit, detail_level="minimal")` finds
-  symbols by name, path or signature only, never by source text; use
-  identifier-like queries (a function or class name), not prose.
-- `query_graph_tool(pattern, target)` — `callers_of`, `callees_of`,
-  `imports_of`, `tests_for`, `children_of`; `target` is the `qualified_name`
-  a search returned.
-- `get_impact_radius_tool(changed_files, max_depth=1)` — blast radius of a
-  change; `detect_changes_tool` / `get_review_context_tool` — review a diff
-  without reading whole files.
-
-When the graph and the source disagree, the source wins. An empty result
-means "not indexed" or "not statically visible", not "does not exist". A
-`PreToolUse` hook (`code-review-graph enrich`) adds the matching symbols'
-callers and callees to every Grep/Glob/Read and Bash grep call, so a search
-already carries its neighbourhood. `.mcp.json` exposes only these six tools
-(`serve --tools`); the other 24 cost ~8k tokens of schema per turn.
+The `explore-codebase` skill is the operational doc: call order, budget, and
+the source-wins/empty-result rules all live there. Load it before
+Grep/Glob/Read when the question is callers, impact, tests, or orienting in
+an unfamiliar area.
 
 ## GitHub Issues
 
