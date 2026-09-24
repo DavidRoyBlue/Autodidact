@@ -47,8 +47,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/bkd/.local/bin/uvx code-review-graph@2.3.9 update --skip-flows >/dev/null 2>&1",
+            "command": "/home/bkd/.local/bin/uvx code-review-graph@2.3.9 update --skip-flows >/dev/null 2>&1; test -f .code-review-graph/graph.db && echo 'code-review-graph: index ready. Call get_minimal_context_tool(task=...) first; Grep for a single lookup, the graph for callers, impact and tests (AGENTS.md \"Code graph\", skill explore-codebase).'",
             "timeout": 60
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Grep|Glob|Read|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/bkd/.local/bin/uvx code-review-graph@2.3.9 enrich 2>/dev/null",
+            "timeout": 10
           }
         ]
       }
