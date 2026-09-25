@@ -81,7 +81,7 @@ course (full `content` and `resources` per module) in one transaction.
   then a production course fails (the worker marks it `failed`).
 - A synchronous ~16-minute task; Cloud Tasks and Cloud Run default deadlines
   would need raising when production is wired.
-- A second inter-service dependency and env pair (`AGENT_PLATFORM_URL`, key).
+- A second inter-service dependency (`AGENT_PLATFORM_URL`).
 
 ### Option C: A dedicated generation service on GCP
 **What it is:** a new Cloud Run service running the multi-node graph, called by
@@ -128,6 +128,14 @@ decision this ADR does not make).
   Cloud Tasks/Cloud Run deadlines must be raised when production is wired.
 - The word budget is computed at a fixed 150 words/minute until a per-user
   rate exists.
+- The worker talks to `/api/v1` through its own 60-line typed fetch client
+  rather than the platform's generated TypeScript client: that client is
+  committed in a private repository and not published, and a git dependency
+  would break this repo's CI install. It is retired the day the platform
+  publishes its client.
+- The worker polls a run with no deadline of its own; the platform's run
+  timeout (three hours for `course-creator`) bounds it, which is far above
+  the ~16 minutes a course takes — tightened with the Cloud Tasks deadlines.
 
 ### Follow-up decisions
 - Host or expose the platform for GCP (and enforce API keys) before production

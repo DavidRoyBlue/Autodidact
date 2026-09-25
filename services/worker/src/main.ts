@@ -12,7 +12,7 @@ async function start() {
   initTracer('autodidact-worker');
 
   const agentClient = new AgentClient(env.AGENT_SERVICE_URL);
-  const platformClient = new AgentPlatformClient(env.AGENT_PLATFORM_URL, env.AGENT_PLATFORM_API_KEY);
+  const platformClient = new AgentPlatformClient(env.AGENT_PLATFORM_URL);
   const queueProvider = createQueueProvider();
 
   const app = buildApp({

@@ -35,6 +35,8 @@ This is the central piece of logic. Every `POST /courses` request goes through i
      FROM courses
      WHERE status = 'ready'
        AND is_public = TRUE
+       AND difficulty = $difficulty
+       AND time_budget = $timeBudget
        AND topic_embedding IS NOT NULL
        AND 1 - (topic_embedding <=> $vector::vector) > 0.92
      ORDER BY similarity DESC

@@ -28,7 +28,7 @@ Defined in `state.ts`. Fields:
 | Field | Type | Role |
 |-------|------|------|
 | `messages` | `BaseMessage[]` | Full conversation history (append-only via reducer) |
-| `moduleBlueprint` | `ModuleBlueprint` | Current module context (objectives, content) |
+| `moduleBlueprint` | `CourseModule` | Current module context (objectives, content) |
 | `courseProgress` | `CourseProgressContext` | How far along the student is in the course |
 | `completionSignaled` | `boolean` | Set to `true` by teacher node on `[MODULE_COMPLETE:...]` detection |
 | `completionScore` | `number \| null` | Preliminary score from teacher signal; refined by evaluator |

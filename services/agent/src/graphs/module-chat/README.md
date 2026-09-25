@@ -17,7 +17,7 @@ A checkpointed LangGraph `StateGraph` that powers the AI teacher conversation. P
 ```typescript
 {
   messages:           BaseMessage[],         // Full conversation, reduced (appended)
-  moduleBlueprint:    ModuleBlueprint,        // Course module content and objectives
+  moduleBlueprint:    CourseModule,           // Course module content and objectives
   courseProgress:     CourseProgressContext,  // completedModuleCount, totalModuleCount, courseTitle
   completionSignaled: boolean,                // true when teacher emits [MODULE_COMPLETE:score=N]
   completionScore:    number | null,          // Set by evaluator node

@@ -12,7 +12,7 @@ Shared TypeScript type definitions used across services and packages. No runtime
 
 - TypeScript type definitions only. No runtime code, no Zod schemas, no class definitions, no functions. If it runs at runtime, it does not belong here.
 - Zod schemas live in `packages/schemas`, not here. If a type needs runtime validation (e.g., at an API boundary or when parsing LLM output), add the corresponding Zod schema to `packages/schemas` and derive the TypeScript type with `z.infer<>` there.
-- Types here are for shared structural types that do not need validation: domain interfaces (`CourseBlueprint`, `ChatMessage`), status string unions (`CourseStatus`, `ModuleStatus`), and job data shapes (`CourseGenerationJobData`).
+- Types here are for shared structural types that do not need validation: domain interfaces (`CourseModule`, `ChatMessage`), status string unions (`CourseStatus`, `ModuleStatus`), and job data shapes (`CourseGenerationJobData`).
 - Do not import from service packages (`services/api`, `services/agent`, `services/worker`) — types flow from this package outward, not inward.
 
 ---
@@ -26,7 +26,7 @@ Shared TypeScript type definitions used across services and packages. No runtime
 
 ## Source of truth
 
-- `src/course.ts` — domain status unions (`CourseStatus`, `ModuleStatus`, `DifficultyLevel`, `JobStatus`) and blueprint interfaces (`ContentSection`, `ModuleBlueprint`, `CourseBlueprint`).
+- `src/course.ts` — domain status unions (`CourseStatus`, `ModuleStatus`, `DifficultyLevel`, `JobStatus`, `TimeBudget`) and course interfaces (`ModuleResource`, `CourseModule`).
 - `src/chat.ts` — chat domain types (`ChatRole`, `ChatMessage`, `StreamChunk`, `ChatSession`).
 - `src/user.ts` — user and auth types (`UserProfile`, `AuthUser`, `ModuleProgressItem`, `UserProgress`).
 - `src/jobs.ts` — job queue payload types (`CourseGenerationJobData`, `EmbeddingJobData`).

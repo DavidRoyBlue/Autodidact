@@ -14,7 +14,7 @@ Pure task-processing functions, free of any transport concern. Each exports a `p
 
 ## Course Generation Processor
 
-**Payload**: `CourseGenerationJobData { courseId, userId, topic, difficulty, moduleCount }`
+**Payload**: `CourseGenerationJobData { courseId, userId, topic, difficulty, timeBudget }`
 
 ### Status lifecycle
 
@@ -24,7 +24,7 @@ courses.status transitions:
     │ (task delivered)
     ▼
   generating
-    │ (Agent call + DB write succeed)
+    │ (AgentPlatform run + DB write succeed)
     ▼
   ready
     │ (embedding task enqueued automatically)
@@ -44,10 +44,10 @@ Course and module rows are written atomically:
 await db.transaction(async (tx) => {
   await tx.update(courses).set({
     title, description, difficulty,
-    estimatedHours, status: 'ready', blueprint,
+    estimatedHours, status: 'ready',
   }).where(eq(courses.id, courseId));
 
-  await tx.insert(modules).values(moduleRows);
+  await tx.insert(modules).values(moduleRows); // content (markdown) + resources per module
 });
 ```
 

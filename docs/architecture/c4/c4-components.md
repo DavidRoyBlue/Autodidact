@@ -47,30 +47,26 @@ graph TD
 graph TD
     subgraph "Agent Service (Fastify)"
         MAIN[main.ts<br/>Fastify bootstrap]
-        GCR[/generate-course<br/>POST route]
         MCR[/module-chat/stream<br/>POST SSE route]
         EMB[/embeddings/text<br/>POST route]
 
         subgraph "LangGraph Graphs"
-            CGG[CourseGenerationGraph<br/>generateBlueprint node]
             MCG[ModuleChatGraph<br/>teacher + evaluator nodes]
         end
     end
 
-    MAIN --> GCR
     MAIN --> MCR
     MAIN --> EMB
-    GCR --> CGG
     MCR --> MCG
 ```
 
 | Component | Files | Responsibility |
 |-----------|-------|----------------|
-| **CourseGenerationGraph** | `graphs/course-generation/` | LangGraph `StateGraph`. Single node: `generateBlueprint`. Calls LLM with curriculum designer system prompt, extracts JSON, validates against `CourseBlueprintSchema`. Retries up to 3 times on parse failure. |
 | **ModuleChatGraph** | `graphs/module-chat/` | LangGraph `StateGraph`. Two nodes: `teacher` and `evaluator`. Teacher node invokes LLM with module system prompt; detects `[MODULE_COMPLETE:score=N]` signal. Evaluator node scores the conversation. Checkpointed by `thread_id` (= session UUID). |
-| **GenerateCourseRoute** | `routes/generate-course.ts` | `POST /generate-course` — validates body, runs `CourseGenerationGraph`, returns `{ blueprint }`. |
 | **ModuleChatRoute** | `routes/module-chat.ts` | `POST /module-chat/stream` — sets SSE headers, streams graph output token-by-token, reads final state to emit `module_complete` event. |
 | **EmbeddingsRoute** | `routes/embeddings.ts` | `POST /embeddings/text` — calls `IEmbeddingProvider.embed(text)`, returns `{ embedding: number[] }`. |
+
+Course generation is no longer a graph in this service — it is a run on AgentPlatform's `course-creator` workflow, created and polled by the Worker service (ADR-030).
 
 ---
 
@@ -84,12 +80,13 @@ graph TD
         CGP[processCourseGeneration<br/>generate-course tasks]
         EP[processEmbedding<br/>generate-embedding tasks]
         WAC[WorkerAgentClient<br/>HTTP client to Agent]
+        APC[AgentPlatformClient<br/>HTTP client to AgentPlatform]
     end
 
     MAIN --> APP
     APP --> CGP
     APP --> EP
-    CGP --> WAC
+    CGP --> APC
     EP --> WAC
     CGP -->|enqueues follow-up task| EP
 ```
@@ -97,9 +94,10 @@ graph TD
 | Component | Files | Responsibility |
 |-----------|-------|----------------|
 | **App (task routes)** | `app.ts` | Fastify routes `POST /tasks/generate-course` and `POST /tasks/generate-embedding`. Validates payloads (Zod), maps failures to retry (5xx) or terminal failure (marks course `failed` on the final attempt). |
-| **processCourseGeneration** | `processors/course-generation.processor.ts` | Updates course status `pending → generating`. Calls Agent `/course/generate`. Saves blueprint + modules in a DB transaction (`status → ready`). Enqueues the `generate-embedding` follow-up task. |
+| **processCourseGeneration** | `processors/course-generation.processor.ts` | Updates course status `pending → generating`. Calls `AgentPlatformClient.generateCourse()` (ADR-030). Saves the returned course + modules in a DB transaction (`status → ready`). Enqueues the `generate-embedding` follow-up task. |
 | **processEmbedding** | `processors/embedding.processor.ts` | Calls Agent `/embeddings/text`. Stores `topic_embedding` vector via raw SQL (`::vector` cast). |
-| **WorkerAgentClient** | `services/agent.client.ts` | Typed HTTP wrapper. `generateCourse(data)`, `generateEmbedding(topic)`. Reads `AGENT_SERVICE_URL`. |
+| **AgentPlatformClient** | `services/agent-platform.client.ts` | Typed HTTP wrapper for AgentPlatform's `/api/v1` (ADR-030). Creates a `course-creator` run, polls it to a terminal status, validates the output with `GeneratedCourseSchema`. Reads `AGENT_PLATFORM_URL`. |
+| **WorkerAgentClient** | `services/agent.client.ts` | Typed HTTP wrapper. `generateEmbedding(topic)`. Reads `AGENT_SERVICE_URL`. |
 
 ---
 
@@ -127,7 +125,7 @@ graph LR
 |---------|-----------|---------|
 | `@autodidact/providers` | `ILLMProvider`, `IEmbeddingProvider`, `IQueueProvider`, `IAuthProvider`, `ICheckpointerProvider` + factory functions | All 3 services |
 | `@autodidact/db` | `getDb()`, Drizzle schema tables, `eq`, `sql` etc. | API, Worker |
-| `@autodidact/types` | `CourseBlueprint`, `ModuleBlueprint`, `ChatMessage`, `AuthUser`, job data types | All 3 services |
+| `@autodidact/types` | `CourseModule`, `ModuleResource`, `ChatMessage`, `AuthUser`, job data types | All 3 services |
 | `@autodidact/schemas` | Zod schemas for request validation | API, Agent |
 | `@autodidact/prompts` | System prompts + builders for LLM interactions | Agent only |
 | `@autodidact/observability` | `createLogger(service)`, `initTracer(service)` | All 3 services |

@@ -10,13 +10,13 @@ The distinction from `@autodidact/schemas`: types here are for static structural
 
 | Consumer | Usage |
 |----------|-------|
-| `packages/db` | `CourseBlueprint`, `ContentSection` in schema column type annotations |
-| `packages/schemas` | `DifficultyLevel` imported for `DifficultyLevelSchema` enum |
+| `packages/db` | `ModuleResource` in the `modules` schema column type annotation |
+| `packages/schemas` | `DifficultyLevel`, `TimeBudget` imported for their Zod enums |
 | `packages/providers` | `AuthUser`, `JobStatus` in interface definitions |
-| `packages/prompts` | `ModuleBlueprint` in `buildModuleSystemPrompt` signature |
+| `packages/prompts` | `CourseModule` in `buildModuleSystemPrompt` signature |
 | `services/api` | `UserProfile`, `AuthUser`, `UserProgress`, `ChatSession`, job data types |
-| `services/agent` | `CourseBlueprint`, `ModuleBlueprint`, `StreamChunk`, job data types |
-| `services/worker` | `CourseGenerationJobData`, `EmbeddingJobData` |
+| `services/agent` | `CourseModule`, `StreamChunk`, job data types |
+| `services/worker` | `CourseGenerationJobData`, `EmbeddingJobData`, `TimeBudget` |
 
 ## Public API
 
@@ -27,9 +27,9 @@ import type {
   ModuleStatus,             // 'locked' | 'available' | 'in_progress' | 'completed'
   DifficultyLevel,          // 'beginner' | 'intermediate' | 'advanced'
   JobStatus,                // 'pending' | 'active' | 'completed' | 'failed' | 'delayed'
-  ContentSection,           // { title: string; points: string[] }
-  ModuleBlueprint,          // Full module definition from LLM output
-  CourseBlueprint,          // Full course definition from LLM output
+  TimeBudget,               // '30min' | '1h' | '4h' | 'unrestricted'
+  ModuleResource,           // { url: string; title: string; why: string }
+  CourseModule,             // Persisted module: content (markdown lesson) + resources
 
   // Chat domain
   ChatRole,                 // 'user' | 'assistant' | 'system'
@@ -53,7 +53,7 @@ import type {
 
 ```
 packages/types/src/
-├── course.ts   # Status unions, ContentSection, ModuleBlueprint, CourseBlueprint
+├── course.ts   # Status unions, TimeBudget, ModuleResource, CourseModule
 ├── chat.ts     # ChatRole, ChatMessage, StreamChunk, ChatSession
 ├── user.ts     # UserProfile, AuthUser, ModuleProgressItem, UserProgress
 ├── jobs.ts     # CourseGenerationJobData, EmbeddingJobData
@@ -63,11 +63,11 @@ packages/types/src/
 ## Usage Example
 
 ```typescript
-import type { CourseBlueprint, ModuleStatus, StreamChunk } from '@autodidact/types';
+import type { CourseModule, ModuleStatus, StreamChunk } from '@autodidact/types';
 
-function processBlueprint(blueprint: CourseBlueprint): void {
-  blueprint.modules.forEach((m) => {
-    console.log(`Module ${m.position}: ${m.title} (${m.estimatedMinutes}min)`);
+function logModules(modules: CourseModule[]): void {
+  modules.forEach((m) => {
+    console.log(`Module ${m.position}: ${m.title} (${m.estimatedMinutes}min, ${m.resources.length} resources)`);
   });
 }
 

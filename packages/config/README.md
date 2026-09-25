@@ -37,10 +37,11 @@ import {
   makeMockQueueProvider,      // IQueueProvider mock (enqueue, close)
   makeMockAuthProvider,       // IAuthProvider mock (verifyToken)
   makeMockEmbeddingProvider,  // IEmbeddingProvider mock (embed, embedBatch, getEmbeddings)
-  makeMockAgentClient,        // Mock for the internal agent HTTP client
+  makeMockAgentClient,        // Mock for the internal agent HTTP client (embeddings)
+  makeMockPlatformClient,     // Mock for the AgentPlatform course-generation client (ADR-030)
   makeMockLogger,             // Logger mock (info, warn, error, debug, child)
   sampleUser,                 // Reusable test user fixture
-  sampleBlueprint,            // Reusable CourseBlueprint fixture
+  sampleGeneratedCourse,      // Reusable GeneratedCourse fixture
 } from '@autodidact/config/test-utils';
 ```
 

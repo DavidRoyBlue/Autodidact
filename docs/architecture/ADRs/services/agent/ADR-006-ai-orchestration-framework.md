@@ -195,3 +195,9 @@ executed ADR-007's flagged migration: the queue moved from BullMQ + Memorystore
 Redis to GCP Cloud Tasks. Options B and D reference BullMQ (ADR-007) as our job
 orchestrator; read those as Cloud Tasks — the arguments are unaffected. The
 decision recorded here is unchanged.
+
+## Update (2026-09-25)
+
+Course generation, one of the two graphs this ADR chose LangGraph for, now
+runs on AgentPlatform's `course-creator` workflow (ADR-030). LangGraph remains
+the framework for the module-chat graph in `services/agent`.

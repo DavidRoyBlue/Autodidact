@@ -102,7 +102,7 @@ topicEmbedding: vector('topic_embedding', { dimensions: 1536 })
 - **Run migrations before deploying**: CI runs `pnpm --filter @autodidact/db db:migrate` against the production database before deploying new service images.
 - **WSL2 requires the transaction-mode pooler**: The Supabase direct host (`db.xxx.supabase.co:5432`) is IPv6-only and unreachable from WSL2. Set `DATABASE_URL` to the transaction pooler URL (`aws-1-[region].pooler.supabase.com:6543`). See `.env.example` for the format.
 - **`moduleProgress.chatSessionId` is reserved**: This column exists but is not populated by current application code. It is reserved for Phase 2 (linking sessions to progress entries). Do not use it until the feature is built.
-- **`modules.status` vs `moduleProgress.status`**: The `status` on the `modules` table is a blueprint default, not a user-specific value. Per-user progress lives in `module_progress.status`.
+- **`modules.status` vs `moduleProgress.status`**: The `status` on the `modules` table is a generation-time default, not a user-specific value. Per-user progress lives in `module_progress.status`.
 
 See also:
 - [Schema reference](src/schema/README.md)

@@ -3,11 +3,11 @@ import { Alert, View } from 'react-native';
 import { useCreateCourse } from '@/api/courses';
 import { useCourseGeneration } from '@/hooks/useCourseGeneration';
 import { Screen, Heading, AppText, Input, Button, Chip } from '@/components';
+import type { TimeBudget } from '@autodidact/types';
 
 type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 const difficulties: Difficulty[] = ['beginner', 'intermediate', 'advanced'];
 
-type TimeBudget = '30min' | '1h' | '4h' | 'unrestricted';
 const budgets: Array<[TimeBudget, string]> = [
   ['30min', '30 min'],
   ['1h', '1 hour'],

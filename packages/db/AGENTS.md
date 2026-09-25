@@ -19,7 +19,7 @@ Drizzle ORM client, schema definitions, database migrations, and the custom pgve
 - **Local-stack exemption:** the port-6543 pooler requirement applies to the **cloud/prod** `DATABASE_URL` only. Local dev uses the Supabase CLI stack on `127.0.0.1:55322` (direct, no pooler) — reachable from WSL2, so the IPv6 problem does not apply.
 - **Prod migrations:** apply with `pnpm migrate:prod` (loads `infra/secrets.env`, targets the pooler). CI also runs migrations automatically on deploy (`.github/workflows/deploy.yml`), so manual runs are for out-of-band inspection/recovery only.
 - `module_progress.chatSessionId` is reserved and not populated by current application code. It is reserved for Phase 2 (linking chat sessions to progress records). Do not read from or write to this column until the feature is built.
-- `modules.status` is a blueprint default, not per-user state. Per-user module progress lives in `module_progress.status`. Never use `modules.status` to render a user's current progress.
+- `modules.status` is a generation-time default, not per-user state. Per-user module progress lives in `module_progress.status`. Never use `modules.status` to render a user's current progress.
 
 ---
 

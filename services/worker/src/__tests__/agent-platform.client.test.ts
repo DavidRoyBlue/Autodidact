@@ -47,7 +47,7 @@ describe('AgentPlatformClient.generateCourse()', () => {
       .mockResolvedValueOnce(response({ id: 'run_1', status: 'running', output: null, error: null }))
       .mockResolvedValueOnce(response({ id: 'run_1', status: 'completed', output: generated, error: null }));
 
-    const pending = new AgentPlatformClient(BASE_URL, 'key-1').generateCourse(job);
+    const pending = new AgentPlatformClient(BASE_URL).generateCourse(job);
     await vi.advanceTimersByTimeAsync(10_000);
     const course = await pending;
 
@@ -56,7 +56,7 @@ describe('AgentPlatformClient.generateCourse()', () => {
       `${BASE_URL}/api/v1/runs`,
       expect.objectContaining({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer key-1' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           workflow_id: 'course-creator',
           input: { subject: 'DNS', difficulty: 'intermediate', budget: { preset: '30min', words: 4500 }, words_per_minute: 150 },

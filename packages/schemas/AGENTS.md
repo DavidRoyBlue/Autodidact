@@ -13,8 +13,8 @@ Zod validation schemas for cross-service data contracts: API request bodies and 
 - Zod schemas here are the single source of truth for cross-service validation contracts. Never define a duplicate schema for the same data shape in an individual service.
 - Every schema export must include its inferred TypeScript type (`z.infer<typeof Schema>`) so consumers do not need to re-derive the type themselves.
 - Schema changes are breaking changes for all consumers. When you change a schema, update all consumer usages in the same PR — do not merge a schema change with broken consumers.
-- Keep schemas in sync with the corresponding TypeScript types in `@autodidact/types`. If a type gains a required field, the matching schema must gain the same validation rule. If a schema gains a required field, update the LLM prompt in `@autodidact/prompts` so the LLM produces conforming output.
-- `ModuleBlueprintSchema.id` is intentionally `z.string().optional()`. LLM responses sometimes omit this field. The database assigns its own UUIDs — the blueprint `id` is discarded after parsing.
+- Keep schemas in sync with the corresponding TypeScript types in `@autodidact/types`. If a type gains a required field, the matching schema must gain the same validation rule.
+- `GeneratedCourseSchema`/`GeneratedModuleSchema` validate what AgentPlatform's `course-creator` workflow returns (its `docs/architecture/course-creator.md` §5), reduced to what the app persists; the platform validates the whole document, so unknown keys are dropped here rather than rejected.
 
 ---
 
@@ -27,7 +27,7 @@ Zod validation schemas for cross-service data contracts: API request bodies and 
 
 ## Source of truth
 
-- `src/course.ts` — validation for course creation requests and LLM blueprint output.
+- `src/course.ts` — validation for course creation requests and AgentPlatform's generated-course output.
 - `src/chat.ts` — validation for chat session creation and message sending.
 - `src/auth.ts` — validation for sign-in and sign-up request bodies.
 

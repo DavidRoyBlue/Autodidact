@@ -29,14 +29,17 @@ const MOCK_COURSE = {
  * AgentPlatform stand-in for the worker (ADR-030): a course-creator run is
  * created queued and reads back completed with MOCK_COURSE on the first poll.
  */
+const MOCK_QUEUED_BODY = JSON.stringify({ id: 'run_e2e', status: 'queued', output: null, error: null });
+const MOCK_COMPLETED_BODY = JSON.stringify({ id: 'run_e2e', status: 'completed', output: MOCK_COURSE, error: null });
+
 function startMockPlatform(): Promise<{ url: string; close: () => Promise<void> }> {
   const server = createHttpServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
     if (req.method === 'POST' && req.url === '/api/v1/runs') {
       res.statusCode = 201;
-      res.end(JSON.stringify({ id: 'run_e2e', status: 'queued', output: null, error: null }));
+      res.end(MOCK_QUEUED_BODY);
     } else if (req.method === 'GET' && req.url?.startsWith('/api/v1/runs/')) {
-      res.end(JSON.stringify({ id: 'run_e2e', status: 'completed', output: MOCK_COURSE, error: null }));
+      res.end(MOCK_COMPLETED_BODY);
     } else {
       res.statusCode = 404;
       res.end('{}');

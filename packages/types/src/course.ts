@@ -4,13 +4,6 @@ export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
 export type JobStatus = 'pending' | 'active' | 'completed' | 'failed' | 'delayed';
 export type TimeBudget = '30min' | '1h' | '4h' | 'unrestricted';
 
-/** Whole-course reading minutes per preset; `unrestricted` has none. */
-export const TIME_BUDGET_MINUTES: Record<Exclude<TimeBudget, 'unrestricted'>, number> = {
-  '30min': 30,
-  '1h': 60,
-  '4h': 240,
-};
-
 export interface ModuleResource {
   url: string;
   title: string;

@@ -8,7 +8,7 @@ Drizzle ORM table definitions for all six Autodidact database tables. Each file 
 |------|-------|-------------|
 | `enums.ts` | — | Postgres enum types used across tables |
 | `users.ts` | `users` | App user profiles (mirrors Supabase Auth) |
-| `courses.ts` | `courses` | Course blueprints with pgvector embedding |
+| `courses.ts` | `courses` | Courses with pgvector topic embedding |
 | `modules.ts` | `modules` | Individual learning modules within a course |
 | `enrollments.ts` | `enrollments` | User ↔ course membership |
 | `module_progress.ts` | `module_progress` | Per-user progress through each module |
@@ -23,6 +23,7 @@ Drizzle ORM table definitions for all six Autodidact database tables. Each file 
 courseStatusEnum:  'pending' | 'generating' | 'ready' | 'failed'
 moduleStatusEnum:  'locked' | 'available' | 'in_progress' | 'completed'
 difficultyEnum:    'beginner' | 'intermediate' | 'advanced'
+timeBudgetEnum:    '30min' | '1h' | '4h' | 'unrestricted'
 ```
 
 Enums are Postgres native types, created in migration `0001_initial.sql`.
@@ -35,7 +36,7 @@ Enums are Postgres native types, created in migration `0001_initial.sql`.
 
 - `topic`: Raw user input (e.g., "Introduction to Rust").
 - `slug`: Auto-generated URL-safe version. Not unique-constrained — two courses with similar topics may share a slug.
-- `blueprint`: JSONB storing the full `CourseBlueprint`. Redundant with the `modules` table but kept for quick reads.
+- `timeBudget`: `'30min' | '1h' | '4h' | 'unrestricted'`, chosen by the learner instead of a module count (ADR-030). Drives the AgentPlatform run's word budget and is part of the reuse key alongside topic embedding and difficulty.
 - `topicEmbedding`: 1536-dimensional float vector. **Set asynchronously** via the embedding job, not at course creation. Can be null until the embedding job completes.
 - `isPublic`: Controls whether the course is eligible for reuse in similarity searches.
 
@@ -43,8 +44,9 @@ Enums are Postgres native types, created in migration `0001_initial.sql`.
 
 - `position`: 0-indexed. Enforces teaching order. Used in the module unlock SQL query.
 - `objectives`: JSONB `string[]`. Passed to the teacher prompt and evaluated by the completion evaluator.
-- `contentOutline`: JSONB `ContentSection[]` — `{ title: string; points: string[] }[]`. Included in the teacher prompt.
-- `status`: Blueprint-level default (`locked`). **This is not per-user.** Per-user progress is in `module_progress.status`.
+- `content`: TEXT — the full lesson, markdown, as AgentPlatform's `course-creator` workflow wrote it. Included in the teacher prompt; chunked for RAG indexing.
+- `resources`: JSONB `ModuleResource[]` — `{ url: string; title: string; why: string }[]`.
+- `status`: Generation-time default (`locked`). **This is not per-user.** Per-user progress is in `module_progress.status`.
 
 ### `module_progress`
 

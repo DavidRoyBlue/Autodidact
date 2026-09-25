@@ -21,9 +21,7 @@ export function chunkModuleContent(module: ModuleContent): ContentChunk[] {
     texts.push(`Learning objectives:\n${module.objectives.map((o) => `- ${o}`).join('\n')}`);
   }
 
-  for (const section of module.content.split(/^(?=## )/m)) {
-    texts.push(section.trim());
-  }
+  texts.push(...module.content.split(/^(?=## )/m).map((s) => s.trim()));
 
   return texts
     .filter((content) => content.length > 0)

@@ -28,7 +28,7 @@ Internal AI runtime. Runs all LangGraph graphs. Handles all LLM and embedding in
 - LangGraph (`@langchain/langgraph`) for all graph orchestration
 - `@autodidact/providers` tokens (`ILLMProvider`, `IEmbeddingProvider`, `ICheckpointerProvider`) for all AI/infra providers
 - `@autodidact/prompts` for all prompt templates — do not inline system prompts in node or route files
-- `@autodidact/schemas` for output validation (e.g., `CourseBlueprintSchema`)
+- `@autodidact/schemas` for output validation
 - Zod for request body validation in routes
 
 **Do not use:**
@@ -42,7 +42,6 @@ Internal AI runtime. Runs all LangGraph graphs. Handles all LLM and embedding in
 ## Source of truth
 
 - SSE event protocol (token / module_complete / complete / error): `services/agent/src/routes/module-chat.ts`
-- Course blueprint schema: `@autodidact/schemas` (`CourseBlueprintSchema`)
 - LangGraph graph state shapes: graph `state.ts` files in `src/graphs/`
 - Provider interfaces: `packages/providers/src/`
 
@@ -84,7 +83,6 @@ pnpm --filter @autodidact/agent build       # compile to dist/
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/course/generate` | Invoke course-generation graph; returns `{ blueprint }` |
 | POST | `/module-chat/stream` | Stream module-chat graph output via SSE |
 | POST | `/embeddings/text` | Generate a text embedding vector |
 | GET | `/health` | Liveness; process is up. Dependency-free `{ status: "ok" }` |
@@ -94,6 +92,7 @@ pnpm --filter @autodidact/agent build       # compile to dist/
 
 ## Key Decisions
 
+- [ADR-030 — Course generation runs on AgentPlatform's course-creator workflow](../../docs/architecture/ADRs/cross-cutting/ADR-030-course-generation-on-agent-platform.md) (this service keeps module-chat and embeddings; the course-generation graph and route are gone)
 - [ADR-005 — AI agent server framework](../../docs/architecture/ADRs/services/agent/ADR-005-ai-agent-server-framework.md) (Fastify)
 - [ADR-006 — AI orchestration framework](../../docs/architecture/ADRs/services/agent/ADR-006-ai-orchestration-framework.md) (LangGraph)
 - [ADR-011 — Real-time streaming transport](../../docs/architecture/ADRs/services/agent/ADR-011-realtime-streaming-transport.md) (SSE)

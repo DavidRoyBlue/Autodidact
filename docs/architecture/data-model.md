@@ -25,9 +25,9 @@ erDiagram
         text title
         text description
         difficulty_enum difficulty
+        time_budget_enum time_budget
         int estimated_hours
         course_status_enum status
-        jsonb blueprint
         vector_1536 topic_embedding
         boolean is_public
         uuid generated_by FK
@@ -42,7 +42,8 @@ erDiagram
         text title
         text description
         jsonb objectives
-        jsonb content_outline
+        text content
+        jsonb resources
         int estimated_minutes
         module_status_enum status
         timestamp created_at
@@ -107,25 +108,25 @@ Mirrors the Supabase Auth user. Created on first sign-in.
 | `avatar_url` | TEXT | Nullable |
 
 ### `courses`
-A course blueprint + metadata. Status transitions: `pending → generating → ready` (or `failed`).
+A generated course + metadata. Status transitions: `pending → generating → ready` (or `failed`).
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | UUID PK | |
 | `topic` | TEXT | Original user request |
 | `slug` | TEXT | URL-safe, auto-generated from topic |
-| `title` | TEXT | LLM-generated title |
-| `description` | TEXT | LLM-generated description |
+| `title` | TEXT | Generated title |
+| `description` | TEXT | Generated description |
 | `difficulty` | ENUM | `beginner` / `intermediate` / `advanced` |
+| `time_budget` | ENUM | `30min` / `1h` / `4h` / `unrestricted` — chosen by the learner instead of a module count (ADR-030); drives the AgentPlatform run's word budget |
 | `estimated_hours` | INT | Nullable until generation completes |
 | `status` | ENUM | `pending` / `generating` / `ready` / `failed` |
-| `blueprint` | JSONB | Full `CourseBlueprint` object (redundant with modules table, kept for convenience) |
 | `topic_embedding` | VECTOR(1536) | OpenAI `text-embedding-3-small` embedding of `topic`. Set async after generation. |
 | `is_public` | BOOLEAN | Default `true`. Controls course reuse eligibility. |
 | `generated_by` | UUID FK → users | Nullable (future: anonymous generation) |
 
 ### `modules`
-Individual learning units within a course. Inserted in a transaction when the course blueprint is saved.
+Individual learning units within a course. Inserted in a transaction when the course is saved.
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -135,11 +136,12 @@ Individual learning units within a course. Inserted in a transaction when the co
 | `title` | TEXT | |
 | `description` | TEXT | |
 | `objectives` | JSONB (`string[]`) | Learning objectives used in the teaching prompt |
-| `content_outline` | JSONB (`ContentSection[]`) | `{ title: string; points: string[] }[]` |
+| `content` | TEXT | The full lesson, markdown, as AgentPlatform's `course-creator` workflow wrote it. Included in the teaching prompt; chunked for RAG indexing. |
+| `resources` | JSONB (`ModuleResource[]`) | `{ url: string; title: string; why: string }[]` |
 | `estimated_minutes` | INT | |
 | `status` | ENUM | Default `locked`. Per-course status (not per-user). |
 
-> Note: The `status` column on `modules` represents the default state for the module blueprint. Per-user status lives in `module_progress`.
+> Note: The `status` column on `modules` represents the default state for the module. Per-user status lives in `module_progress`.
 
 ### `enrollments`
 Junction table linking a user to a course. Unique per (user, course) pair.
@@ -186,12 +188,13 @@ A conversation between a user and the AI for one module. A new session is create
 | `course_status_enum` | `pending`, `generating`, `ready`, `failed` |
 | `module_status_enum` | `locked`, `available`, `in_progress`, `completed` |
 | `difficulty_enum` | `beginner`, `intermediate`, `advanced` |
+| `time_budget_enum` | `30min`, `1h`, `4h`, `unrestricted` |
 
 ---
 
 ## pgvector Usage
 
-The `topic_embedding` column on `courses` stores a 1536-dimensional float vector produced by OpenAI's `text-embedding-3-small` model. It enables efficient cosine similarity search for course reuse.
+The `topic_embedding` column on `courses` stores a 1536-dimensional float vector produced by OpenAI's `text-embedding-3-small` model. It enables efficient cosine similarity search for course reuse; the reuse key is (topic embedding, difficulty, time budget) since ADR-030.
 
 **Similarity query** (in `CoursesService.createOrReuse`):
 ```sql
@@ -200,6 +203,8 @@ SELECT id, title,
 FROM courses
 WHERE status = 'ready'
   AND is_public = TRUE
+  AND difficulty = $difficulty
+  AND time_budget = $timeBudget
   AND topic_embedding IS NOT NULL
   AND 1 - (topic_embedding <=> '[...]'::vector) > 0.92
 ORDER BY similarity DESC

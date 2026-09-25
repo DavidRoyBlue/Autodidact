@@ -2,14 +2,14 @@
 
 ## Purpose
 
-Zod validation schemas for API request bodies and LLM-generated data structures. Used for runtime validation at service boundaries — HTTP request parsing and LLM response parsing.
+Zod validation schemas for API request bodies and the data AgentPlatform's `course-creator` workflow returns. Used for runtime validation at service boundaries — HTTP request parsing and the worker's parse of the platform run output.
 
 ## Consumers
 
 | Consumer | Usage |
 |----------|-------|
 | `services/api` | `ZodValidationPipe` on controller methods |
-| `services/agent` | `CourseBlueprintSchema.safeParse()` on LLM output |
+| `services/worker` | `GeneratedCourseSchema.safeParse()` on the AgentPlatform run output (ADR-030) |
 
 ## Public API
 
@@ -17,10 +17,10 @@ Zod validation schemas for API request bodies and LLM-generated data structures.
 import {
   // Course domain
   CreateCourseRequestSchema,   // POST /courses body
-  CourseBlueprintSchema,       // LLM output validation
-  ModuleBlueprintSchema,
+  TimeBudgetSchema,            // '30min' | '1h' | '4h' | 'unrestricted'
   DifficultyLevelSchema,
-  ContentSectionSchema,
+  GeneratedCourseSchema,       // AgentPlatform course-creator run output
+  GeneratedModuleSchema,
 
   // Chat domain
   SendMessageSchema,           // POST /chat/sessions/:id/stream body
@@ -32,8 +32,7 @@ import {
 
   // Inferred TypeScript types
   type CreateCourseRequest,
-  type CourseBlueprintInput,
-  type ModuleBlueprintInput,
+  type GeneratedCourse,
 } from '@autodidact/schemas';
 ```
 
@@ -41,9 +40,10 @@ import {
 
 ```
 packages/schemas/src/
-├── course.ts       # Course creation request + LLM blueprint schemas
+├── course.ts       # Course creation request + AgentPlatform generated-course schemas
 ├── chat.ts         # Chat session and message schemas
 ├── auth.ts         # Sign-in / sign-up schemas
+├── jobs.ts         # Task payload schemas (CourseGenerationJobSchema, EmbeddingJobSchema)
 └── index.ts        # Re-exports all schemas and inferred types
 ```
 
@@ -53,20 +53,33 @@ packages/schemas/src/
 ```typescript
 {
   topic:       z.string().min(3).max(200),
-  difficulty:  z.enum(['beginner','intermediate','advanced']).optional().default('beginner'),
-  moduleCount: z.number().int().min(3).max(20).optional().default(5),
+  difficulty:  DifficultyLevelSchema.optional().default('beginner'),
+  timeBudget:  TimeBudgetSchema.optional().default('1h'),
 }
 ```
 
-### `CourseBlueprintSchema`
-Used by the Agent service to validate LLM-generated JSON before saving to the database.
+### `GeneratedCourseSchema`
+Used by the worker to validate the AgentPlatform run output before persisting it (its `docs/architecture/course-creator.md` §5 is the platform's own contract; this schema is the app's reduced re-parse of it — unknown keys are dropped, not rejected).
 ```typescript
 {
-  title:          z.string().min(1),
-  description:    z.string().min(1),
-  difficulty:     DifficultyLevelSchema,
-  estimatedHours: z.number().positive(),
-  modules:        z.array(ModuleBlueprintSchema).min(1),
+  title:       z.string().min(1),
+  description: z.string().min(1),
+  difficulty:  DifficultyLevelSchema,
+  budget:      z.object({ estimated_minutes: z.number().int().positive() }),
+  modules:     z.array(GeneratedModuleSchema).min(1),
+}
+```
+
+### `GeneratedModuleSchema`
+```typescript
+{
+  position:           z.number().int().min(1),
+  title:               z.string().min(1),
+  description:         z.string().min(1),
+  objectives:          z.array(z.string()),
+  content:             z.string().min(1),   // full lesson, markdown
+  estimated_minutes:   z.number().int().positive(),
+  resources:           z.array(z.object({ url: z.string(), title: z.string(), why: z.string() })),
 }
 ```
 
@@ -88,20 +101,20 @@ create(@Body() dto: CreateCourseRequest) {
 }
 ```
 
-**In LangGraph node** (LLM output parsing):
+**In the worker's platform client** (AgentPlatform run output parsing):
 ```typescript
-const parsed = CourseBlueprintSchema.safeParse(JSON.parse(jsonStr));
-if (parsed.success) {
-  return { blueprint: parsed.data };
+const parsed = GeneratedCourseSchema.safeParse(run.output);
+if (!parsed.success) {
+  throw new Error(`course-creator run ${run.id} returned an invalid course: ${parsed.error.message}`);
 }
-return { blueprint: null, retryCount: state.retryCount + 1 };
+return parsed.data;
 ```
 
 ## Change Safety Notes
 
-- **Schema ↔ type alignment**: Schemas in this package validate the same data shapes as the TypeScript types in `@autodidact/types`. If you change a type (e.g., add a required field to `ModuleBlueprint`), add the corresponding validation rule to `ModuleBlueprintSchema` and update the prompt in `@autodidact/prompts`.
-- **`moduleCount` default**: The default of 5 modules is set here, not in the frontend. If you change the default, the mobile app's UI will need a matching update to show the correct selected value.
-- **`CourseBlueprintSchema` is permissive on `id`**: `ModuleBlueprintSchema.id` is `z.string().optional()` because some LLM responses omit the `id` field. The database assigns its own UUIDs — the blueprint `id` field is not used after parsing.
+- **Schema ↔ type alignment**: Schemas in this package validate the same data shapes as the TypeScript types in `@autodidact/types`. If you change a type (e.g., add a field to `CourseModule`), add the corresponding validation rule to `GeneratedModuleSchema`.
+- **`timeBudget` default**: The default of `'1h'` is set here, not in the frontend. If you change the default, the mobile app's UI will need a matching update to show the correct selected value.
+- **`GeneratedCourseSchema` re-parses, it does not author the contract**: the platform validates the whole document against its own schema (`docs/architecture/course-creator.md` §5); this schema only covers the fields the app persists, and a field the platform adds without app support is simply dropped, not an error.
 
 ## Key Decisions
 

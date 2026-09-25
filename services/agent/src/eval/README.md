@@ -10,8 +10,8 @@ below threshold.
 
 | File | Role |
 |------|------|
-| `scorers.ts` | Pure, deterministic scorers (schema pass, blueprint quality, marker-leak, completion calibration, tutoring relevance). Unit-tested in `__tests__/eval-scorers.test.ts`. |
-| `datasets.ts` | Seed eval cases (course-gen topics, tutoring turns). Grow alongside new behaviors. |
+| `scorers.ts` | Pure, deterministic scorers (marker-leak, completion calibration, tutoring relevance). Unit-tested in `__tests__/eval-scorers.test.ts`. |
+| `datasets.ts` | Seed eval cases (tutoring turns). Grow alongside new behaviors. |
 | `run.ts` | Runner: executes graphs, applies scorers, prints a summary, exits non-zero on regression. |
 
 ## Running
