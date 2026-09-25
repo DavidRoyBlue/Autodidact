@@ -192,7 +192,7 @@ Drizzle client, schema, and migrations — single source of truth for DB structu
 ## packages/providers 🟢
 _verified: 2026-09-25_
 
-Vendor abstraction — interfaces + factories for LLM, embedding, queue, auth, and checkpointer providers. The LLM and checkpointer providers are unused by any service since ADR-031 moved the module teacher to AgentPlatform (only the embedding, queue, and auth providers are exercised) — their removal is a follow-up (ADR-031 non-goals), not done here.
+Vendor abstraction — interfaces + factories for embedding, queue, and auth providers. The module teacher runs on AgentPlatform (ADR-031); this package no longer carries an LLM or checkpointer provider.
 
 **Agent surface**
 - MCP: none
@@ -201,16 +201,16 @@ Vendor abstraction — interfaces + factories for LLM, embedding, queue, auth, a
 - Agents: none
 
 **Stack**
-- LLM: LangChain ChatOpenAI / ChatAnthropic
+- Embedding: LangChain OpenAIEmbeddings (Cohere is a stub)
 - Queue: GCP Cloud Tasks / loopback HTTP
 - Auth: Supabase JWKS JWT verification
-- Switches wired: `LLM_PROVIDER`, `QUEUE_PROVIDER`, `CHECKPOINTER`; `EMBEDDING_PROVIDER`/`AUTH_PROVIDER` reserved (single impl hardcoded); `mock` providers are e2e-only
+- Switches wired: `EMBEDDING_PROVIDER`, `QUEUE_PROVIDER`, `AUTH_PROVIDER`; `mock` providers are e2e-only
 
 **Secrets**
 - prod: GCP Secret Manager (via consuming services)
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — Embedding, queue, and auth providers exercised in prod; the LLM and checkpointer providers are wired but unused (ADR-031). Cohere embedding provider is a stub.
+**State** — Embedding, queue, and auth providers exercised in prod. Cohere embedding provider is a stub.
 
 **Useful Files**
 - [factory.ts](packages/providers/src/factory.ts)
@@ -252,7 +252,7 @@ Zod schemas validating API request bodies and LLM output at service boundaries.
 - Agents: none
 
 **Stack**
-- Validation: Zod; consumed via NestJS `ZodValidationPipe` and agent `safeParse`
+- Validation: Zod; consumed via NestJS `ZodValidationPipe`. `TeacherReplySchema` validates the platform's `course-teacher` reply in `ApiPlatformClient` (ADR-031) — the agent service's own JSON-output parsing (the completion evaluator) went with the module-chat graph.
 
 **Secrets**
 - prod: none

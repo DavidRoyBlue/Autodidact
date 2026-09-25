@@ -21,7 +21,6 @@ Internal embeddings runtime. Generates text embeddings for the platform. Never e
 **Use:**
 - Fastify (not Express, not NestJS)
 - `@autodidact/providers`'s `IEmbeddingProvider` (via `createEmbeddingProvider({})`) for the embedding call
-- `@autodidact/schemas` for output validation
 - Zod for request body validation in routes
 
 **Do not use:**
@@ -77,6 +76,6 @@ pnpm --filter @autodidact/agent build       # compile to dist/
 ## Key Decisions
 
 - [ADR-031 — The module teacher runs on AgentPlatform](../../docs/architecture/ADRs/cross-cutting/ADR-031-module-teacher-on-agent-platform.md) (this service loses the module-chat graph, route, retriever, error mapping and eval harness; it keeps only embeddings and health)
-- [ADR-030 — Course generation runs on AgentPlatform's course-creator workflow](../../docs/architecture/ADRs/cross-cutting/ADR-030-course-generation-on-agent-platform.md) (the course-generation graph and route were already gone before ADR-031)
+- [ADR-030 — Course generation runs on AgentPlatform's course-creator workflow](../../docs/architecture/ADRs/cross-cutting/ADR-030-course-generation-on-agent-platform.md)
 - [ADR-005 — AI agent server framework](../../docs/architecture/ADRs/services/agent/ADR-005-ai-agent-server-framework.md) (Fastify)
 - [ADR-009 — External vendor abstraction](../../docs/architecture/ADRs/packages/providers/ADR-009-external-vendor-abstraction.md)

@@ -9,7 +9,7 @@ HTTP route handlers for the Agent service. All routes are registered in `main.ts
 | `embeddings.ts` | `POST /embeddings/text` | API service, Worker service |
 | `health.ts` | `GET /health`, `GET /ready` | Cloud Run health checks |
 
-Module teaching (formerly `POST /module-chat/stream`, a LangGraph graph) and course generation are runs on AgentPlatform now — see ADR-031 and ADR-030. This service has never run either graph since ADR-031 landed; it is embeddings and health only.
+Course generation and module teaching run on AgentPlatform (ADR-030, ADR-031); this service serves embeddings and health.
 
 ---
 

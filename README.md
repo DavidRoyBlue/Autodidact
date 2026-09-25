@@ -97,17 +97,11 @@ pnpm db:studio:dev        # Drizzle Studio; Supabase Studio at http://127.0.0.1:
 
 ## Provider Configuration
 
-No service calls `createLLMProvider()` or `createCheckpointer()` any more — the
-module teacher moved to AgentPlatform's `course-teacher` agent (ADR-031), so
-`LLM_PROVIDER` and `CHECKPOINTER` are declared in `packages/providers` and
-`.env.example` but wired to nothing. Their removal is a follow-up (ADR-031
-non-goals), not done yet.
-
-The provider-factory pattern (`packages/providers`) is designed to host more
-switches — `EMBEDDING_PROVIDER`, `QUEUE_PROVIDER`, `AUTH_PROVIDER` are reserved
-names but **not yet wired**: each factory currently hardcodes its single
-implemented option and ignores the env var. They live under "RESERVED" in
-`.env.example` so the template doesn't advertise behavior the code lacks.
+The provider-factory pattern (`packages/providers`) selects a vendor
+implementation by environment variable rather than code change:
+`EMBEDDING_PROVIDER`, `QUEUE_PROVIDER`, and `AUTH_PROVIDER` each pick a
+concrete provider at boot (see `packages/providers/README.md` for the full
+table of options and defaults).
 
 ## Deploying
 

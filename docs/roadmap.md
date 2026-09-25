@@ -2,9 +2,9 @@
 
 ## Phase 1 — MVP (current)
 - [x] Monorepo scaffold
-- [x] Shared packages (types, schemas, db, providers, prompts, observability)
+- [x] Shared packages (types, schemas, db, providers, observability)
 - [x] Database schema + migrations + RLS
-- [x] Agent service (course generation graph, module chat graph)
+- [x] Agent service (course generation graph, module chat graph — both since moved to AgentPlatform, ADR-030/ADR-031; the service is embeddings-only now)
 - [x] Worker service (async course generation, embeddings)
 - [x] API service (auth, courses, chat SSE, progress)
 - [x] Mobile app (home, course list, course detail, module chat)
@@ -17,7 +17,7 @@
 > status lives in the root `PRODUCTION.md`.
 
 - [x] Fix Terraform/code secret-name drift — `main.tf` now injects `SUPABASE_SECRET_KEY` (matching the code); dropped the unread `SUPABASE_JWT_SECRET` / `SUPABASE_SERVICE_ROLE_KEY`
-- [ ] Flip `CHECKPOINTER=postgres` (currently in-memory default) and verify
+- [x] ~~Flip `CHECKPOINTER=postgres`~~ — moot: ADR-031 moved the module teacher to AgentPlatform, which owns thread history now; the checkpointer provider is unused
 - [ ] Worker failed-job recovery so stuck courses aren't unrecoverable
 - [ ] Wire error tracking / OTEL backend
 - [ ] API rate limiting

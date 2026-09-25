@@ -16,8 +16,8 @@ default).
 
 1. Install Maestro: `curl -Ls "https://get.maestro.mobile.dev" | bash`.
 2. A running backend reachable at the app's `apiBaseUrl` — start it with
-   `LLM_PROVIDER=mock EMBEDDING_PROVIDER=mock AUTH_PROVIDER=mock` for a fast,
-   deterministic run (see `@autodidact/e2e`).
+   `EMBEDDING_PROVIDER=mock AUTH_PROVIDER=mock` for a fast, deterministic run
+   (see `@autodidact/e2e`).
 3. A built app on a booted emulator/simulator (`pnpm --filter @autodidact/mobile android`/`ios`),
    or Expo Go (then set `appId: host.exp.Exponent`).
 4. A seeded test account (pass via `-e EMAIL=… -e PASSWORD=…`).

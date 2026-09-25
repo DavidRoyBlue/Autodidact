@@ -69,16 +69,3 @@ export async function withSpan<T>(
 export function setSpanAttributes(attributes: Attributes): void {
   trace.getActiveSpan()?.setAttributes(attributes);
 }
-
-/**
- * Whether LangSmith tracing is enabled via environment. LangChain/LangGraph emit
- * traces automatically when `LANGCHAIN_TRACING_V2` (or the newer
- * `LANGSMITH_TRACING`) is `true` and an API key is present — this helper only
- * reports the flag so the service can log its tracing posture at startup.
- */
-export function isLangSmithTracingEnabled(): boolean {
-  return (
-    process.env['LANGCHAIN_TRACING_V2'] === 'true' ||
-    process.env['LANGSMITH_TRACING'] === 'true'
-  );
-}

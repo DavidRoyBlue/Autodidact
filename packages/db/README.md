@@ -11,7 +11,6 @@ Drizzle ORM client, schema definitions, database migrations, and pgvector type s
 | `services/api` | Course queries, enrollment, progress, chat sessions |
 | `services/worker` | Course status updates, module inserts, embedding storage |
 
-`services/agent` does not consume this package — it lost its only use (the RAG content retriever) when the module teacher moved to AgentPlatform (ADR-031); it is embeddings-only now.
 
 ## Public API
 

@@ -41,44 +41,15 @@ export const apiEnvSchema = baseSchema.extend({
 });
 
 /**
- * services/agent — Fastify + LangGraph. Needs an LLM key; DATABASE_URL only when
- * the postgres checkpointer is selected (default is the in-memory checkpointer).
+ * services/agent — Fastify. Serves embeddings; the module teacher itself runs
+ * on AgentPlatform (ADR-031).
  */
-export const agentEnvSchema = baseSchema
-  .extend({
-    // Required unless LLM_PROVIDER=mock (enforced in the refinement below).
-    OPENAI_API_KEY: z.string().optional(),
-    ANTHROPIC_API_KEY: z.string().optional(),
-    // 'mock' is used only by the cross-service e2e (@autodidact/e2e).
-    LLM_PROVIDER: z.enum(['openai', 'anthropic', 'mock']).default('openai'),
-    CHECKPOINTER: z.enum(['memory', 'postgres']).default('memory'),
-    // Required only when CHECKPOINTER=postgres (enforced in the refinement below).
-    DATABASE_URL: z.string().optional(),
-    AGENT_PORT: Port.default(3001),
-  })
-  .superRefine((env, ctx) => {
-    if (env.LLM_PROVIDER === 'openai' && !env.OPENAI_API_KEY) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['OPENAI_API_KEY'],
-        message: 'OPENAI_API_KEY is required when LLM_PROVIDER=openai',
-      });
-    }
-    if (env.LLM_PROVIDER === 'anthropic' && !env.ANTHROPIC_API_KEY) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['ANTHROPIC_API_KEY'],
-        message: 'ANTHROPIC_API_KEY is required when LLM_PROVIDER=anthropic',
-      });
-    }
-    if (env.CHECKPOINTER === 'postgres' && !env.DATABASE_URL) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['DATABASE_URL'],
-        message: 'DATABASE_URL is required when CHECKPOINTER=postgres',
-      });
-    }
-  });
+export const agentEnvSchema = baseSchema.extend({
+  // Used by the embedding provider (@autodidact/providers), openai by default.
+  // 'mock' is used only by the cross-service e2e (@autodidact/e2e) via EMBEDDING_PROVIDER.
+  OPENAI_API_KEY: z.string().optional(),
+  AGENT_PORT: Port.default(3001),
+});
 
 /**
  * services/worker — HTTP task handler (invoked by Cloud Tasks in production,

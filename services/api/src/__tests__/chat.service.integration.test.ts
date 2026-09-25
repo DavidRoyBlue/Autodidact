@@ -59,7 +59,10 @@ afterAll(async () => {
 // run read back completed with the reply the test chose.
 // ────────────────────────────────────────────────────────────────────────────
 
-function stubPlatform(reply: { reply: string; module_complete: boolean; score: number | null }) {
+function stubPlatform(
+  reply: { reply: string; module_complete: boolean; score: number | null },
+  terminal: { status: string; error?: string } = { status: 'completed' },
+) {
   const calls: Array<{ method: string; url: string; body?: unknown }> = [];
   const json = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body) });
   vi.stubGlobal(
@@ -69,7 +72,14 @@ function stubPlatform(reply: { reply: string; module_complete: boolean; score: n
       calls.push({ method, url, body: init?.body ? JSON.parse(init.body) : undefined });
       if (url.endsWith('/api/v1/threads')) return json({ id: 'thr_1' });
       if (url.endsWith('/api/v1/runs')) return json({ id: 'run_1', status: 'queued', output: null, error: null });
-      if (url.endsWith('/api/v1/runs/run_1')) return json({ id: 'run_1', status: 'completed', output: reply, error: null });
+      if (url.endsWith('/api/v1/runs/run_1')) {
+        return json({
+          id: 'run_1',
+          status: terminal.status,
+          output: terminal.status === 'completed' ? reply : null,
+          error: terminal.error ?? null,
+        });
+      }
       return { ok: false, status: 404, json: async () => ({}), text: async () => 'not found' };
     }),
   );
@@ -203,15 +213,7 @@ describe('ChatService.streamMessage()', () => {
   });
 
   it('emits an error event when the platform run fails', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url: string) => {
-        const json = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => '' });
-        if (url.endsWith('/api/v1/threads')) return json({ id: 'thr_1' });
-        if (url.endsWith('/api/v1/runs')) return json({ id: 'run_1', status: 'queued', output: null, error: null });
-        return json({ id: 'run_1', status: 'failed', output: null, error: 'model unavailable' });
-      }),
-    );
+    stubPlatform(NOT_DONE, { status: 'failed', error: 'model unavailable' });
     const events = await collectEvents(service.streamMessage(sessionId, userId, 'hi'));
     const last = JSON.parse(events.at(-1)!.data as string) as { type: string; error: string };
     expect(last.type).toBe('error');

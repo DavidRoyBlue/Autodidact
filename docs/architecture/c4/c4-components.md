@@ -108,9 +108,7 @@ graph LR
     API --> DB[db]
     WORKER --> DB
     API --> SCHEMAS[schemas]
-    AGENT --> SCHEMAS
     API --> TYPES[types]
-    AGENT --> TYPES
     WORKER --> TYPES
     API --> OBS[observability]
     AGENT --> OBS
@@ -119,11 +117,13 @@ graph LR
 
 | Package | Key Export | Used By |
 |---------|-----------|---------|
-| `@autodidact/providers` | `IEmbeddingProvider` + factory functions (`ILLMProvider`, `IQueueProvider`, `IAuthProvider`, `ICheckpointerProvider` also live here but no service calls them since ADR-031) | All 3 services (Agent: embeddings only) |
+| `@autodidact/providers` | `IEmbeddingProvider`, `IQueueProvider`, `IAuthProvider` + factory functions | All 3 services (Agent: embeddings only) |
 | `@autodidact/db` | `getDb()`, Drizzle schema tables, `eq`, `sql` etc. | API, Worker |
-| `@autodidact/types` | `CourseModule`, `ModuleResource`, `ChatMessage`, `AuthUser`, job data types | All 3 services |
-| `@autodidact/schemas` | Zod schemas for request validation, incl. `TeacherReplySchema` | API, Agent |
+| `@autodidact/types` | `CourseModule`, `ModuleResource`, `ChatMessage`, `AuthUser`, job data types | API, Worker |
+| `@autodidact/schemas` | Zod schemas for request validation, incl. `TeacherReplySchema` (validates the AgentPlatform reply) | API |
 | `@autodidact/observability` | `createLogger(service)`, `initTracer(service)` | All 3 services |
+
+Agent reaches only `providers` (`IEmbeddingProvider`) and `observability`.
 
 `@autodidact/prompts` is gone (ADR-031) — its prompts were consumed only by the module-chat graph this service no longer runs.
 

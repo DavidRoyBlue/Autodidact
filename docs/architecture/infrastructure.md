@@ -77,8 +77,7 @@ Secrets are stored in **GCP Secret Manager** and injected as environment variabl
 | `DATABASE_URL` | api, worker, agent (prod) | PostgreSQL connection string |
 | `SUPABASE_URL` | api, agent | Supabase project URL |
 | `SUPABASE_SECRET_KEY` | api, worker | Supabase admin access |
-| `OPENAI_API_KEY` | agent | OpenAI API key |
-| `ANTHROPIC_API_KEY` | agent | Anthropic API key (optional) |
+| `OPENAI_API_KEY` | agent | OpenAI API key (embedding provider) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | api, agent, worker | Trace exporter (optional) |
 | `AGENT_SERVICE_URL` | api, worker | Internal URL of Agent service |
 | `WORKER_TASK_BASE_URL` | api, worker | Worker Cloud Run URL targeted by Cloud Tasks (set after the worker's first deploy) |

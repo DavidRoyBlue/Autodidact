@@ -16,8 +16,8 @@ second runner) and ADR-026 (e2e strategy) for the durable decisions.
 | Live smoke | Vitest (gated) | real OpenAI | **real** | `packages/providers` (`LIVE_SMOKE=1`, nightly) |
 
 The single shared harness for real Postgres is `@autodidact/test-support`
-(`withTestDatabase`, seed factories). The mock LLM/embedding/auth
-providers live in `@autodidact/providers` (`LLM_PROVIDER=mock`, etc.).
+(`withTestDatabase`, seed factories). The mock embedding/auth
+providers live in `@autodidact/providers` (`EMBEDDING_PROVIDER=mock`, etc.).
 
 ## Commands
 
@@ -52,7 +52,7 @@ Target tiers (the goal):
 |-------|--------|
 | Services (`services/*`) | 80% |
 | Infra packages (`packages/db`, `providers`, `observability`, `test-support`) | 85% |
-| Pure packages (`packages/schemas`, `prompts`, `types`, `config`) | 100% |
+| Pure packages (`packages/schemas`, `types`, `config`) | 100% |
 | Mobile (`apps/mobile`) | 50% |
 
 **Ratchet strategy:** thresholds start at each package's current measured floor

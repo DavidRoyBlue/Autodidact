@@ -6,38 +6,15 @@ Concrete provider classes. Each implements one interface from `../interfaces/`. 
 
 ```
 implementations/
-├── llm/
-│   ├── openai.provider.ts         # OpenAILLMProvider
-│   └── anthropic.provider.ts      # AnthropicLLMProvider
 ├── embedding/
 │   ├── openai-embedding.provider.ts   # OpenAIEmbeddingProvider
 │   └── cohere-embedding.provider.ts   # CohereEmbeddingProvider (stub)
 ├── queue/
 │   ├── cloud-tasks.provider.ts    # CloudTasksQueueProvider
 │   └── loopback.provider.ts       # LoopbackQueueProvider
-├── auth/
-│   └── supabase-auth.provider.ts  # SupabaseAuthProvider
-└── checkpointer/
-    ├── memory.provider.ts         # MemoryCheckpointerProvider
-    └── postgres.provider.ts       # PostgresCheckpointerProvider
+└── auth/
+    └── supabase-auth.provider.ts  # SupabaseAuthProvider
 ```
-
----
-
-## LLM Implementations
-
-### `OpenAILLMProvider`
-- **Library**: `@langchain/openai` — `ChatOpenAI`
-- **Default model**: `gpt-4o`
-- **Temperature**: `0.7`
-- **Config**: `{ apiKey, model?, temperature? }`
-
-### `AnthropicLLMProvider`
-- **Library**: `@langchain/anthropic` — `ChatAnthropic`
-- **Default model**: `claude-opus-4-7`
-- **Temperature**: `0.7`
-- **Config**: `{ apiKey, model?, temperature? }`
-- **Activation**: Set `LLM_PROVIDER=anthropic`
 
 ---
 
@@ -80,21 +57,3 @@ implementations/
 - **Config**: `{ supabaseUrl, serviceRoleKey }`
 - **Verification**: `supabase.auth.getUser(token)` — validates JWT against Supabase's JWKS endpoint
 - **Returns**: `AuthUser { id, supabaseId, email }` where `id` is the app user's UUID and `supabaseId` is the Supabase Auth UUID
-
----
-
-## Checkpointer Implementations
-
-### `MemoryCheckpointerProvider`
-- **Library**: `@langchain/langgraph` — `MemorySaver`
-- **Persistence**: In-process only. Lost on service restart.
-- **Use case**: Development and testing.
-- **Thread isolation**: Multiple threads are isolated by `thread_id` key.
-
-### `PostgresCheckpointerProvider`
-- **Library**: `@langchain/langgraph-checkpoint-postgres` — `PostgresSaver`
-- **Persistence**: Durable, survives service restarts and scales across instances.
-- **Config**: `{ connectionString }` (the `DATABASE_URL`)
-- **Initialisation**: Lazy async. The `PostgresSaver` instance calls `.setup()` (creates checkpoint tables) once on first use.
-- **Activation**: Set `CHECKPOINTER=postgres`
-- **Status**: unused by any service since ADR-031 moved the module teacher (the only consumer) to AgentPlatform; kept pending a follow-up cleanup.

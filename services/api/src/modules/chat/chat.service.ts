@@ -44,6 +44,13 @@ export class ChatService {
     return session;
   }
 
+  private async setMessages(sessionId: string, messages: ChatMessage[]): Promise<void> {
+    await getDb()
+      .update(chatSessions)
+      .set({ messages, updatedAt: new Date() })
+      .where(eq(chatSessions.id, sessionId));
+  }
+
   /**
    * One learner turn: the platform's course-teacher agent runs once on the
    * session's thread (ADR-031). The first turn opens the thread and carries the
@@ -72,21 +79,14 @@ export class ChatService {
         return;
       }
 
-      // Append user message to session
       const userMsg: ChatMessage = {
         id: uuidv4(),
         role: 'user',
         content,
         createdAt: new Date().toISOString(),
       };
-
-      await db
-        .update(chatSessions)
-        .set({
-          messages: [...session.messages, userMsg],
-          updatedAt: new Date(),
-        })
-        .where(eq(chatSessions.id, sessionId));
+      const messages = [...session.messages, userMsg];
+      await this.setMessages(sessionId, messages);
 
       let threadId = session.threadId;
       let message = content;
@@ -106,20 +106,13 @@ export class ChatService {
       }
       subject.next({ data: JSON.stringify({ type: 'complete' }) });
 
-      const updatedSession = await this.getSession(sessionId);
       const assistantMsg: ChatMessage = {
         id: uuidv4(),
         role: 'assistant',
         content: reply.reply,
         createdAt: new Date().toISOString(),
       };
-      await db
-        .update(chatSessions)
-        .set({
-          messages: [...updatedSession.messages, assistantMsg],
-          updatedAt: new Date(),
-        })
-        .where(eq(chatSessions.id, sessionId));
+      await this.setMessages(sessionId, [...messages, assistantMsg]);
 
       if (reply.module_complete && reply.score !== null && reply.score >= PASS_SCORE) {
         await this.progressService.completeModule(userId, mod.id, mod.courseId, reply.score);
@@ -137,25 +130,20 @@ export class ChatService {
   /** The module as the teacher's first message carries it. */
   private async moduleBrief(userId: string, mod: typeof modules.$inferSelect): Promise<string> {
     const db = getDb();
-    const [course] = await db
-      .select({ title: courses.title })
-      .from(courses)
-      .where(eq(courses.id, mod.courseId))
-      .limit(1);
-    const allModules = await db
-      .select({ id: modules.id })
-      .from(modules)
-      .where(eq(modules.courseId, mod.courseId));
-    const completed = await db
-      .select({ id: moduleProgress.moduleId })
-      .from(moduleProgress)
-      .where(
-        and(
-          eq(moduleProgress.userId, userId),
-          eq(moduleProgress.courseId, mod.courseId),
-          eq(moduleProgress.status, 'completed'),
+    const [[course], allModules, completed] = await Promise.all([
+      db.select({ title: courses.title }).from(courses).where(eq(courses.id, mod.courseId)).limit(1),
+      db.select({ id: modules.id }).from(modules).where(eq(modules.courseId, mod.courseId)),
+      db
+        .select({ id: moduleProgress.moduleId })
+        .from(moduleProgress)
+        .where(
+          and(
+            eq(moduleProgress.userId, userId),
+            eq(moduleProgress.courseId, mod.courseId),
+            eq(moduleProgress.status, 'completed'),
+          ),
         ),
-      );
+    ]);
     return [
       `Course: ${course?.title ?? ''}`,
       `Module ${mod.position + 1}/${allModules.length}: ${mod.title}`,

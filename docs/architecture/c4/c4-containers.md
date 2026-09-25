@@ -10,7 +10,7 @@ C4Container
 
     System_Boundary(autodidact, "Autodidact") {
         Container(mobile, "Mobile App", "Expo / React Native", "UI for course creation, module learning, and progress tracking. Runs on iOS and Android.")
-        Container(api, "API Service", "NestJS / Node.js :3000", "Public REST API. Handles auth, course orchestration, SSE chat proxy, and progress tracking.")
+        Container(api, "API Service", "NestJS / Node.js :3000", "Public REST API. Handles auth, course orchestration, runs the module teacher on AgentPlatform and streams the reply over SSE, and progress tracking.")
         Container(agent, "Agent Service", "Fastify :3001", "Internal embeddings service. Generates text embeddings; no LLM or graph runtime.")
         Container(worker, "Worker Service", "Fastify / Node.js (internal)", "Background task handler. Runs course generation on AgentPlatform and processes embedding tasks, delivered as HTTP POSTs.")
         ContainerDb(postgres, "PostgreSQL", "Supabase / pgvector", "Primary data store. Courses, modules, enrollments, progress, chat sessions, user profiles.")

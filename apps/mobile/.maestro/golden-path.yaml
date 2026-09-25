@@ -2,8 +2,8 @@
 # open a module → chat a turn → see the assistant reply.
 #
 # Mirrors the cross-service golden path (@autodidact/e2e) but through the real
-# UI. Run against a backend started with LLM_PROVIDER=mock so generation is
-# fast and deterministic.
+# UI. Run against a backend started with EMBEDDING_PROVIDER=mock AUTH_PROVIDER=mock
+# so generation is fast and deterministic.
 #
 # NOTE: the selectors below the sign-in step are a starting scaffold and must be
 # validated against a running build (screen labels/testIDs may differ). Keep

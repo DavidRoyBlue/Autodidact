@@ -6,19 +6,6 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 // the relative imports in src/factory.ts.
 // ────────────────────────────────────────────────────────────────────────────
 
-const { MockOpenAILLMProvider, MockAnthropicLLMProvider } = vi.hoisted(() => ({
-  MockOpenAILLMProvider: vi.fn().mockImplementation(() => ({
-    getModel: vi.fn().mockReturnValue({}),
-    getModelName: vi.fn().mockReturnValue('gpt-4o'),
-  })),
-  MockAnthropicLLMProvider: vi.fn().mockImplementation(() => ({
-    getModel: vi.fn().mockReturnValue({}),
-    getModelName: vi.fn().mockReturnValue('claude-3-5-sonnet'),
-  })),
-}));
-
-vi.mock('../implementations/llm/openai.provider', () => ({ OpenAILLMProvider: MockOpenAILLMProvider }));
-vi.mock('../implementations/llm/anthropic.provider', () => ({ AnthropicLLMProvider: MockAnthropicLLMProvider }));
 vi.mock('../implementations/embedding/openai-embedding.provider', () => ({
   OpenAIEmbeddingProvider: vi.fn().mockImplementation(() => ({
     embed: vi.fn(),
@@ -47,26 +34,11 @@ vi.mock('../implementations/auth/supabase-auth.provider', () => ({
     verifyToken: vi.fn(),
   })),
 }));
-vi.mock('../implementations/checkpointer/memory.provider', () => ({
-  MemoryCheckpointerProvider: vi.fn().mockImplementation(() => ({
-    getCheckpointer: vi.fn().mockReturnValue({}),
-  })),
-}));
-vi.mock('../implementations/checkpointer/postgres.provider', () => ({
-  PostgresCheckpointerProvider: vi.fn().mockImplementation(() => ({
-    getCheckpointer: vi.fn().mockImplementation(() => {
-      throw new Error('Must call init() first');
-    }),
-    init: vi.fn(),
-  })),
-}));
 
 import {
-  createLLMProvider,
   createEmbeddingProvider,
   createQueueProvider,
   createAuthProvider,
-  createCheckpointer,
 } from '../factory.js';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -74,56 +46,6 @@ import {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.clearAllMocks();
-});
-
-describe('createLLMProvider()', () => {
-  it('returns a provider with getModel() and getModelName() when LLM_PROVIDER=openai', () => {
-    vi.stubEnv('LLM_PROVIDER', 'openai');
-    vi.stubEnv('OPENAI_API_KEY', 'test-key');
-    const provider = createLLMProvider();
-    expect(typeof provider.getModel).toBe('function');
-    expect(typeof provider.getModelName).toBe('function');
-  });
-
-  it('getModelName() contains "gpt" for the default openai provider', () => {
-    vi.stubEnv('LLM_PROVIDER', 'openai');
-    vi.stubEnv('OPENAI_API_KEY', 'test-key');
-    const provider = createLLMProvider();
-    expect(provider.getModelName().toLowerCase()).toContain('gpt');
-  });
-
-  it('instantiates OpenAILLMProvider when LLM_PROVIDER=openai', () => {
-    vi.stubEnv('LLM_PROVIDER', 'openai');
-    createLLMProvider({ openaiApiKey: 'key' });
-    expect(MockOpenAILLMProvider).toHaveBeenCalled();
-    expect(MockAnthropicLLMProvider).not.toHaveBeenCalled();
-  });
-
-  it('instantiates AnthropicLLMProvider when LLM_PROVIDER=anthropic', () => {
-    createLLMProvider({ llmProvider: 'anthropic', anthropicApiKey: 'key' });
-    expect(MockAnthropicLLMProvider).toHaveBeenCalled();
-  });
-
-  it('returns anthropic provider when LLM_PROVIDER=anthropic', () => {
-    vi.stubEnv('LLM_PROVIDER', 'anthropic');
-    vi.stubEnv('ANTHROPIC_API_KEY', 'test-key');
-    const provider = createLLMProvider();
-    expect(typeof provider.getModelName).toBe('function');
-    const name = provider.getModelName().toLowerCase();
-    expect(name).toMatch(/claude|anthropic/);
-  });
-
-  it('config object overrides env var', () => {
-    vi.stubEnv('LLM_PROVIDER', 'openai');
-    const provider = createLLMProvider({ llmProvider: 'openai', openaiApiKey: 'config-key' });
-    expect(typeof provider.getModelName).toBe('function');
-  });
-
-  it('defaults to openai when LLM_PROVIDER is not set', () => {
-    vi.stubEnv('OPENAI_API_KEY', 'test-key');
-    const provider = createLLMProvider();
-    expect(provider.getModelName().toLowerCase()).toContain('gpt');
-  });
 });
 
 describe('createEmbeddingProvider()', () => {
@@ -190,24 +112,6 @@ describe('createQueueProvider()', () => {
       /GCP_PROJECT_ID, WORKER_TASK_BASE_URL, CLOUD_TASKS_INVOKER_SA/,
     );
     expect(MockCloudTasksQueueProvider).not.toHaveBeenCalled();
-  });
-});
-
-describe('createCheckpointer()', () => {
-  it('returns memory checkpointer by default', () => {
-    const checkpointer = createCheckpointer({ checkpointer: 'memory' });
-    expect(typeof checkpointer.getCheckpointer).toBe('function');
-    const saver = checkpointer.getCheckpointer();
-    expect(saver).toBeDefined();
-  });
-
-  it('returns postgres checkpointer when configured', () => {
-    const checkpointer = createCheckpointer({
-      checkpointer: 'postgres',
-      databaseUrl: 'postgresql://localhost/test',
-    });
-    expect(typeof checkpointer.getCheckpointer).toBe('function');
-    expect(() => checkpointer.getCheckpointer()).toThrow();
   });
 });
 

@@ -4,6 +4,7 @@ import {
   agentEnvSchema,
   workerEnvSchema,
   loadAgentEnv,
+  loadWorkerEnv,
 } from '../index.js';
 
 describe('apiEnvSchema', () => {
@@ -42,44 +43,13 @@ describe('apiEnvSchema', () => {
 });
 
 describe('agentEnvSchema', () => {
-  const valid = { OPENAI_API_KEY: 'sk-test' };
-
-  it('accepts the default (memory) checkpointer without DATABASE_URL', () => {
-    expect(agentEnvSchema.safeParse(valid).success).toBe(true);
+  it('accepts an environment with OPENAI_API_KEY and applies AGENT_PORT default', () => {
+    const env = agentEnvSchema.parse({ OPENAI_API_KEY: 'sk-test' });
+    expect(env.AGENT_PORT).toBe(3001);
   });
 
-  it('requires DATABASE_URL when CHECKPOINTER=postgres', () => {
-    const result = agentEnvSchema.safeParse({ ...valid, CHECKPOINTER: 'postgres' });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.some((i) => i.path.includes('DATABASE_URL'))).toBe(true);
-    }
-  });
-
-  it('requires ANTHROPIC_API_KEY when LLM_PROVIDER=anthropic', () => {
-    const result = agentEnvSchema.safeParse({ ...valid, LLM_PROVIDER: 'anthropic' });
-    expect(result.success).toBe(false);
-  });
-
-  it('accepts the anthropic provider when its key is present', () => {
-    const result = agentEnvSchema.safeParse({
-      ...valid,
-      LLM_PROVIDER: 'anthropic',
-      ANTHROPIC_API_KEY: 'key',
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it('requires OPENAI_API_KEY when LLM_PROVIDER=openai (the default)', () => {
-    const result = agentEnvSchema.safeParse({});
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.some((i) => i.path.includes('OPENAI_API_KEY'))).toBe(true);
-    }
-  });
-
-  it('accepts LLM_PROVIDER=mock without any API key (e2e only)', () => {
-    expect(agentEnvSchema.safeParse({ LLM_PROVIDER: 'mock' }).success).toBe(true);
+  it('accepts an empty environment (OPENAI_API_KEY is optional; e2e runs with EMBEDDING_PROVIDER=mock)', () => {
+    expect(agentEnvSchema.safeParse({}).success).toBe(true);
   });
 });
 
@@ -111,14 +81,18 @@ describe('workerEnvSchema', () => {
 describe('loadAgentEnv', () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  it('throws a descriptive error naming the service and the missing var', () => {
-    vi.stubEnv('OPENAI_API_KEY', '');
-    expect(() => loadAgentEnv()).toThrowError(/"agent" service/);
-    expect(() => loadAgentEnv()).toThrowError(/OPENAI_API_KEY/);
-  });
-
   it('returns a typed object when the environment is valid', () => {
     vi.stubEnv('OPENAI_API_KEY', 'sk-test');
     expect(loadAgentEnv().OPENAI_API_KEY).toBe('sk-test');
+  });
+});
+
+describe('loadWorkerEnv', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('throws a descriptive error naming the service and the missing var', () => {
+    vi.stubEnv('DATABASE_URL', '');
+    expect(() => loadWorkerEnv()).toThrowError(/"worker" service/);
+    expect(() => loadWorkerEnv()).toThrowError(/DATABASE_URL/);
   });
 });

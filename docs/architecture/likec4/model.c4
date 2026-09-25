@@ -19,7 +19,7 @@ model {
     api = container 'API Service' {
       #public
       technology 'NestJS / Node.js :3000'
-      description 'Public REST API. Auth, course orchestration, SSE chat proxy, progress tracking.'
+      description 'Public REST API. Auth, course orchestration, runs the module teacher on AgentPlatform and streams the reply over SSE, progress tracking.'
 
       authModule     = component 'AuthModule'     { description 'Verifies Supabase JWT on every protected route.' }
       coursesModule  = component 'CoursesModule'  { description 'Course lifecycle: similarity check, enroll, enqueue, status polling.' }

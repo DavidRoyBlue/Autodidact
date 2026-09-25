@@ -1,7 +1,6 @@
 export {
   sampleUser,
   sampleGeneratedCourse,
-  makeMockLLMProvider,
   makeMockQueueProvider,
   makeMockAuthProvider,
   makeMockEmbeddingProvider,

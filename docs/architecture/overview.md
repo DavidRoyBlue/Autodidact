@@ -8,8 +8,9 @@ Autodidact uses a monorepo with separate applications, services, and shared pack
 
 ### Course Generation
 ```
-Mobile → API (POST /courses) → Cloud Tasks → Worker (HTTP) → Agent service → LLM
+Mobile → API (POST /courses) → Cloud Tasks → Worker (HTTP) → AgentPlatform (course-creator run, ADR-030)
                                                             → DB (Drizzle/Supabase)
+                                                            → Agent service (/embeddings/text, RAG chunk indexing)
                                                             → Cloud Tasks (embedding follow-up)
 ```
 
@@ -48,9 +49,7 @@ Mobile → API (POST /courses) → Agent /embeddings/text
 ## Provider Abstraction
 
 External vendor dependencies (embeddings, queue, auth) are accessed through interfaces defined in
-`packages/providers`, selected by environment variables rather than code changes. The same package
-still declares `ILLMProvider` and `ICheckpointerProvider`, but no service calls them since ADR-031
-moved the module teacher to AgentPlatform — removing that unused layer is a follow-up, not done yet.
+`packages/providers`, selected by environment variables rather than code changes.
 
 ## Why This Structure
 

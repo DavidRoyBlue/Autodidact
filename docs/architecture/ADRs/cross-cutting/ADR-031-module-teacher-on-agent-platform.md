@@ -25,9 +25,8 @@ plumbing.
 This ADR does not decide:
 - token streaming from the platform (a platform follow-up; the phone receives
   the reply as one event until then)
-- removing the LLM/checkpointer provider layer, the mock LLM and the agent
-  env keys the graphs used (nothing in `services/agent` calls them now; a
-  separate cleanup, since infra secrets reference them)
+- the Terraform secret names the LLM/checkpointer layer used
+  (`infra/`); the code, env keys and examples go with this change
 - hosting the platform for production (ADR-030's open follow-up)
 
 ## Decision Drivers
@@ -115,16 +114,26 @@ keep a second teacher.
   streams tokens.
 - Existing chat sessions restart their conversation on the platform (migration
   0015 clears the LangGraph thread ids); the messages shown in the app are kept.
-- The LLM provider layer, mock LLM and `LLM_PROVIDER` / `CHECKPOINTER` env
-  keys are now unused by any service and await their own cleanup.
+- The API gets its own hand-written AgentPlatform client
+  (`services/api/src/services/agent-platform.client.ts`, thread + run + poll)
+  next to the worker's (ADR-030): the platform's TypeScript client is still
+  unpublished. Both retire the day it is, one abstraction before then would
+  serve two callers.
+- A turn is one platform run polled to a terminal status, so an SSE request
+  stays open as long as the platform's `course-teacher` timeout (120 s).
+- Retrieval (ADR-024) runs on every turn after the first, with no
+  `RAG_ENABLED` opt-in and no best-effort fallback: an embedding failure
+  fails the turn with an `error` event instead of a silently ungrounded
+  reply.
 
 ### Follow-up decisions
 - Token streaming on the platform's run stream.
-- Remove the unused LLM/checkpointer provider layer and its env and infra
-  references.
+- Drop the LLM/checkpointer secret names from `infra/`.
 
 ## Related
 
-- ADR-030 (generation on the platform), ADR-006 (LangGraph), ADR-024
-  (content RAG)
+- ADR-030 (generation on the platform); supersedes
+  [ADR-006](../_superseded/ADR-006-ai-orchestration-framework.md) (LangGraph);
+  updates [ADR-011](../services/agent/ADR-011-realtime-streaming-transport.md)
+  (streaming transport); narrows ADR-024 (content RAG)
 - AgentPlatform `docs/architecture/course-creator.md` §9, PR #236
