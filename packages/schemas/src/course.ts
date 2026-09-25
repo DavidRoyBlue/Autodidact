@@ -1,36 +1,36 @@
 import { z } from 'zod';
 
 export const DifficultyLevelSchema = z.enum(['beginner', 'intermediate', 'advanced']);
-
-export const ContentSectionSchema = z.object({
-  title: z.string(),
-  points: z.array(z.string()),
-});
-
-export const ModuleBlueprintSchema = z.object({
-  id: z.string().optional(),
-  position: z.number().int().min(0),
-  title: z.string().min(1),
-  description: z.string().min(1),
-  objectives: z.array(z.string()).min(1),
-  contentOutline: z.array(ContentSectionSchema),
-  estimatedMinutes: z.number().int().positive(),
-});
-
-export const CourseBlueprintSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().min(1),
-  difficulty: DifficultyLevelSchema,
-  estimatedHours: z.number().positive(),
-  modules: z.array(ModuleBlueprintSchema).min(1),
-});
+export const TimeBudgetSchema = z.enum(['30min', '1h', '4h', 'unrestricted']);
 
 export const CreateCourseRequestSchema = z.object({
   topic: z.string().min(3).max(200),
   difficulty: DifficultyLevelSchema.optional().default('beginner'),
-  moduleCount: z.number().int().min(3).max(20).optional().default(5),
+  timeBudget: TimeBudgetSchema.optional().default('1h'),
 });
 
-export type CourseBlueprintInput = z.infer<typeof CourseBlueprintSchema>;
+/**
+ * What AgentPlatform's course-creator workflow returns (its
+ * docs/architecture/course-creator.md §5), reduced to what the app persists;
+ * the platform validates the whole document, so unknown keys are dropped here.
+ */
+export const GeneratedModuleSchema = z.object({
+  position: z.number().int().min(1),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  objectives: z.array(z.string()),
+  content: z.string().min(1),
+  estimated_minutes: z.number().int().positive(),
+  resources: z.array(z.object({ url: z.string(), title: z.string(), why: z.string() })),
+});
+
+export const GeneratedCourseSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().min(1),
+  difficulty: DifficultyLevelSchema,
+  budget: z.object({ estimated_minutes: z.number().int().positive() }),
+  modules: z.array(GeneratedModuleSchema).min(1),
+});
+
 export type CreateCourseRequest = z.infer<typeof CreateCourseRequestSchema>;
-export type ModuleBlueprintInput = z.infer<typeof ModuleBlueprintSchema>;
+export type GeneratedCourse = z.infer<typeof GeneratedCourseSchema>;

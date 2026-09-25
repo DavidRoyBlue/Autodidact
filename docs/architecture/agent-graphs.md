@@ -1,4 +1,6 @@
-# Agent graphs — current course-generation flow (audit)
+# Agent graphs — course flow (audit)
+
+> Since ADR-030 course generation is a run on AgentPlatform's `course-creator` workflow (its `docs/architecture/course-creator.md`); the Agent service keeps module-chat and embeddings. The course-generation graph this file audited is gone.
 
 > Discovery audit for issue #88 (parent #84). Describes the system **as it exists today** — no proposed redesign. Verified against source on 2026-09-01.
 
@@ -13,9 +15,9 @@ Source of truth: `services/agent/src/graphs/course-generation/{graph,nodes,state
 
 ---
 
-## End-to-end call path: API → Worker → Agent
+## End-to-end call path: API → Worker → AgentPlatform
 
-Course generation is asynchronous and queue-driven. The mobile app never talks to the Agent; the Agent is internal-only (port 3001).
+Course generation is asynchronous and queue-driven. The mobile app never talks to the Agent or the platform; the Agent is internal-only (port 3001), the platform is reachable from dev only until it is hosted.
 
 ```mermaid
 sequenceDiagram
@@ -24,27 +26,30 @@ sequenceDiagram
     participant Q as Cloud Tasks (prod) / loopback (dev)
     participant W as Worker (services/worker)
     participant AG as Agent (services/agent)
+    participant AP as AgentPlatform (course-creator workflow)
     participant DB as PostgreSQL
 
-    M->>API: POST /v1/courses {topic, difficulty, moduleCount}
+    M->>API: POST /v1/courses {topic, difficulty, timeBudget}
     API->>AG: POST /embeddings/text (topic)
     AG-->>API: 1536-dim vector
-    API->>DB: pgvector cosine search (ready+public, similarity > 0.92)
+    API->>DB: pgvector cosine search (ready+public, same difficulty and timeBudget, similarity > 0.92)
     alt similar course exists
         API->>DB: enroll user
         API-->>M: {courseId, status: ready, reused: true}
     else no match
         API->>DB: INSERT courses (status = pending)
-        API->>Q: enqueue GENERATE_COURSE {courseId, userId, topic, difficulty, moduleCount}
+        API->>Q: enqueue GENERATE_COURSE {courseId, userId, topic, difficulty, timeBudget}
         API-->>M: {courseId, status: pending, reused: false}
     end
 
     Q->>W: POST /tasks/generate-course
     W->>DB: UPDATE courses SET status = generating
-    W->>AG: POST /course/generate
-    Note over AG: course-generation graph (below)
-    AG-->>W: {blueprint}
-    W->>DB: transaction: delete old modules, UPDATE course (status = ready, blueprint), INSERT module rows
+    W->>AP: POST /api/v1/runs {workflow_id: course-creator, budget.words = minutes × 150}
+    loop every 10 s
+        W->>AP: GET /api/v1/runs/{id}
+    end
+    AP-->>W: run completed {title, modules[{content, resources, …}]}
+    W->>DB: transaction: delete old modules, UPDATE course (status = ready), INSERT module rows (content, resources)
     W->>AG: POST /embeddings/text per module chunk (RAG indexing, best-effort)
     W->>DB: INSERT module_content_chunks
     W->>Q: enqueue GENERATE_EMBEDDING {courseId, topic}
@@ -57,7 +62,7 @@ Key files per hop:
 
 - API: `services/api/src/modules/courses/courses.service.ts` (`createOrReuse` — embedding, similarity reuse, insert `pending`, enqueue)
 - Worker: `services/worker/src/processors/course-generation.processor.ts` (status lifecycle, ready-transaction, RAG indexing, follow-up enqueue); retry semantics in `services/worker/src/processors/AGENTS.md`
-- Agent route: `services/agent/src/routes/generate-course.ts` (Zod-validates body, invokes graph, 500 on `blueprint: null`)
+- Platform client: `services/worker/src/services/agent-platform.client.ts` (creates the run, polls it, parses the output with `GeneratedCourseSchema`)
 - RAG indexing (post-generation, tutoring only): `services/worker/src/rag/index-chunks.ts`
 
 Status lifecycle (writer in parentheses): `pending` (API) → `generating` (Worker) → `ready` (Worker, inside the module-insert transaction) or `failed` (Worker, final task attempt only).

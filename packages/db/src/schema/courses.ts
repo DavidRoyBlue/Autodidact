@@ -1,9 +1,8 @@
-import { pgTable, uuid, text, timestamp, boolean, integer, jsonb, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, boolean, integer, uniqueIndex } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { courseStatusEnum, difficultyEnum } from './enums.js';
+import { courseStatusEnum, difficultyEnum, timeBudgetEnum } from './enums.js';
 import { users } from './users.js';
 import { vector } from '../vector.js';
-import type { CourseBlueprint } from '@autodidact/types';
 
 export const courses = pgTable(
   'courses',
@@ -14,9 +13,9 @@ export const courses = pgTable(
     title: text('title').notNull(),
     description: text('description').notNull(),
     difficulty: difficultyEnum('difficulty').notNull().default('beginner'),
+    timeBudget: timeBudgetEnum('time_budget').notNull().default('1h'),
     estimatedHours: integer('estimated_hours'),
     status: courseStatusEnum('status').notNull().default('pending'),
-    blueprint: jsonb('blueprint').$type<CourseBlueprint>(),
     topicEmbedding: vector('topic_embedding', { dimensions: 1536 }),
     isPublic: boolean('is_public').notNull().default(true),
     isOnboarding: boolean('is_onboarding').notNull().default(false),

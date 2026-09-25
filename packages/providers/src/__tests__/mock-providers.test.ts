@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
-import { CourseBlueprintSchema } from '@autodidact/schemas';
 import { MockLLMProvider } from '../implementations/llm/mock.provider.js';
 import { MockEmbeddingProvider } from '../implementations/embedding/mock-embedding.provider.js';
 import { MockAuthProvider } from '../implementations/auth/mock-auth.provider.js';
@@ -12,17 +11,6 @@ import {
 
 describe('MockLLMProvider', () => {
   const model = new MockLLMProvider().getModel();
-
-  it('returns a CourseBlueprintSchema-valid JSON for the curriculum-designer prompt', async () => {
-    const res = await model.invoke([
-      new SystemMessage('You are an expert curriculum designer. Produce a blueprint.'),
-      new HumanMessage('Topic: TypeScript, difficulty: beginner, modules: 3'),
-    ]);
-    const content = typeof res.content === 'string' ? res.content : JSON.stringify(res.content);
-    const parsed = CourseBlueprintSchema.safeParse(JSON.parse(content));
-    expect(parsed.success).toBe(true);
-    expect(parsed.success && parsed.data.modules.length).toBeGreaterThanOrEqual(3);
-  });
 
   it('signals completion via the [MODULE_COMPLETE:score=N] marker for a teaching turn', async () => {
     const res = await model.invoke([

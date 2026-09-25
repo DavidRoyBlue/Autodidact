@@ -1,28 +1,31 @@
 import { eq, getDb, courses, modules } from '@autodidact/db';
 import type { IQueueProvider } from '@autodidact/providers';
-import type { CourseGenerationJobData, ModuleBlueprint } from '@autodidact/types';
+import type { CourseGenerationJobData } from '@autodidact/types';
 import type { Logger } from '@autodidact/observability';
 import { QUEUES, JOB_NAMES } from '../queues/definitions.js';
 import type { AgentClient } from '../services/agent.client.js';
+import type { AgentPlatformClient } from '../services/agent-platform.client.js';
 import { indexModuleChunks } from '../rag/index-chunks.js';
 
 export interface CourseGenerationDeps {
+  platformClient: AgentPlatformClient;
   agentClient: AgentClient;
   queueProvider: IQueueProvider;
   logger: Logger;
 }
 
 /**
- * Generates a course blueprint via the Agent service and commits it to the DB.
- * Invoked per-task by the HTTP layer (Cloud Tasks in production, the loopback
- * provider locally). A throw propagates to the route handler, which translates
- * it into a retry (5xx) or — on the final attempt — marks the course 'failed'.
+ * Generates a course on AgentPlatform's course-creator workflow (ADR-030) and
+ * commits it to the DB. Invoked per-task by the HTTP layer (Cloud Tasks in
+ * production, the loopback provider locally). A throw propagates to the route
+ * handler, which translates it into a retry (5xx) or — on the final attempt —
+ * marks the course 'failed'.
  */
 export async function processCourseGeneration(
   data: CourseGenerationJobData,
-  { agentClient, queueProvider, logger }: CourseGenerationDeps,
+  { platformClient, agentClient, queueProvider, logger }: CourseGenerationDeps,
 ): Promise<void> {
-  const { courseId, userId, topic, difficulty, moduleCount } = data;
+  const { courseId, topic } = data;
   const db = getDb();
   logger.info({ courseId, topic }, 'Starting course generation');
 
@@ -31,13 +34,7 @@ export async function processCourseGeneration(
     .set({ status: 'generating', updatedAt: new Date() })
     .where(eq(courses.id, courseId));
 
-  const blueprint = await agentClient.generateCourse({
-    courseId,
-    userId,
-    topic,
-    difficulty,
-    moduleCount,
-  });
+  const course = await platformClient.generateCourse(data);
 
   const insertedModules = await db.transaction(async (tx) => {
     // A retry can reach here with modules already committed (e.g. the previous
@@ -48,24 +45,25 @@ export async function processCourseGeneration(
     await tx
       .update(courses)
       .set({
-        title: blueprint.title,
-        description: blueprint.description,
-        difficulty: blueprint.difficulty,
-        estimatedHours: Math.ceil(blueprint.estimatedHours),
+        title: course.title,
+        description: course.description,
+        difficulty: course.difficulty,
+        estimatedHours: Math.ceil(course.budget.estimated_minutes / 60),
         status: 'ready',
-        blueprint,
         updatedAt: new Date(),
       })
       .where(eq(courses.id, courseId));
 
-    const moduleRows = blueprint.modules.map((m: ModuleBlueprint) => ({
+    // the workflow numbers modules from 1; the app from 0
+    const moduleRows = course.modules.map((m) => ({
       courseId,
-      position: m.position,
+      position: m.position - 1,
       title: m.title,
       description: m.description,
       objectives: m.objectives,
-      contentOutline: m.contentOutline,
-      estimatedMinutes: m.estimatedMinutes,
+      content: m.content,
+      resources: m.resources,
+      estimatedMinutes: m.estimated_minutes,
     }));
 
     return tx
@@ -76,7 +74,7 @@ export async function processCourseGeneration(
         title: modules.title,
         description: modules.description,
         objectives: modules.objectives,
-        contentOutline: modules.contentOutline,
+        content: modules.content,
       });
   });
 

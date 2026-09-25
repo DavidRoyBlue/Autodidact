@@ -72,6 +72,7 @@ describe('generate-embedding task endpoint — real DB', () => {
 
   function makeTaskApp(agentClient = makeMockAgentClient()) {
     const app = buildApp({
+      platformClient: {} as never,
       agentClient: agentClient as never,
       queueProvider: makeMockQueueProvider() as never,
       logger: makeMockLogger() as never,

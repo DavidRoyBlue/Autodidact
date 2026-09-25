@@ -19,3 +19,5 @@ export const difficultyEnum = pgEnum('difficulty_level', [
   'intermediate',
   'advanced',
 ]);
+
+export const timeBudgetEnum = pgEnum('time_budget', ['30min', '1h', '4h', 'unrestricted']);

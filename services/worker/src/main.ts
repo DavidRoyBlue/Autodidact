@@ -2,6 +2,7 @@ import { createLogger, initTracer } from '@autodidact/observability';
 import { createQueueProvider } from '@autodidact/providers';
 import { loadWorkerEnv } from '@autodidact/env';
 import { AgentClient } from './services/agent.client.js';
+import { AgentPlatformClient } from './services/agent-platform.client.js';
 import { buildApp } from './app.js';
 
 const logger = createLogger('worker');
@@ -11,9 +12,11 @@ async function start() {
   initTracer('autodidact-worker');
 
   const agentClient = new AgentClient(env.AGENT_SERVICE_URL);
+  const platformClient = new AgentPlatformClient(env.AGENT_PLATFORM_URL, env.AGENT_PLATFORM_API_KEY);
   const queueProvider = createQueueProvider();
 
   const app = buildApp({
+    platformClient,
     agentClient,
     queueProvider,
     logger,

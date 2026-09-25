@@ -1,5 +1,3 @@
-import { CourseBlueprintSchema } from '@autodidact/schemas';
-
 /**
  * Pure, deterministic scorers for the agent eval harness. Each returns a 0–1
  * score and a pass/fail verdict so results can be aggregated into a regression
@@ -15,38 +13,6 @@ export interface ScoreResult {
 }
 
 const COMPLETION_MARKER = /\[MODULE_COMPLETE:/;
-
-/** 1 if the blueprint satisfies CourseBlueprintSchema, else 0. */
-export function scoreBlueprintSchema(blueprint: unknown): ScoreResult {
-  const parsed = CourseBlueprintSchema.safeParse(blueprint);
-  return {
-    name: 'blueprint_schema',
-    score: parsed.success ? 1 : 0,
-    passed: parsed.success,
-    detail: parsed.success ? undefined : parsed.error.issues[0]?.message,
-  };
-}
-
-/**
- * Heuristic structural quality of a blueprint: requested module count honored,
- * every module has at least one objective and a non-empty content outline, and
- * module titles are unique. Score is the fraction of checks that pass.
- */
-export function scoreBlueprintQuality(
-  blueprint: { modules?: Array<{ title?: string; objectives?: unknown[]; contentOutline?: unknown[] }> },
-  request: { moduleCount: number },
-): ScoreResult {
-  const modules = blueprint.modules ?? [];
-  const titles = modules.map((m) => m.title);
-  const checks = [
-    modules.length === request.moduleCount,
-    modules.length > 0 && modules.every((m) => (m.objectives?.length ?? 0) >= 1),
-    modules.length > 0 && modules.every((m) => (m.contentOutline?.length ?? 0) >= 1),
-    new Set(titles).size === titles.length && titles.length > 0,
-  ];
-  const score = checks.filter(Boolean).length / checks.length;
-  return { name: 'blueprint_quality', score, passed: score >= 0.75 };
-}
 
 /** 1 if the user-facing text does NOT leak the internal completion marker. */
 export function scoreNoMarkerLeak(text: string): ScoreResult {

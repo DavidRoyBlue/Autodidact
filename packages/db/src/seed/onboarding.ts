@@ -1,7 +1,7 @@
 import { getDb, getPool, type DB } from '../client.js';
 import { courses, modules } from '../schema/index.js';
 import { eq } from 'drizzle-orm';
-import type { ContentSection } from '@autodidact/types';
+import type { ModuleResource } from '@autodidact/types';
 
 const ONBOARDING_SLUG = 'welcome-to-autodidact';
 
@@ -10,7 +10,8 @@ interface PlaceholderModule {
   title: string;
   description: string;
   objectives: string[];
-  contentOutline: ContentSection[];
+  content: string;
+  resources: ModuleResource[];
   estimatedMinutes: number;
 }
 
@@ -21,9 +22,8 @@ const PLACEHOLDER_MODULES: PlaceholderModule[] = [
     title: 'Welcome to Autodidact',
     description: 'A quick tour of how learning works here.',
     objectives: ['Understand how Autodidact courses are structured'],
-    contentOutline: [
-      { title: 'How it works', points: ['Courses are made of modules', 'Each module is a guided chat lesson'] },
-    ],
+    content: '## How it works\nCourses are made of modules. Each module is a guided chat lesson.',
+    resources: [],
     estimatedMinutes: 5,
   },
   {
@@ -31,9 +31,8 @@ const PLACEHOLDER_MODULES: PlaceholderModule[] = [
     title: 'Generate your first course',
     description: 'Create a real AI-generated course on any topic you choose.',
     objectives: ['Generate your first course from a topic'],
-    contentOutline: [
-      { title: 'Try it', points: ['Pick a topic', 'Watch Autodidact build a course for you'] },
-    ],
+    content: '## Try it\nPick a topic and watch Autodidact build a course for you.',
+    resources: [],
     estimatedMinutes: 5,
   },
 ];
@@ -90,7 +89,8 @@ export async function seedOnboardingCourse(db: DB = getDb()): Promise<{ courseId
           title: m.title,
           description: m.description,
           objectives: m.objectives,
-          contentOutline: m.contentOutline,
+          content: m.content,
+          resources: m.resources,
           estimatedMinutes: m.estimatedMinutes,
         })
         .where(eq(modules.id, moduleId));
@@ -101,7 +101,8 @@ export async function seedOnboardingCourse(db: DB = getDb()): Promise<{ courseId
         title: m.title,
         description: m.description,
         objectives: m.objectives,
-        contentOutline: m.contentOutline,
+        content: m.content,
+        resources: m.resources,
         estimatedMinutes: m.estimatedMinutes,
       });
     }

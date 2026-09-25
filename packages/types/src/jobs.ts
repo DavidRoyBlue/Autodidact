@@ -1,11 +1,11 @@
-import type { DifficultyLevel } from './course.js';
+import type { DifficultyLevel, TimeBudget } from './course.js';
 
 export interface CourseGenerationJobData {
   courseId: string;
   userId: string;
   topic: string;
   difficulty: DifficultyLevel;
-  moduleCount: number;
+  timeBudget: TimeBudget;
 }
 
 export interface EmbeddingJobData {

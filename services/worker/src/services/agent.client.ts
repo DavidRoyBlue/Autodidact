@@ -1,26 +1,10 @@
 import { cloudRunAuthHeaders } from '@autodidact/providers';
-import type { CourseBlueprint, CourseGenerationJobData } from '@autodidact/types';
 
 export class AgentClient {
   private readonly baseUrl: string;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
-  }
-
-  async generateCourse(payload: CourseGenerationJobData): Promise<CourseBlueprint> {
-    const authHeaders = await cloudRunAuthHeaders(this.baseUrl);
-    const res = await fetch(`${this.baseUrl}/course/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`Agent /course/generate failed: ${res.status} ${body}`);
-    }
-    const data = (await res.json()) as { blueprint: CourseBlueprint };
-    return data.blueprint;
   }
 
   async generateEmbedding(text: string): Promise<number[]> {

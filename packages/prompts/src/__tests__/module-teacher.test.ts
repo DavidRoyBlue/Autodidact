@@ -1,17 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { buildModuleSystemPrompt } from '../module-teacher.js';
-import type { ModuleBlueprint } from '@autodidact/types';
+import type { CourseModule } from '@autodidact/types';
 
-const sampleModule: ModuleBlueprint = {
+const sampleModule: CourseModule = {
   id: 'mod-1',
   position: 0,
   title: 'Variables and Types',
   description: 'Learn Python variables and basic data types.',
   objectives: ['Declare variables', 'Use strings and numbers', 'Understand type coercion'],
-  contentOutline: [
-    { title: 'Variable Basics', points: ['Assignment syntax', 'Naming conventions'] },
-    { title: 'Data Types', points: ['int', 'str', 'float'] },
-  ],
+  content: '## Variable Basics\nAssignment syntax and naming conventions.\n\n## Data Types\nint, str, float.',
+  resources: [],
   estimatedMinutes: 45,
 };
 
@@ -39,16 +37,10 @@ describe('buildModuleSystemPrompt()', () => {
     expect(result).toContain('- Understand type coercion');
   });
 
-  it('formats contentOutline sections with ** title **', () => {
+  it('includes the lesson under a Lesson heading', () => {
     const result = buildModuleSystemPrompt(sampleModule, sampleContext);
-    expect(result).toContain('**Variable Basics**');
-    expect(result).toContain('**Data Types**');
-  });
-
-  it('includes section points indented', () => {
-    const result = buildModuleSystemPrompt(sampleModule, sampleContext);
-    expect(result).toContain('Assignment syntax');
-    expect(result).toContain('int');
+    expect(result).toContain('## Lesson\n## Variable Basics');
+    expect(result).toContain('int, str, float.');
   });
 
   it('displays module position as 1-indexed (position+1)', () => {

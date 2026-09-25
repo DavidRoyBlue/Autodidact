@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DifficultyLevelSchema } from './course.js';
+import { DifficultyLevelSchema, TimeBudgetSchema } from './course.js';
 
 /**
  * Background task payloads. Validated at the worker's HTTP boundary —
@@ -12,7 +12,7 @@ export const CourseGenerationJobSchema = z.object({
   userId: z.string().min(1),
   topic: z.string().min(1),
   difficulty: DifficultyLevelSchema,
-  moduleCount: z.number().int().positive(),
+  timeBudget: TimeBudgetSchema,
 });
 
 export const EmbeddingJobSchema = z.object({

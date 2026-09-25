@@ -80,11 +80,14 @@ export const agentEnvSchema = baseSchema
 
 /**
  * services/worker — HTTP task handler (invoked by Cloud Tasks in production,
- * the loopback queue provider locally). Needs DB (writes) and the agent URL.
+ * the loopback queue provider locally). Needs DB (writes), the agent URL and the AgentPlatform URL.
  */
 export const workerEnvSchema = baseSchema.extend({
   DATABASE_URL: nonEmpty('DATABASE_URL'),
   AGENT_SERVICE_URL: z.string().url().default('http://localhost:3001'),
+  // AgentPlatform runs course generation (ADR-030); reachable from dev only until it is hosted
+  AGENT_PLATFORM_URL: z.string().url().default('http://localhost:8400'),
+  AGENT_PLATFORM_API_KEY: z.string().optional(),
   WORKER_PORT: Port.default(3002),
   // Mirrors max_attempts in the Cloud Tasks queue retry_config (infra/modules/cloud-tasks).
   TASK_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),

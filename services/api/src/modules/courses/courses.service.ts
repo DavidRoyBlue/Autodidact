@@ -30,6 +30,8 @@ export class CoursesService {
       FROM courses
       WHERE status = 'ready'
         AND is_public = TRUE
+        AND difficulty = ${dto.difficulty}
+        AND time_budget = ${dto.timeBudget}
         AND topic_embedding IS NOT NULL
         AND 1 - (topic_embedding <=> ${vectorLiteral}::vector) > 0.92
       ORDER BY similarity DESC
@@ -56,6 +58,7 @@ export class CoursesService {
         title: dto.topic,
         description: '',
         difficulty: dto.difficulty,
+        timeBudget: dto.timeBudget,
         status: 'pending',
         generatedBy: userId,
       })
@@ -69,7 +72,7 @@ export class CoursesService {
       userId,
       topic: dto.topic,
       difficulty: dto.difficulty,
-      moduleCount: dto.moduleCount,
+      timeBudget: dto.timeBudget,
     });
 
     return { courseId: course.id, status: 'pending', reused: false };

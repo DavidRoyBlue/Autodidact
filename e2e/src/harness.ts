@@ -1,11 +1,57 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { createServer } from 'node:net';
+import { createServer, type AddressInfo } from 'node:net';
+import { createServer as createHttpServer } from 'node:http';
 import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { withTestDatabase, type TestDatabase } from '@autodidact/test-support';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+
+/** What the mock platform's course-creator run returns: three modules, so a module-unlock transition is observable. */
+const MOCK_COURSE = {
+  title: 'Mock Course',
+  description: 'A deterministic course from the mock platform.',
+  difficulty: 'beginner',
+  budget: { estimated_minutes: 90 },
+  modules: [1, 2, 3].map((position) => ({
+    position,
+    title: `Module ${position}`,
+    description: `Deterministic module ${position} for e2e.`,
+    objectives: [`Understand concept ${position}`],
+    content: `## Section ${position}\nPoint A and point B.`,
+    estimated_minutes: 30,
+    resources: [],
+  })),
+};
+
+/**
+ * AgentPlatform stand-in for the worker (ADR-030): a course-creator run is
+ * created queued and reads back completed with MOCK_COURSE on the first poll.
+ */
+function startMockPlatform(): Promise<{ url: string; close: () => Promise<void> }> {
+  const server = createHttpServer((req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    if (req.method === 'POST' && req.url === '/api/v1/runs') {
+      res.statusCode = 201;
+      res.end(JSON.stringify({ id: 'run_e2e', status: 'queued', output: null, error: null }));
+    } else if (req.method === 'GET' && req.url?.startsWith('/api/v1/runs/')) {
+      res.end(JSON.stringify({ id: 'run_e2e', status: 'completed', output: MOCK_COURSE, error: null }));
+    } else {
+      res.statusCode = 404;
+      res.end('{}');
+    }
+  });
+  return new Promise((done) => {
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address() as AddressInfo;
+      done({
+        url: `http://127.0.0.1:${port}`,
+        close: () => new Promise((closed) => server.close(() => closed())),
+      });
+    });
+  });
+}
 
 export interface CrossServiceHarness {
   apiUrl: string;
@@ -104,18 +150,20 @@ async function killService(svc: SpawnedService): Promise<void> {
 /**
  * Boot Postgres (Testcontainers) and the real agent/worker/api services as
  * child processes, wired to the container with the mock LLM/embedding/auth
- * providers and the loopback queue (enqueue POSTs straight to the worker's
+ * providers, a mock AgentPlatform for course generation, and the loopback queue (enqueue POSTs straight to the worker's
  * task endpoints — same HTTP contract Cloud Tasks uses in production).
  * Returns service URLs, a container-backed Drizzle client for assertions,
  * and a `stop()` teardown.
  */
 export async function startCrossServiceHarness(): Promise<CrossServiceHarness> {
   const database: TestDatabase = await withTestDatabase();
+  const platform = await startMockPlatform();
 
   const services: SpawnedService[] = [];
   const stop = async (): Promise<void> => {
-    // Reverse boot order, then containers.
+    // Reverse boot order, then the stand-ins and containers.
     for (const svc of [...services].reverse()) await killService(svc);
+    await platform.close();
     await database.close();
   };
 
@@ -133,6 +181,7 @@ export async function startCrossServiceHarness(): Promise<CrossServiceHarness> {
       NODE_ENV: 'test',
       DATABASE_URL: databaseUrl,
       AGENT_SERVICE_URL: agentUrl,
+      AGENT_PLATFORM_URL: platform.url,
       LLM_PROVIDER: 'mock',
       EMBEDDING_PROVIDER: 'mock',
       AUTH_PROVIDER: 'mock',

@@ -6,22 +6,21 @@ export const sampleUser = {
   email: 'test@example.com',
 };
 
-export const sampleBlueprint = {
+/** What the course-creator workflow returns, as the worker persists it. */
+export const sampleGeneratedCourse = {
   title: 'Introduction to Python',
   description: 'Learn Python programming from the ground up.',
   difficulty: 'beginner' as const,
-  estimatedHours: 10,
+  budget: { estimated_minutes: 60 },
   modules: [
     {
-      position: 0,
+      position: 1,
       title: 'Getting Started',
       description: 'Set up your Python environment and write your first program.',
       objectives: ['Understand Python syntax', 'Run a Python script', 'Use the REPL'],
-      contentOutline: [
-        { title: 'Installation', points: ['Install Python 3', 'Verify installation'] },
-        { title: 'Hello World', points: ['Print statement', 'Running scripts'] },
-      ],
-      estimatedMinutes: 60,
+      content: '## Installation\nInstall Python 3 and verify it.\n\n## Hello World\nPrint, then run a script.',
+      estimated_minutes: 60,
+      resources: [],
     },
   ],
 };
@@ -63,8 +62,11 @@ export function makeMockEmbeddingProvider(vector: number[] = Array(1536).fill(0.
 export function makeMockAgentClient() {
   return {
     generateEmbedding: vi.fn().mockResolvedValue(Array(1536).fill(0.1) as number[]),
-    generateCourse: vi.fn().mockResolvedValue(sampleBlueprint),
   };
+}
+
+export function makeMockPlatformClient() {
+  return { generateCourse: vi.fn().mockResolvedValue(sampleGeneratedCourse) };
 }
 
 export function makeMockProvisioningService() {

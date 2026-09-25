@@ -6,9 +6,10 @@ import {
 } from '@autodidact/test-support';
 import {
   makeMockAgentClient,
+  makeMockPlatformClient,
   makeMockQueueProvider,
   makeMockLogger,
-  sampleBlueprint,
+  sampleGeneratedCourse,
 } from '@autodidact/config/test-utils';
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -72,16 +73,17 @@ describe('generate-course task endpoint — real DB', () => {
   });
 
   function makeTaskApp(
-    agentClient = makeMockAgentClient(),
+    platformClient = makeMockPlatformClient(),
     queueProvider = makeMockQueueProvider(),
   ) {
     const app = buildApp({
-      agentClient: agentClient as never,
+      platformClient: platformClient as never,
+      agentClient: makeMockAgentClient() as never,
       queueProvider: queueProvider as never,
       logger: makeMockLogger() as never,
       maxAttempts: 3,
     });
-    return { app, agentClient, queueProvider };
+    return { app, platformClient, queueProvider };
   }
 
   it('processes a task POST: sets status=ready and inserts modules', async () => {
@@ -95,7 +97,7 @@ describe('generate-course task endpoint — real DB', () => {
         userId,
         topic: 'Python',
         difficulty: 'beginner',
-        moduleCount: 1,
+        timeBudget: '30min',
       },
     });
 
@@ -108,15 +110,15 @@ describe('generate-course task endpoint — real DB', () => {
       .where(eq(courses.id, courseId));
 
     expect(updatedCourse?.status).toBe('ready');
-    expect(updatedCourse?.title).toBe(sampleBlueprint.title);
+    expect(updatedCourse?.title).toBe(sampleGeneratedCourse.title);
 
     const insertedModules = await dbHarness.db
       .select({ position: modules.position, title: modules.title })
       .from(modules)
       .where(eq(modules.courseId, courseId));
 
-    expect(insertedModules).toHaveLength(sampleBlueprint.modules.length);
-    expect(insertedModules[0]?.title).toBe(sampleBlueprint.modules[0]?.title);
+    expect(insertedModules).toHaveLength(sampleGeneratedCourse.modules.length);
+    expect(insertedModules[0]?.title).toBe(sampleGeneratedCourse.modules[0]?.title);
   });
 
   it('enqueues an embedding follow-up task after successful course generation', async () => {
@@ -130,7 +132,7 @@ describe('generate-course task endpoint — real DB', () => {
         userId,
         topic: 'Python',
         difficulty: 'beginner',
-        moduleCount: 1,
+        timeBudget: '30min',
       },
     });
 
@@ -149,9 +151,9 @@ describe('generate-course task endpoint — real DB', () => {
     (queueProvider.enqueue as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error('cloud tasks unavailable'),
     );
-    const { app } = makeTaskApp(makeMockAgentClient(), queueProvider);
+    const { app } = makeTaskApp(makeMockPlatformClient(), queueProvider);
 
-    const payload = { courseId, userId, topic: 'Python', difficulty: 'beginner', moduleCount: 1 };
+    const payload = { courseId, userId, topic: 'Python', difficulty: 'beginner', timeBudget: '30min' };
     const first = await app.inject({
       method: 'POST',
       url: `/tasks/${JOB_NAMES.GENERATE_COURSE}`,
@@ -172,15 +174,13 @@ describe('generate-course task endpoint — real DB', () => {
       .select({ position: modules.position })
       .from(modules)
       .where(eq(modules.courseId, courseId));
-    expect(moduleRows).toHaveLength(sampleBlueprint.modules.length);
+    expect(moduleRows).toHaveLength(sampleGeneratedCourse.modules.length);
   });
 
   it('marks the course failed in the DB when the final attempt fails', async () => {
-    const agentClient = makeMockAgentClient();
-    (agentClient.generateCourse as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error('agent down'),
-    );
-    const { app } = makeTaskApp(agentClient);
+    const platformClient = makeMockPlatformClient();
+    platformClient.generateCourse.mockRejectedValue(new Error('platform down'));
+    const { app } = makeTaskApp(platformClient);
 
     // No retry-count header → treated as the single, final attempt (loopback).
     const res = await app.inject({
@@ -191,7 +191,7 @@ describe('generate-course task endpoint — real DB', () => {
         userId,
         topic: 'Python',
         difficulty: 'beginner',
-        moduleCount: 1,
+        timeBudget: '30min',
       },
     });
 
@@ -207,11 +207,9 @@ describe('generate-course task endpoint — real DB', () => {
   });
 
   it('returns 500 and leaves the course in generating on a non-final attempt', async () => {
-    const agentClient = makeMockAgentClient();
-    (agentClient.generateCourse as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error('agent down'),
-    );
-    const { app } = makeTaskApp(agentClient);
+    const platformClient = makeMockPlatformClient();
+    platformClient.generateCourse.mockRejectedValue(new Error('platform down'));
+    const { app } = makeTaskApp(platformClient);
 
     const res = await app.inject({
       method: 'POST',
@@ -221,7 +219,7 @@ describe('generate-course task endpoint — real DB', () => {
         userId,
         topic: 'Python',
         difficulty: 'beginner',
-        moduleCount: 1,
+        timeBudget: '30min',
       },
       headers: { 'x-cloudtasks-taskretrycount': '0' }, // first of 3 attempts
     });

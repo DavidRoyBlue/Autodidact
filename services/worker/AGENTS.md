@@ -18,14 +18,14 @@ Internal only — never exposed publicly. Scales to zero between tasks.
 
 - **The HTTP surface is the task contract only** — `/tasks/:name` routes plus `GET /health`. Do not add business/API routes; user-facing HTTP belongs in `services/api`.
 - **No auth code in this service** — Cloud Run IAM authenticates Cloud Tasks' OIDC tokens before requests reach the container. Do not add token verification middleware.
-- **Call Agent via `AgentClient`** — do not import LLM SDKs (OpenAI, Anthropic, LangChain) directly. All AI calls go through `src/services/agent.client.ts` to `AGENT_SERVICE_URL`.
+- **No LLM SDKs here** — do not import OpenAI, Anthropic or LangChain directly. Course generation is a run on AgentPlatform's `course-creator` workflow through `src/services/agent-platform.client.ts` (`AGENT_PLATFORM_URL`, ADR-030); embeddings go through `src/services/agent.client.ts` to `AGENT_SERVICE_URL`.
 - **Course status must be updated at each transition** — set `status = 'generating'` when processing starts; set `status = 'ready'` (inside the transaction) on success; set `status = 'failed'` when the **final attempt** fails (detected via the `X-CloudTasks-TaskRetryCount` header against `TASK_MAX_ATTEMPTS`; a request without the header — loopback — is the single, final attempt).
 - **Never flip a `ready` course back** — the failed-marking update is guarded with `status IN ('pending','generating')`.
 - **Module rows are inserted inside the same DB transaction as the course `status = 'ready'` update** — if either write fails, both roll back. Never split them.
 - **The Worker is the only service that writes `status = 'ready'` or `status = 'failed'`** — the API service only writes `status = 'pending'`.
 - **Enqueue the embedding task after a successful course generation** — without the `GENERATE_EMBEDDING` task, `courses.topic_embedding` remains null and the course is never eligible for similarity reuse.
 - **Response codes drive queue behaviour** — `2xx` acknowledges a task (no redelivery); `5xx` requests a retry. Returning `200` on a final-attempt failure is intentional: the course is already marked `failed`.
-- **Validate every task body with the schemas from `@autodidact/schemas`** (`CourseGenerationJobSchema`, `EmbeddingJobSchema`) before processing.
+- **Validate every task body with the schemas from `@autodidact/schemas`** (`CourseGenerationJobSchema`, `EmbeddingJobSchema`) before processing, and the platform's course output with `GeneratedCourseSchema` before persisting it.
 
 ---
 
