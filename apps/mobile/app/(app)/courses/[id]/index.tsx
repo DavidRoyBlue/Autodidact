@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourse } from '@/api/courses';
 import { useProgress } from '@/api/progress';
 import { Screen, Heading, AppText, Card, ProgressBar, PositionBadge, SkeletonLine, SkeletonCard } from '@/components';
-import type { ModuleBlueprint } from '@autodidact/types';
+import type { CourseModule } from '@autodidact/types';
 import { PRIMARY } from '@/lib/theme-colors';
 
 function LoadingSkeleton() {
@@ -48,7 +48,7 @@ export default function CourseDetailScreen() {
   return (
     <Screen>
       <FlatList
-        data={(course.modules ?? []) as ModuleBlueprint[]}
+        data={(course.modules ?? []) as CourseModule[]}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ gap: 10, paddingVertical: 4 }}
         refreshControl={

@@ -46,7 +46,8 @@ const sampleModule = {
   title: 'Variables',
   description: 'Learn Python variables.',
   objectives: ['Declare variables', 'Use basic types'],
-  contentOutline: [{ title: 'Basics', points: ['Assignment'] }],
+  content: '## Basics\nAssignment',
+  resources: [],
   estimatedMinutes: 30,
 };
 

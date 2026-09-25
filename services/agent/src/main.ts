@@ -13,7 +13,6 @@ import {
 } from '@autodidact/observability';
 import { getPool } from '@autodidact/db';
 import { loadAgentEnv } from '@autodidact/env';
-import { registerGenerateCourseRoute } from './routes/generate-course.js';
 import { registerModuleChatRoute } from './routes/module-chat.js';
 import { registerEmbeddingsRoute } from './routes/embeddings.js';
 import { registerHealthRoutes } from './routes/health.js';
@@ -56,7 +55,6 @@ async function start() {
   logger.info({ rag: ragEnabled ? 'enabled' : 'disabled' }, 'agent RAG posture');
 
   // Register routes (logger threaded so graph nodes emit structured spans + logs)
-  await registerGenerateCourseRoute(app, llmProvider, logger);
   await registerModuleChatRoute(app, llmProvider, checkpointerProvider, logger, retriever);
   await registerEmbeddingsRoute(app, embeddingProvider);
 

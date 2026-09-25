@@ -6,7 +6,7 @@ import type { Logger } from '@autodidact/observability';
 import { buildModuleChatGraph } from '../graphs/module-chat/graph.js';
 import { toErrorEvent } from '../errors.js';
 import type { ContentRetriever } from '../rag/retriever.js';
-import type { ModuleBlueprint } from '@autodidact/types';
+import type { CourseModule } from '@autodidact/types';
 import type { CourseProgressContext } from '../graphs/module-chat/state.js';
 
 const ModuleChatBodySchema = z.object({
@@ -60,7 +60,7 @@ export async function registerModuleChatRoute(
 
       const inputState: Record<string, unknown> = {
         messages: [new HumanMessage(body.message)],
-        moduleBlueprint: body.moduleBlueprint as ModuleBlueprint,
+        moduleBlueprint: body.moduleBlueprint as CourseModule,
         courseProgress: body.courseProgress as CourseProgressContext,
         completionSignaled: false,
         completionScore: null,

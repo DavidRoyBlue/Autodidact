@@ -15,7 +15,7 @@ The progress module owns per-user learning state:
 ## Invariants (must not be broken)
 
 - **`module_progress.status` is authoritative for user progress**: always read `module_progress` (joined with `modules` for ordering) when answering "what is the user's progress?" Never read `modules.status` for this purpose.
-- **`modules.status` is the blueprint default**: `modules.status` reflects the course blueprint as written by the Worker. It is not per-user state. Do not conflate it with `module_progress.status`.
+- **`modules.status` is the generation-time default**: `modules.status` reflects the module as written by the Worker. It is not per-user state. Do not conflate it with `module_progress.status`.
 - **Sequential unlock rule**: when `completeModule()` runs, it unlocks exactly the one `module_progress` row where the user's status is `'locked'` and the module's `position` is `(completed_module.position + 1)`. This is enforced via a raw SQL `UPDATE ... FROM modules WHERE ...` query. Do not replace this with a Drizzle fluent query unless you verify the position subquery works correctly.
 - **Enrollment completion**: after any module completes, if ALL `module_progress` rows for that user+course are `'completed'`, `enrollments.completedAt` is set to `NOW()`. This check runs inside `completeModule()` every time — it is idempotent.
 - **`completeModule()` is called only from `ChatService`**: module completion is always triggered by a chat stream ending with `score >= 60`. Do not call `completeModule()` from HTTP controllers, workers, or any other path. If a new trigger is needed, add it to `ChatService` first and update this note.

@@ -4,13 +4,6 @@
  * to run on every PR. Grow these alongside new behaviors.
  */
 
-export interface CourseGenCase {
-  id: string;
-  topic: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  moduleCount: number;
-}
-
 export interface TutoringCase {
   id: string;
   objectives: string[];
@@ -19,12 +12,6 @@ export interface TutoringCase {
   /** When set, the case also exercises completion-score calibration. */
   expectedCompletionScore?: number;
 }
-
-export const COURSE_GEN_CASES: CourseGenCase[] = [
-  { id: 'python-beginner', topic: 'Python programming', difficulty: 'beginner', moduleCount: 5 },
-  { id: 'react-intermediate', topic: 'React and hooks', difficulty: 'intermediate', moduleCount: 4 },
-  { id: 'ml-advanced', topic: 'Transformer architectures', difficulty: 'advanced', moduleCount: 6 },
-];
 
 export const TUTORING_CASES: TutoringCase[] = [
   {

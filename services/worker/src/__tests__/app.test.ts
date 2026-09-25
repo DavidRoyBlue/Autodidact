@@ -41,7 +41,7 @@ const validCoursePayload = {
   userId: 'user-1',
   topic: 'Python',
   difficulty: 'beginner',
-  moduleCount: 5,
+  timeBudget: '1h',
 };
 
 const validEmbeddingPayload = { courseId: 'course-1', topic: 'Python' };
@@ -52,6 +52,7 @@ function makeLogger() {
 
 function makeApp(maxAttempts = 3) {
   return buildApp({
+    platformClient: {} as never,
     agentClient: {} as never,
     queueProvider: { enqueue: vi.fn(), close: vi.fn() } as never,
     logger: makeLogger() as never,

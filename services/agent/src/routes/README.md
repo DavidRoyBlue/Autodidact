@@ -6,35 +6,8 @@ HTTP route handlers for the Agent service. All routes are registered in `main.ts
 
 | File | Route | Caller |
 |------|-------|--------|
-| `generate-course.ts` | `POST /course/generate` | Worker service |
 | `module-chat.ts` | `POST /module-chat/stream` | API service |
 | `embeddings.ts` | `POST /embeddings/text` | API service, Worker service |
-
----
-
-## POST /course/generate
-
-Runs the `CourseGenerationGraph` and returns the blueprint.
-
-**Request body**:
-```typescript
-{
-  courseId:    string (UUID),
-  userId:      string (UUID),
-  topic:       string,
-  difficulty:  'beginner' | 'intermediate' | 'advanced',
-  moduleCount: number,
-}
-```
-
-**Response** (200):
-```typescript
-{
-  blueprint: CourseBlueprint
-}
-```
-
-**Error** (500): If the graph fails all 3 retries, the route throws; the worker surfaces the failure and Cloud Tasks retries the task.
 
 ---
 
@@ -47,7 +20,7 @@ Runs the `ModuleChatGraph` with streaming enabled. Returns an SSE stream.
 {
   sessionId:      string (UUID),   // LangGraph thread_id
   message:        string (1–4000 chars),
-  moduleBlueprint: ModuleBlueprint,
+  moduleBlueprint: CourseModule,
   courseProgress: {
     courseTitle:           string,
     completedModuleCount:  number,

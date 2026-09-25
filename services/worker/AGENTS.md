@@ -6,7 +6,7 @@
 
 Background task handler. A thin Fastify HTTP service whose `/tasks/:name` endpoints are invoked per-task — by GCP Cloud Tasks in production (OIDC-authenticated at the Cloud Run IAM layer) and by the loopback queue provider in local dev:
 
-- `POST /tasks/generate-course` — calls the Agent service to generate a full course blueprint, writes it and all module rows to PostgreSQL, then enqueues a follow-up embedding task.
+- `POST /tasks/generate-course` — runs a course-creator workflow on AgentPlatform (ADR-030), writes the returned course and all module rows to PostgreSQL, then enqueues a follow-up embedding task.
 - `POST /tasks/generate-embedding` — calls the Agent service to generate a topic embedding vector, stores it in `courses.topic_embedding` via raw pgvector SQL.
 - `POST /tasks/cleanup-stale-anonymous` — deletes anonymous users older than the retention window (default 90 days): `public.users` first (cascading to enrollments/module_progress/chat_sessions), then `auth.users`, in one transaction. Idempotent; `2xx` ack / `5xx` retry. The recurring schedule (Cloud Scheduler → Cloud Tasks) is **deferred to an infra task** — only the endpoint + processor ship here; in dev it is invoked by a manual POST. See `src/processors/AGENTS.md`.
 
@@ -18,14 +18,14 @@ Internal only — never exposed publicly. Scales to zero between tasks.
 
 - **The HTTP surface is the task contract only** — `/tasks/:name` routes plus `GET /health`. Do not add business/API routes; user-facing HTTP belongs in `services/api`.
 - **No auth code in this service** — Cloud Run IAM authenticates Cloud Tasks' OIDC tokens before requests reach the container. Do not add token verification middleware.
-- **Call Agent via `AgentClient`** — do not import LLM SDKs (OpenAI, Anthropic, LangChain) directly. All AI calls go through `src/services/agent.client.ts` to `AGENT_SERVICE_URL`.
+- **No LLM SDKs here** — do not import OpenAI, Anthropic or LangChain directly. Course generation is a run on AgentPlatform's `course-creator` workflow through `src/services/agent-platform.client.ts` (`AGENT_PLATFORM_URL`, ADR-030); embeddings go through `src/services/agent.client.ts` to `AGENT_SERVICE_URL`.
 - **Course status must be updated at each transition** — set `status = 'generating'` when processing starts; set `status = 'ready'` (inside the transaction) on success; set `status = 'failed'` when the **final attempt** fails (detected via the `X-CloudTasks-TaskRetryCount` header against `TASK_MAX_ATTEMPTS`; a request without the header — loopback — is the single, final attempt).
 - **Never flip a `ready` course back** — the failed-marking update is guarded with `status IN ('pending','generating')`.
 - **Module rows are inserted inside the same DB transaction as the course `status = 'ready'` update** — if either write fails, both roll back. Never split them.
 - **The Worker is the only service that writes `status = 'ready'` or `status = 'failed'`** — the API service only writes `status = 'pending'`.
 - **Enqueue the embedding task after a successful course generation** — without the `GENERATE_EMBEDDING` task, `courses.topic_embedding` remains null and the course is never eligible for similarity reuse.
 - **Response codes drive queue behaviour** — `2xx` acknowledges a task (no redelivery); `5xx` requests a retry. Returning `200` on a final-attempt failure is intentional: the course is already marked `failed`.
-- **Validate every task body with the schemas from `@autodidact/schemas`** (`CourseGenerationJobSchema`, `EmbeddingJobSchema`) before processing.
+- **Validate every task body with the schemas from `@autodidact/schemas`** (`CourseGenerationJobSchema`, `EmbeddingJobSchema`) before processing, and the platform's course output with `GeneratedCourseSchema` before persisting it.
 
 ---
 
@@ -35,7 +35,7 @@ Internal only — never exposed publicly. Scales to zero between tasks.
   - `fastify` for the HTTP task surface (matches `services/agent`)
   - `@autodidact/db` (`getDb`, Drizzle ORM) for all database writes
   - `@autodidact/schemas` for task payload validation
-  - `@autodidact/types` for task payload types (`CourseGenerationJobData`, `EmbeddingJobData`, `ModuleBlueprint`)
+  - `@autodidact/types` for task payload types (`CourseGenerationJobData`, `EmbeddingJobData`, `CourseModule`)
   - `@autodidact/providers` (`IQueueProvider`) for enqueuing follow-up tasks
   - `@autodidact/observability` for logging (never `console.log`)
 - Do not use:
@@ -52,6 +52,7 @@ Internal only — never exposed publicly. Scales to zero between tasks.
 - HTTP task contract and retry semantics: `src/app.ts`
 - Processor logic: `src/processors/` (pure functions, no transport coupling)
 - Agent HTTP contract: `src/services/agent.client.ts` and `services/agent/AGENTS.md` (Routes table)
+- AgentPlatform contract for course generation: `src/services/agent-platform.client.ts` (ADR-030) and AgentPlatform's `docs/architecture/course-creator.md` §5 (in `~/AgentPlatform`)
 - Database schema: `packages/db/src/schema/`
 - Production retry policy: `infra/modules/cloud-tasks/main.tf` (`retry_config`) — `TASK_MAX_ATTEMPTS` must mirror its `max_attempts`
 
@@ -69,7 +70,7 @@ Internal only — never exposed publicly. Scales to zero between tasks.
 ## Anti-patterns to avoid
 
 - Do not add non-task HTTP endpoints to this service.
-- Do not call LLM providers directly — always go through `AgentClient`.
+- Do not call LLM providers directly — always go through `AgentClient` (embeddings) or `AgentPlatformClient` (course generation, ADR-030).
 - Do not write `status = 'ready'` or `status = 'failed'` outside of this service.
 - Do not insert module rows outside of the course-generation DB transaction.
 - Do not swallow processor errors in routes — the status-code contract is how the queue knows to retry.
@@ -93,6 +94,7 @@ pnpm --filter @autodidact/worker test
 
 ## Key Decisions
 
+- [ADR-030 — Course generation runs on AgentPlatform's course-creator workflow](../../docs/architecture/ADRs/cross-cutting/ADR-030-course-generation-on-agent-platform.md) (worker creates and polls the run via `AgentPlatformClient`)
 - [ADR-027 — Background job queue — migrate to GCP Cloud Tasks](../../docs/architecture/ADRs/services/worker/ADR-027-background-job-queue-cloud-tasks.md) (supersedes ADR-007's BullMQ + Redis)
 - [ADR-009 — External vendor abstraction](../../docs/architecture/ADRs/packages/providers/ADR-009-external-vendor-abstraction.md) (queue provider via factory)
 - [ADR-008 — ORM / data access layer](../../docs/architecture/ADRs/packages/db/ADR-008-orm-data-access.md) (Drizzle for course/module writes)

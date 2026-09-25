@@ -48,27 +48,29 @@ const { processCourseGeneration } = await import(
 
 // ────────────────────────────────────────────────────────────────────────────
 
-const blueprint = {
+const course = {
   title: 'Python Basics',
   description: 'Learn Python',
-  difficulty: 'beginner',
-  estimatedHours: 10,
+  difficulty: 'beginner' as const,
+  budget: { estimated_minutes: 105 },
   modules: [
     {
-      position: 0,
+      position: 1,
       title: 'Intro',
       description: 'Getting started',
       objectives: ['Understand Python'],
-      contentOutline: [{ title: 'Setup', points: ['Install'] }],
-      estimatedMinutes: 60,
+      content: '## Setup\nInstall.',
+      estimated_minutes: 60,
+      resources: [],
     },
     {
-      position: 1,
+      position: 2,
       title: 'Variables',
       description: 'Types and vars',
       objectives: ['Use variables'],
-      contentOutline: [{ title: 'Types', points: ['int', 'str'] }],
-      estimatedMinutes: 45,
+      content: '## Types\nint, str.',
+      estimated_minutes: 45,
+      resources: [{ url: 'https://docs.python.org/3/', title: 'Python docs', why: 'the reference' }],
     },
   ],
 };
@@ -78,11 +80,11 @@ const jobData = {
   userId: 'user-1',
   topic: 'Python',
   difficulty: 'beginner' as const,
-  moduleCount: 5,
+  timeBudget: '1h' as const,
 };
 
-function makeAgentClient(bp = blueprint) {
-  return { generateCourse: vi.fn().mockResolvedValue(bp), generateEmbedding: vi.fn() };
+function makePlatformClient(generated = course) {
+  return { generateCourse: vi.fn().mockResolvedValue(generated) };
 }
 
 function makeQueueProvider() {
@@ -93,9 +95,10 @@ function makeLogger() {
   return { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() };
 }
 
-function makeDeps(agent = makeAgentClient(), queue = makeQueueProvider()) {
+function makeDeps(platform = makePlatformClient(), queue = makeQueueProvider()) {
   return {
-    agentClient: agent as never,
+    platformClient: platform as never,
+    agentClient: { generateEmbedding: vi.fn() } as never,
     queueProvider: queue as never,
     logger: makeLogger() as never,
   };
@@ -117,7 +120,7 @@ describe('processCourseGeneration', () => {
     });
   });
 
-  it('updates course status to "generating" before calling agent', async () => {
+  it('updates course status to "generating" before calling the platform', async () => {
     const setCapture: Record<string, unknown>[] = [];
     mockUpdateSet.mockImplementation((data: Record<string, unknown>) => {
       setCapture.push(data);
@@ -128,27 +131,25 @@ describe('processCourseGeneration', () => {
     expect(setCapture[0]?.['status']).toBe('generating');
   });
 
-  it('calls agentClient.generateCourse with the job data', async () => {
-    const agent = makeAgentClient();
-    await processCourseGeneration(jobData, makeDeps(agent));
-    expect(agent.generateCourse).toHaveBeenCalledWith({
-      courseId: jobData.courseId,
-      userId: jobData.userId,
-      topic: jobData.topic,
-      difficulty: jobData.difficulty,
-      moduleCount: jobData.moduleCount,
+  it('calls platformClient.generateCourse with the job data', async () => {
+    const platform = makePlatformClient();
+    await processCourseGeneration(jobData, makeDeps(platform));
+    expect(platform.generateCourse).toHaveBeenCalledWith(jobData);
+  });
+
+  it('inserts every module, 0-indexed, with its lesson and resources, inside the transaction', async () => {
+    await processCourseGeneration(jobData, makeDeps());
+    expect(mockTxInsertValues).toHaveBeenCalledOnce();
+    const rows = mockTxInsertValues.mock.calls[0]?.[0] as Array<Record<string, unknown>>;
+    expect(rows.map((r) => r['position'])).toEqual([0, 1]);
+    expect(rows[1]).toMatchObject({
+      content: '## Types\nint, str.',
+      resources: course.modules[1]?.resources,
+      estimatedMinutes: 45,
     });
   });
 
-  it('inserts all module rows from the blueprint inside the transaction', async () => {
-    await processCourseGeneration(jobData, makeDeps());
-    // modules inserted via tx.insert(modules).values(moduleRows)
-    expect(mockTxInsertValues).toHaveBeenCalledOnce();
-    const insertedRows = mockTxInsertValues.mock.calls[0]?.[0] as unknown[];
-    expect(insertedRows).toHaveLength(blueprint.modules.length);
-  });
-
-  it('updates course status to "ready" inside the transaction', async () => {
+  it('updates course status to "ready" with the measured hours inside the transaction', async () => {
     const txSetCalls: Record<string, unknown>[] = [];
     mockTxUpdateSet.mockImplementation((data: Record<string, unknown>) => {
       txSetCalls.push(data);
@@ -156,12 +157,12 @@ describe('processCourseGeneration', () => {
     });
 
     await processCourseGeneration(jobData, makeDeps());
-    expect(txSetCalls[0]?.['status']).toBe('ready');
+    expect(txSetCalls[0]).toMatchObject({ status: 'ready', estimatedHours: 2 });
   });
 
   it('enqueues an embedding task after successful generation', async () => {
     const queue = makeQueueProvider();
-    await processCourseGeneration(jobData, makeDeps(makeAgentClient(), queue));
+    await processCourseGeneration(jobData, makeDeps(makePlatformClient(), queue));
     expect(queue.enqueue).toHaveBeenCalledOnce();
     expect(queue.enqueue).toHaveBeenCalledWith('embedding', 'generate-embedding', {
       courseId: jobData.courseId,
@@ -169,13 +170,13 @@ describe('processCourseGeneration', () => {
     });
   });
 
-  it('propagates an agent failure without enqueueing the embedding task', async () => {
-    const agent = makeAgentClient();
-    agent.generateCourse.mockRejectedValue(new Error('agent down'));
+  it('propagates a platform failure without enqueueing the embedding task', async () => {
+    const platform = makePlatformClient();
+    platform.generateCourse.mockRejectedValue(new Error('platform down'));
     const queue = makeQueueProvider();
 
-    await expect(processCourseGeneration(jobData, makeDeps(agent, queue))).rejects.toThrow(
-      'agent down',
+    await expect(processCourseGeneration(jobData, makeDeps(platform, queue))).rejects.toThrow(
+      'platform down',
     );
     expect(queue.enqueue).not.toHaveBeenCalled();
   });

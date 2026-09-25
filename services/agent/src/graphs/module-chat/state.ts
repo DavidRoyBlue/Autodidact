@@ -1,6 +1,6 @@
 import { Annotation, messagesStateReducer } from '@langchain/langgraph';
 import { BaseMessage } from '@langchain/core/messages';
-import type { ModuleBlueprint } from '@autodidact/types';
+import type { CourseModule } from '@autodidact/types';
 
 export interface CourseProgressContext {
   courseTitle: string;
@@ -13,7 +13,7 @@ export const ModuleChatState = Annotation.Root({
     reducer: messagesStateReducer,
     default: () => [],
   }),
-  moduleBlueprint: Annotation<ModuleBlueprint>(),
+  moduleBlueprint: Annotation<CourseModule>(),
   courseProgress: Annotation<CourseProgressContext>(),
   completionSignaled: Annotation<boolean>(),
   completionScore: Annotation<number | null>(),

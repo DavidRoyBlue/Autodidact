@@ -5,10 +5,7 @@ const module = {
   title: 'Closures',
   description: 'Understanding JavaScript closures.',
   objectives: ['Define a closure', 'Use closures for encapsulation'],
-  contentOutline: [
-    { title: 'Lexical scope', points: ['Scope chain', 'Variable lookup'] },
-    { title: 'Practical uses', points: ['Counters', 'Private state'] },
-  ],
+  content: '## Lexical scope\nScope chain and variable lookup.\n\n## Practical uses\nCounters and private state.',
 };
 
 describe('chunkModuleContent()', () => {
@@ -32,7 +29,7 @@ describe('chunkModuleContent()', () => {
     const chunks = chunkModuleContent(module);
     const section = chunks.find((c) => c.content.includes('Lexical scope'));
     expect(section).toBeDefined();
-    expect(section!.content).toContain('Scope chain');
+    expect(section!.content).toContain('Scope chain and variable lookup.');
   });
 
   it('skips the objectives chunk when there are no objectives', () => {
@@ -40,8 +37,9 @@ describe('chunkModuleContent()', () => {
     expect(chunks.some((c) => c.content.includes('Learning objectives'))).toBe(false);
   });
 
-  it('handles a module with no content outline', () => {
-    const chunks = chunkModuleContent({ ...module, contentOutline: [] });
-    expect(chunks).toHaveLength(2); // intro + objectives only
+  it('keeps a lesson without headings as one chunk', () => {
+    const chunks = chunkModuleContent({ ...module, content: 'One flat lesson.' });
+    expect(chunks).toHaveLength(3); // intro + objectives + the lesson
+    expect(chunks[2]!.content).toBe('One flat lesson.');
   });
 });

@@ -263,7 +263,7 @@ describe('Courses journey', () => {
     const createRes = await request
       .post('/v1/courses')
       .set(auth)
-      .send({ topic: 'TypeScript', difficulty: 'beginner', moduleCount: 5 });
+      .send({ topic: 'TypeScript', difficulty: 'beginner', timeBudget: '1h' });
 
     expect([200, 201]).toContain(createRes.status);
     const { courseId } = createRes.body as { courseId: string };

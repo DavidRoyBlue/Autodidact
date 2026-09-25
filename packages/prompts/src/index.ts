@@ -1,4 +1,3 @@
-export { COURSE_GENERATION_SYSTEM_PROMPT, buildCourseGenerationPrompt } from './course-generation.js';
 export { buildModuleSystemPrompt } from './module-teacher.js';
 export type { UserContext } from './module-teacher.js';
 export {

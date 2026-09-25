@@ -228,7 +228,7 @@ describe('CoursesService.createOrReuse() — similarity routing', () => {
     const result = await service.createOrReuse(userId, {
       topic: 'Python',
       difficulty: 'beginner',
-      moduleCount: 5,
+      timeBudget: '1h',
     });
 
     expect(result.reused).toBe(true);
@@ -251,7 +251,7 @@ describe('CoursesService.createOrReuse() — similarity routing', () => {
     const result = await service.createOrReuse(userId, {
       topic: 'Rust',
       difficulty: 'intermediate',
-      moduleCount: 8,
+      timeBudget: '4h',
     });
 
     expect(result.reused).toBe(false);

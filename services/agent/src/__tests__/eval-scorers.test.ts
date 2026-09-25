@@ -1,73 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
-  scoreBlueprintSchema,
-  scoreBlueprintQuality,
   scoreNoMarkerLeak,
   scoreCompletionCalibration,
   scoreTutoringRelevance,
   summarize,
 } from '../eval/scorers.js';
-
-const validBlueprint = {
-  title: 'Python Basics',
-  description: 'Learn Python.',
-  difficulty: 'beginner',
-  estimatedHours: 10,
-  modules: [
-    {
-      position: 0,
-      title: 'Intro',
-      description: 'Getting started',
-      objectives: ['Understand Python'],
-      contentOutline: [{ title: 'Setup', points: ['Install Python'] }],
-      estimatedMinutes: 60,
-    },
-    {
-      position: 1,
-      title: 'Variables',
-      description: 'Working with variables',
-      objectives: ['Declare variables'],
-      contentOutline: [{ title: 'Assignment', points: ['x = 1'] }],
-      estimatedMinutes: 45,
-    },
-  ],
-};
-
-describe('scoreBlueprintSchema()', () => {
-  it('passes a schema-valid blueprint', () => {
-    const r = scoreBlueprintSchema(validBlueprint);
-    expect(r.passed).toBe(true);
-    expect(r.score).toBe(1);
-  });
-
-  it('fails (score 0) an invalid blueprint', () => {
-    const r = scoreBlueprintSchema({ title: '', modules: [] });
-    expect(r.passed).toBe(false);
-    expect(r.score).toBe(0);
-  });
-});
-
-describe('scoreBlueprintQuality()', () => {
-  it('gives full score when module count matches and all checks pass', () => {
-    const r = scoreBlueprintQuality(validBlueprint, { moduleCount: 2 });
-    expect(r.score).toBe(1);
-    expect(r.passed).toBe(true);
-  });
-
-  it('penalizes a module-count mismatch', () => {
-    const r = scoreBlueprintQuality(validBlueprint, { moduleCount: 5 });
-    expect(r.score).toBeLessThan(1);
-  });
-
-  it('penalizes duplicate module titles', () => {
-    const dup = {
-      ...validBlueprint,
-      modules: [validBlueprint.modules[0], validBlueprint.modules[0]],
-    };
-    const r = scoreBlueprintQuality(dup, { moduleCount: 2 });
-    expect(r.score).toBeLessThan(1);
-  });
-});
 
 describe('scoreNoMarkerLeak()', () => {
   it('passes clean tutoring text', () => {

@@ -11,26 +11,28 @@ C4Container
     System_Boundary(autodidact, "Autodidact") {
         Container(mobile, "Mobile App", "Expo / React Native", "UI for course creation, module learning, and progress tracking. Runs on iOS and Android.")
         Container(api, "API Service", "NestJS / Node.js :3000", "Public REST API. Handles auth, course orchestration, SSE chat proxy, and progress tracking.")
-        Container(agent, "Agent Service", "Fastify / LangGraph :3001", "Internal AI service. Runs LangGraph graphs for course generation and module chat. Streams SSE.")
-        Container(worker, "Worker Service", "Fastify / Node.js (internal)", "Background task handler. Processes course generation and embedding tasks delivered as HTTP POSTs.")
+        Container(agent, "Agent Service", "Fastify / LangGraph :3001", "Internal AI service. Runs the module-chat graph and embeddings. Streams SSE.")
+        Container(worker, "Worker Service", "Fastify / Node.js (internal)", "Background task handler. Runs course generation on AgentPlatform and processes embedding tasks, delivered as HTTP POSTs.")
         ContainerDb(postgres, "PostgreSQL", "Supabase / pgvector", "Primary data store. Courses, modules, enrollments, progress, chat sessions, user profiles.")
     }
 
     System_Ext(tasks, "Cloud Tasks", "GCP managed task queues (course-generation, embedding)")
     System_Ext(llm, "LLM Provider", "OpenAI or Anthropic (configured via env)")
     System_Ext(supabase_auth, "Supabase Auth", "JWT verification service")
+    System_Ext(platform, "AgentPlatform", "course-creator workflow — dev-only until hosted for prod (ADR-030)")
 
     Rel(learner, mobile, "Uses", "Touch / UI")
     Rel(mobile, api, "REST + SSE", "HTTPS")
-    Rel(api, agent, "Course gen + embeddings + chat stream", "HTTP (internal)")
+    Rel(api, agent, "Embeddings + chat stream", "HTTP (internal)")
     Rel(api, tasks, "Creates generation tasks", "HTTPS (Cloud Tasks API)")
     Rel(api, postgres, "Reads/writes course, enrollment, progress, session data", "PostgreSQL")
     Rel(api, supabase_auth, "Verifies JWT tokens", "HTTPS")
     Rel(tasks, worker, "Delivers tasks to /tasks/:name", "HTTPS (OIDC-authenticated POST)")
     Rel(worker, tasks, "Creates embedding follow-up task", "HTTPS (Cloud Tasks API)")
-    Rel(worker, agent, "Calls generate-course and embeddings routes", "HTTP (internal)")
+    Rel(worker, platform, "Creates and polls a course-creator run", "HTTPS /api/v1 (ADR-030)")
+    Rel(worker, agent, "Calls embeddings route", "HTTP (internal)")
     Rel(worker, postgres, "Updates course status, inserts modules, stores embeddings", "PostgreSQL")
-    Rel(agent, llm, "Invokes LLM for generation and teaching", "HTTPS")
+    Rel(agent, llm, "Invokes LLM for teaching", "HTTPS")
     Rel(agent, postgres, "Reads/writes LangGraph checkpoints (prod)", "PostgreSQL")
 ```
 
@@ -63,7 +65,7 @@ In local development the Cloud Tasks hop is replaced by the loopback queue provi
 |---|---|
 | **Technology** | Fastify + LangGraph TypeScript |
 | **Port** | 3001 (**internal only** — not publicly accessible) |
-| **Graphs** | `CourseGenerationGraph` and `ModuleChatGraph` (see C4 Level 3) |
+| **Graphs** | `ModuleChatGraph` (see C4 Level 3); course generation runs on AgentPlatform's `course-creator` workflow (ADR-030), not a graph here |
 | **Checkpointer** | `MemorySaver` in dev, `PostgresSaver` in prod (controlled by `CHECKPOINTER` env) |
 | **Streaming** | Raw SSE via `reply.raw.write()` with `streamMode: 'messages'` |
 
@@ -73,6 +75,7 @@ In local development the Cloud Tasks hop is replaced by the loopback queue provi
 | **Technology** | Node.js + Fastify (internal HTTP task handler) |
 | **Endpoints** | `POST /tasks/generate-course`, `POST /tasks/generate-embedding`, `GET /health` |
 | **Task chaining** | After course generation completes, creates the `generate-embedding` task automatically |
+| **Course generation** | Creates and polls a run on AgentPlatform's `course-creator` workflow via `AgentPlatformClient` (`AGENT_PLATFORM_URL`, ADR-030) — reachable from dev only until the platform is hosted for prod |
 | **Retries** | Queue-level (Cloud Tasks `retry_config`: 3 attempts, 5 s → 125 s backoff); final failed attempt marks the course `failed` |
 | **Deployment** | Cloud Run, scale-to-zero; invoked by Cloud Tasks with an OIDC token (IAM-authenticated) |
 
@@ -94,9 +97,10 @@ In local development the Cloud Tasks hop is replaced by the loopback queue provi
 | API | Cloud Tasks | HTTPS | Create `generate-course` task |
 | Cloud Tasks | Worker | HTTPS POST (OIDC) | Deliver tasks to `/tasks/:name` |
 | Worker | Cloud Tasks | HTTPS | Create `generate-embedding` follow-up task |
-| Worker | Agent | HTTP POST | `/course/generate`, `/embeddings/text` |
+| Worker | AgentPlatform | HTTPS `/api/v1` | Create + poll a `course-creator` run (ADR-030) |
+| Worker | Agent | HTTP POST | `/embeddings/text` |
 | Worker | PostgreSQL | SQL | Update course status, insert modules, store embeddings |
-| Agent | LLM Provider | HTTPS | Course generation, teaching, evaluation |
+| Agent | LLM Provider | HTTPS | Teaching, evaluation |
 | Agent | PostgreSQL | SQL | LangGraph checkpoint reads/writes (prod only) |
 
 ## Network Boundaries
@@ -110,6 +114,7 @@ Internet
               └── → Supabase PostgreSQL    [external managed]
 Worker Service  [Cloud Run internal; inbound only from Cloud Tasks via IAM-verified OIDC]
               ├── → Agent Service
+              ├── → AgentPlatform          [dev-only loopback until hosted for prod, ADR-030]
               ├── → Cloud Tasks
               └── → Supabase PostgreSQL
 ```

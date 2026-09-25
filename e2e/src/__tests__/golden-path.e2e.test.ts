@@ -90,14 +90,14 @@ async function waitForCourseReady(courseId: string, timeoutMs = 60_000): Promise
   throw new Error(`Course ${courseId} never reached 'ready' (last status: ${last})`);
 }
 
-describe('Golden path: create → generate (worker+agent, mock LLM) → enroll → progress', () => {
+describe('Golden path: create → generate (worker + mock platform) → enroll → progress', () => {
   let courseId: string;
   let firstModuleId: string;
 
-  it('creates a course and the worker generates it via the agent', async () => {
+  it('creates a course and the worker generates it on the platform', async () => {
     const res = await authedFetch('/v1/courses', {
       method: 'POST',
-      body: JSON.stringify({ topic: 'Cross-service TypeScript', difficulty: 'beginner', moduleCount: 3 }),
+      body: JSON.stringify({ topic: 'Cross-service TypeScript', difficulty: 'beginner', timeBudget: '1h' }),
     });
     expect([200, 201]).toContain(res.status);
     const body = (await res.json()) as { courseId: string; status: string };
@@ -105,7 +105,7 @@ describe('Golden path: create → generate (worker+agent, mock LLM) → enroll �
     expect(typeof courseId).toBe('string');
     expect(body.status).toBe('pending');
 
-    // Worker receives the loopback task POST, calls the agent (mock LLM), writes ready + modules.
+    // Worker receives the loopback task POST, runs course-creator on the (mock) platform, writes ready + modules.
     await waitForCourseReady(courseId);
 
     const mods = await harness.db

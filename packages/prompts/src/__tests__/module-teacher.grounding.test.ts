@@ -7,7 +7,8 @@ const module = {
   title: 'Closures',
   description: 'Learn closures.',
   objectives: ['Understand closures'],
-  contentOutline: [{ title: 'Scope', points: ['Lexical scope'] }],
+  content: '## Scope\nLexical scope',
+  resources: [],
   estimatedMinutes: 30,
 };
 

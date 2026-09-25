@@ -8,12 +8,14 @@ import {
   StaleAnonymousCleanupJobSchema,
 } from '@autodidact/schemas';
 import type { AgentClient } from './services/agent.client.js';
+import type { AgentPlatformClient } from './services/agent-platform.client.js';
 import { processCourseGeneration } from './processors/course-generation.processor.js';
 import { processEmbedding } from './processors/embedding.processor.js';
 import { processStaleAnonymousCleanup } from './processors/stale-anonymous-cleanup.processor.js';
 import { JOB_NAMES } from './queues/definitions.js';
 
 export interface AppDeps {
+  platformClient: AgentPlatformClient;
   agentClient: AgentClient;
   queueProvider: IQueueProvider;
   logger: Logger;
@@ -60,7 +62,7 @@ async function markCourseFailed(courseId: string, logger: Logger): Promise<void>
  * 2xx acknowledges the task; 5xx asks the queue to retry.
  */
 export function buildApp(deps: AppDeps): FastifyInstance {
-  const { agentClient, queueProvider, logger, maxAttempts } = deps;
+  const { platformClient, agentClient, queueProvider, logger, maxAttempts } = deps;
   const app = Fastify({ logger: false });
 
   app.get('/health', () => ({ status: 'ok' }));
@@ -73,7 +75,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     }
 
     try {
-      await processCourseGeneration(parsed.data, { agentClient, queueProvider, logger });
+      await processCourseGeneration(parsed.data, { platformClient, agentClient, queueProvider, logger });
       return await reply.code(204).send();
     } catch (err) {
       logger.error({ err, courseId: parsed.data.courseId }, 'Course generation task failed');

@@ -2,26 +2,22 @@ export type CourseStatus = 'pending' | 'generating' | 'ready' | 'failed';
 export type ModuleStatus = 'locked' | 'available' | 'in_progress' | 'completed';
 export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
 export type JobStatus = 'pending' | 'active' | 'completed' | 'failed' | 'delayed';
+export type TimeBudget = '30min' | '1h' | '4h' | 'unrestricted';
 
-export interface ContentSection {
+export interface ModuleResource {
+  url: string;
   title: string;
-  points: string[];
+  why: string;
 }
 
-export interface ModuleBlueprint {
+export interface CourseModule {
   id: string;
   position: number;
   title: string;
   description: string;
   objectives: string[];
-  contentOutline: ContentSection[];
+  /** The full lesson, markdown. */
+  content: string;
+  resources: ModuleResource[];
   estimatedMinutes: number;
-}
-
-export interface CourseBlueprint {
-  title: string;
-  description: string;
-  difficulty: DifficultyLevel;
-  estimatedHours: number;
-  modules: ModuleBlueprint[];
 }

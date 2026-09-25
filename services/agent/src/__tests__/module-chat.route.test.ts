@@ -50,7 +50,8 @@ const validPayload = {
     title: 'Variables',
     description: 'Learn Python variables.',
     objectives: ['Declare variables'],
-    contentOutline: [{ title: 'Basics', points: ['Assignment'] }],
+    content: '## Basics\nAssignment',
+    resources: [],
     estimatedMinutes: 30,
   },
   courseProgress: {

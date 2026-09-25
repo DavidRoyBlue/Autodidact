@@ -1,4 +1,4 @@
-import type { ModuleBlueprint } from '@autodidact/types';
+import type { CourseModule } from '@autodidact/types';
 
 export interface UserContext {
   completedModuleCount: number;
@@ -7,7 +7,7 @@ export interface UserContext {
 }
 
 export function buildModuleSystemPrompt(
-  module: ModuleBlueprint,
+  module: CourseModule,
   userContext: UserContext,
   /**
    * Optional RAG-retrieved reference material for the current question. When
@@ -18,9 +18,6 @@ export function buildModuleSystemPrompt(
   retrievedContext?: string,
 ): string {
   const objectivesList = module.objectives.map((o) => `- ${o}`).join('\n');
-  const outlineList = module.contentOutline
-    .map((s) => `**${s.title}**\n${s.points.map((p) => `  - ${p}`).join('\n')}`)
-    .join('\n\n');
 
   const groundingSection =
     retrievedContext && retrievedContext.trim().length > 0
@@ -29,7 +26,7 @@ export function buildModuleSystemPrompt(
 ## Retrieved Reference Material
 The following passages were retrieved from this module's source content for the student's
 current question. Prefer grounding your explanation in this material and stay consistent with it;
-if it does not cover the question, fall back to the content outline above.
+if it does not cover the question, fall back to the lesson above.
 
 ${retrievedContext.trim()}`
       : '';
@@ -44,8 +41,8 @@ ${module.description}
 ## Learning Objectives
 ${objectivesList}
 
-## Content Outline
-${outlineList}${groundingSection}
+## Lesson
+${module.content}${groundingSection}
 
 ## Teaching Instructions
 - Start with a brief, engaging introduction to this module

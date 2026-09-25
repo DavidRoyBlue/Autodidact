@@ -26,7 +26,7 @@ The chat module owns the Socratic teaching interaction. It:
 
 - `ChatService.streamMessage()` runs its async logic in a void-wrapped IIFE and returns the observable synchronously; the controller subscribes and writes each event to the raw SSE response.
 - Each Agent SSE line is forwarded to the client as-is via `subject.next({ data: jsonStr })`. Transformation of event shapes is the Agent's responsibility, not this service's.
-- The Agent's `/module-chat/stream` requires both `moduleBlueprint` (`contentOutline`, `objectives`, etc.) **and** `courseProgress` (`courseTitle`, `completedModuleCount`, `totalModuleCount`) in the request body — `streamMessage()` computes these so the Agent needs no DB lookup. The Agent carries the completion score on the `module_complete` event; `complete` is the terminator.
+- The Agent's `/module-chat/stream` requires both `moduleBlueprint` (`content`, `resources`, `objectives`, etc.) **and** `courseProgress` (`courseTitle`, `completedModuleCount`, `totalModuleCount`) in the request body — `streamMessage()` computes these so the Agent needs no DB lookup. The Agent carries the completion score on the `module_complete` event; `complete` is the terminator.
 
 ---
 

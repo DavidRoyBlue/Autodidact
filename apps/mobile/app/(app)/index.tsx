@@ -3,9 +3,17 @@ import { Alert, View } from 'react-native';
 import { useCreateCourse } from '@/api/courses';
 import { useCourseGeneration } from '@/hooks/useCourseGeneration';
 import { Screen, Heading, AppText, Input, Button, Chip } from '@/components';
+import type { TimeBudget } from '@autodidact/types';
 
 type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 const difficulties: Difficulty[] = ['beginner', 'intermediate', 'advanced'];
+
+const budgets: Array<[TimeBudget, string]> = [
+  ['30min', '30 min'],
+  ['1h', '1 hour'],
+  ['4h', '4 hours'],
+  ['unrestricted', 'No limit'],
+];
 
 const STATUS_LABELS: Record<string, string> = {
   pending:   'Queued...',
@@ -17,6 +25,7 @@ const STATUS_LABELS: Record<string, string> = {
 export default function HomeScreen() {
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty>('beginner');
+  const [timeBudget, setTimeBudget] = useState<TimeBudget>('1h');
   const [pendingCourseId, setPendingCourseId] = useState<string | null>(null);
 
   const { mutateAsync: createCourse, isPending } = useCreateCourse();
@@ -25,7 +34,7 @@ export default function HomeScreen() {
   const handleStart = async () => {
     if (!topic.trim()) return;
     try {
-      const result = await createCourse({ topic: topic.trim(), difficulty });
+      const result = await createCourse({ topic: topic.trim(), difficulty, timeBudget });
       // Reused/ready courses need no polling — only poll while generating.
       setPendingCourseId(
         result.status === 'ready' || result.reused ? null : result.courseId,
@@ -60,6 +69,15 @@ export default function HomeScreen() {
                 selected={difficulty === d}
                 onPress={() => setDifficulty(d)}
               />
+            ))}
+          </View>
+        </View>
+
+        <View className="gap-2">
+          <AppText variant="label">Time to spend</AppText>
+          <View className="flex-row flex-wrap gap-3">
+            {budgets.map(([b, label]) => (
+              <Chip key={b} label={label} selected={timeBudget === b} onPress={() => setTimeBudget(b)} />
             ))}
           </View>
         </View>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CreateCourseRequestSchema, CourseBlueprintSchema } from '../course.js';
+import { CreateCourseRequestSchema, GeneratedCourseSchema } from '../course.js';
 
 describe('CreateCourseRequestSchema', () => {
   it('accepts topic of 3 characters', () => {
@@ -20,94 +20,58 @@ describe('CreateCourseRequestSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('defaults difficulty to "beginner" when omitted', () => {
+  it('defaults difficulty to "beginner" and timeBudget to "1h" when omitted', () => {
     const result = CreateCourseRequestSchema.parse({ topic: 'Python' });
     expect(result.difficulty).toBe('beginner');
+    expect(result.timeBudget).toBe('1h');
   });
 
-  it('defaults moduleCount to 5 when omitted', () => {
-    const result = CreateCourseRequestSchema.parse({ topic: 'Python' });
-    expect(result.moduleCount).toBe(5);
+  it('rejects a timeBudget outside the presets', () => {
+    const result = CreateCourseRequestSchema.safeParse({ topic: 'Python', timeBudget: '2h' });
+    expect(result.success).toBe(false);
   });
 
-  it('accepts all difficulty enum values', () => {
-    for (const level of ['beginner', 'intermediate', 'advanced']) {
-      expect(() =>
-        CreateCourseRequestSchema.parse({ topic: 'Python', difficulty: level }),
-      ).not.toThrow();
+  it('accepts every preset', () => {
+    for (const timeBudget of ['30min', '1h', '4h', 'unrestricted']) {
+      expect(() => CreateCourseRequestSchema.parse({ topic: 'Python', timeBudget })).not.toThrow();
     }
-  });
-
-  it('rejects invalid difficulty string', () => {
-    const result = CreateCourseRequestSchema.safeParse({ topic: 'Python', difficulty: 'expert' });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects moduleCount below 3', () => {
-    const result = CreateCourseRequestSchema.safeParse({ topic: 'Python', moduleCount: 2 });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects moduleCount above 20', () => {
-    const result = CreateCourseRequestSchema.safeParse({ topic: 'Python', moduleCount: 21 });
-    expect(result.success).toBe(false);
-  });
-
-  it('accepts moduleCount of 3', () => {
-    expect(() => CreateCourseRequestSchema.parse({ topic: 'Python', moduleCount: 3 })).not.toThrow();
-  });
-
-  it('accepts moduleCount of 20', () => {
-    expect(() => CreateCourseRequestSchema.parse({ topic: 'Python', moduleCount: 20 })).not.toThrow();
   });
 });
 
-const validBlueprint = {
+const generated = {
   title: 'Python Basics',
-  description: 'Learn Python from scratch',
-  difficulty: 'beginner' as const,
-  estimatedHours: 10,
+  description: 'Learn Python.',
+  difficulty: 'beginner',
+  budget: { preset: '1h', words: 9000, measured_words: 8800, estimated_minutes: 59 },
   modules: [
     {
-      position: 0,
-      title: 'Introduction',
+      position: 1,
+      title: 'Intro',
       description: 'Getting started',
-      objectives: ['Understand Python', 'Run scripts'],
-      contentOutline: [{ title: 'Setup', points: ['Install Python'] }],
-      estimatedMinutes: 60,
+      objectives: ['Understand Python'],
+      content: '## Setup\nInstall Python.',
+      words: 8800,
+      estimated_minutes: 59,
+      resources: [{ url: 'https://docs.python.org/3/', title: 'Docs', why: 'reference' }],
     },
   ],
+  review: { passed: true, rewrite_rounds: 0 },
 };
 
-describe('CourseBlueprintSchema', () => {
-  it('accepts a fully valid nested blueprint', () => {
-    expect(() => CourseBlueprintSchema.parse(validBlueprint)).not.toThrow();
+describe('GeneratedCourseSchema', () => {
+  it('keeps only what the app persists from the workflow output', () => {
+    const parsed = GeneratedCourseSchema.parse(generated);
+    expect(parsed).not.toHaveProperty('review');
+    expect(parsed.budget).toEqual({ estimated_minutes: 59 });
+    expect(parsed.modules[0]).not.toHaveProperty('words');
   });
 
-  it('rejects empty modules array (min 1)', () => {
-    const result = CourseBlueprintSchema.safeParse({ ...validBlueprint, modules: [] });
-    expect(result.success).toBe(false);
+  it('rejects a course with no modules', () => {
+    expect(GeneratedCourseSchema.safeParse({ ...generated, modules: [] }).success).toBe(false);
   });
 
-  it('rejects module with empty objectives array', () => {
-    const result = CourseBlueprintSchema.safeParse({
-      ...validBlueprint,
-      modules: [{ ...validBlueprint.modules[0], objectives: [] }],
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects module with non-positive estimatedMinutes', () => {
-    const result = CourseBlueprintSchema.safeParse({
-      ...validBlueprint,
-      modules: [{ ...validBlueprint.modules[0], estimatedMinutes: 0 }],
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects blueprint missing required title', () => {
-    const { title: _t, ...withoutTitle } = validBlueprint;
-    const result = CourseBlueprintSchema.safeParse(withoutTitle);
-    expect(result.success).toBe(false);
+  it('rejects a module without a lesson', () => {
+    const modules = [{ ...generated.modules[0], content: '' }];
+    expect(GeneratedCourseSchema.safeParse({ ...generated, modules }).success).toBe(false);
   });
 });

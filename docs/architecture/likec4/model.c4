@@ -36,9 +36,8 @@ model {
     agent = container 'Agent Service' {
       #internal
       technology 'Fastify / LangGraph :3001'
-      description 'Internal AI service. Runs LangGraph graphs for course generation and module chat.'
+      description 'Internal AI service. Runs the module-chat graph and embeddings.'
 
-      courseGraph = component 'CourseGenerationGraph' { description 'generateBlueprint node.' }
       chatGraph   = component 'ModuleChatGraph'       { description 'teacher and evaluator nodes.' }
       embeddings  = component 'Embeddings Route'      { description 'POST /embeddings/text' }
     }
@@ -46,7 +45,7 @@ model {
     worker = container 'Worker Service' {
       #internal
       technology 'Fastify / Node.js'
-      description 'Background task handler. Processes course generation and embedding tasks.'
+      description 'Background task handler. Runs course generation on AgentPlatform and processes embedding tasks.'
     }
 
     postgres = database 'PostgreSQL' {
@@ -71,6 +70,10 @@ model {
     description 'Cloud Run, Artifact Registry, Secret Manager.'
   }
 
+  platform = externalSystem 'AgentPlatform' {
+    description 'course-creator workflow that generates courses (ADR-030). Dev-only until hosted for prod.'
+  }
+
   otel = externalSystem 'OpenTelemetry Collector' {
     #optional
     description 'Optional trace aggregation. No-op unless OTEL_EXPORTER_OTLP_ENDPOINT is set.'
@@ -88,7 +91,8 @@ model {
 
   tasks -> autodidact.worker 'delivers tasks to /tasks/:name' 'OIDC POST'
   autodidact.worker -> tasks 'creates embedding follow-up task' 'Cloud Tasks API'
-  autodidact.worker -> autodidact.agent 'generate-course and embeddings routes' 'HTTP (internal)'
+  autodidact.worker -> platform 'creates and polls a course-creator run' 'HTTPS /api/v1'
+  autodidact.worker -> autodidact.agent 'embeddings route' 'HTTP (internal)'
   autodidact.worker -> autodidact.postgres 'updates status, inserts modules, stores embeddings' 'PostgreSQL'
 
   autodidact.agent -> llm 'invokes LLM for generation and teaching' 'HTTPS'

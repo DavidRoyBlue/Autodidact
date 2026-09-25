@@ -20,24 +20,25 @@ Pure task-processing functions. Each file exports a `process*(data, deps)` funct
 
 ```typescript
 CourseGenerationJobData {
-  courseId:    string   // UUID of the pre-created courses row
-  userId:      string   // UUID of the requesting user
-  topic:       string   // raw topic string from the user
-  difficulty:  string   // e.g. 'beginner' | 'intermediate' | 'advanced'
-  moduleCount: number   // number of modules to generate
+  courseId:   string      // UUID of the pre-created courses row
+  userId:     string      // UUID of the requesting user
+  topic:      string      // raw topic string from the user
+  difficulty: string      // e.g. 'beginner' | 'intermediate' | 'advanced'
+  timeBudget: TimeBudget  // '30min' | '1h' | '4h' | 'unrestricted'
 }
 ```
 
 ### Processor steps
 
 ```
-1. UPDATE courses SET status='generating'             (outside transaction)
-2. agentClient.generateCourse(data) → CourseBlueprint (HTTP POST to Agent /course/generate)
+1. UPDATE courses SET status='generating'                   (outside transaction)
+2. platformClient.generateCourse(data) → GeneratedCourse     (creates + polls a run on
+                                                               AgentPlatform's course-creator
+                                                               workflow, ADR-030)
 3. DB transaction:
-     a. DELETE modules WHERE course_id = $courseId    (idempotency — see below)
-     b. UPDATE courses SET title, description, difficulty, estimatedHours,
-                           status='ready', blueprint
-     c. INSERT modules (one row per ModuleBlueprint from blueprint.modules)
+     a. DELETE modules WHERE course_id = $courseId          (idempotency — see below)
+     b. UPDATE courses SET title, description, difficulty, estimatedHours, status='ready'
+     c. INSERT modules (one row per module from course.modules — content, resources)
 4. RAG indexing of module chunks — best-effort, never fails the task (ADR-024)
 5. queueProvider.enqueue(QUEUES.EMBEDDING, JOB_NAMES.GENERATE_EMBEDDING,
                           { courseId, topic })

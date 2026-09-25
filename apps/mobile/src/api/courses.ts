@@ -1,3 +1,4 @@
+import type { TimeBudget } from '@autodidact/types';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from './client';
 import { useAuthStore } from '../stores/auth.store';
@@ -41,7 +42,7 @@ export function useCourse(courseId: string) {
 export function useCreateCourse() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { topic: string; difficulty?: string; preferredModuleCount?: number }) => {
+    mutationFn: async (data: { topic: string; difficulty?: string; timeBudget?: TimeBudget }) => {
       const res = await apiFetch('/courses', {
         method: 'POST',
         body: JSON.stringify(data),

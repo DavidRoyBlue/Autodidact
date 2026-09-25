@@ -115,18 +115,17 @@ export class ChatService {
           message: content,
           courseProgress,
           isFirstMessage: session.messages.length === 0,
-          moduleBlueprint: mod[0].contentOutline
-            ? {
-                // id lets the agent scope RAG retrieval to this module (ADR-024).
-                id: mod[0].id,
-                position: mod[0].position,
-                title: mod[0].title,
-                description: mod[0].description,
-                objectives: mod[0].objectives as string[],
-                contentOutline: mod[0].contentOutline as unknown as Array<{ title: string; points: string[] }>,
-                estimatedMinutes: mod[0].estimatedMinutes,
-              }
-            : {},
+          // id lets the agent scope RAG retrieval to this module (ADR-024).
+          moduleBlueprint: {
+            id: mod[0].id,
+            position: mod[0].position,
+            title: mod[0].title,
+            description: mod[0].description,
+            objectives: mod[0].objectives,
+            content: mod[0].content,
+            resources: mod[0].resources,
+            estimatedMinutes: mod[0].estimatedMinutes,
+          },
         }),
       });
 

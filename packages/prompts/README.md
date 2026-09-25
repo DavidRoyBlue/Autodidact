@@ -2,13 +2,13 @@
 
 ## Purpose
 
-System prompts and prompt builder functions for every LLM interaction in Autodidact. Centralising prompts here means the Agent service never hard-codes prompt strings inline.
+System prompts and prompt builder functions for every in-app LLM interaction in Autodidact. Centralising prompts here means the Agent service never hard-codes prompt strings inline. Course generation runs on AgentPlatform's `course-creator` workflow (ADR-030) and owns its own prompts there; this package covers module teaching and completion evaluation only.
 
 ## Consumers
 
 | Consumer | Usage |
 |----------|-------|
-| `services/agent` | All three prompts — course generation, module teaching, completion evaluation |
+| `services/agent` | Module teaching and completion evaluation prompts |
 
 No other service uses this package directly.
 
@@ -16,10 +16,6 @@ No other service uses this package directly.
 
 ```typescript
 import {
-  // Course generation
-  COURSE_GENERATION_SYSTEM_PROMPT,
-  buildCourseGenerationPrompt,
-
   // Module teaching
   buildModuleSystemPrompt,
   type UserContext,
@@ -34,7 +30,6 @@ import {
 
 ```
 packages/prompts/src/
-├── course-generation.ts      # Curriculum designer prompt
 ├── module-teacher.ts         # AI teacher prompt + completion signal format
 ├── completion-evaluator.ts   # Assessment AI prompt
 └── index.ts                  # Re-exports all of the above
@@ -42,27 +37,15 @@ packages/prompts/src/
 
 ## Prompt Reference
 
-### Course Generation (`course-generation.ts`)
-
-**System prompt**: Instructs the LLM to act as an expert curriculum designer and return a complete `CourseBlueprint` as JSON. The schema is embedded directly in the prompt to guide structured output.
-
-**User prompt builder**:
-```typescript
-buildCourseGenerationPrompt({ topic, difficulty, moduleCount })
-// → "Create a beginner level course on "TypeScript" with exactly 5 modules."
-```
-
-**Output format**: JSON matching `CourseBlueprintSchema`. The node in `course-generation/nodes.ts` strips markdown code fences before parsing.
-
----
-
 ### Module Teacher (`module-teacher.ts`)
 
 **System prompt builder**:
 ```typescript
-buildModuleSystemPrompt(moduleBlueprint, userContext)
+buildModuleSystemPrompt(module, userContext, retrievedContext?)
 // → Multi-section prompt including course title, module position/title,
-//   description, learning objectives, content outline, and teaching instructions.
+//   description, learning objectives, the module's lesson content, and
+//   teaching instructions. retrievedContext is optional RAG grounding
+//   (ADR-024) for the student's current question.
 ```
 
 **Completion signal**: The teacher prompt instructs the LLM to append `[MODULE_COMPLETE:score=<0-100>]` at the end of its response when the student has demonstrated understanding of **all** objectives. The signal is extracted via regex and stripped from the response before it reaches the client.
@@ -102,6 +85,5 @@ buildCompletionEvaluatorPrompt(objectives)
 
 ## Change Safety Notes
 
-- **JSON schema in course-generation prompt**: The example JSON in `COURSE_GENERATION_SYSTEM_PROMPT` must stay in sync with `CourseBlueprintSchema` in `@autodidact/schemas`. If you add a required field to the schema, update the prompt example too — otherwise the LLM will not include it.
 - **Completion signal format**: The regex in `module-chat/nodes.ts` is `/\[MODULE_COMPLETE:score=(\d+)\]/`. If you change the signal format in the prompt, update the regex.
 - **Score threshold**: The minimum passing score is **60** (checked in `ChatService`, not here). The prompts define the scoring scale but not the pass/fail threshold.

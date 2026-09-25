@@ -110,7 +110,7 @@ describe('CoursesService — slug generation', () => {
       await service.createOrReuse('user-1', {
         topic,
         difficulty: 'beginner',
-        moduleCount: 5,
+        timeBudget: '1h',
       });
       const insertCall = mockValues.mock.calls[0]?.[0] as Record<string, unknown>;
       expect(insertCall?.['slug']).toBe(expectedSlug);
@@ -143,7 +143,7 @@ describe('CoursesService — createOrReuse routing', () => {
     mockExecute.mockResolvedValue({ rows: [{ id: 'existing-course', title: 'Python', similarity: 0.95 }] });
     const queueProvider = makeMockQueueProvider();
     const service = new CoursesService(makeMockAgentClient() as never, queueProvider as never, makeMockProvisioningService() as never);
-    const result = await service.createOrReuse('user-1', { topic: 'Python', difficulty: 'beginner', moduleCount: 5 });
+    const result = await service.createOrReuse('user-1', { topic: 'Python', difficulty: 'beginner', timeBudget: '1h' });
     expect(result.reused).toBe(true);
     expect(result.courseId).toBe('existing-course');
     expect(queueProvider.enqueue).not.toHaveBeenCalled();
@@ -156,7 +156,7 @@ describe('CoursesService — createOrReuse routing', () => {
     mockInsert.mockReturnValue({ values: mockValues });
     const queueProvider = makeMockQueueProvider('task-xyz');
     const service = new CoursesService(makeMockAgentClient() as never, queueProvider as never, makeMockProvisioningService() as never);
-    const result = await service.createOrReuse('user-1', { topic: 'Rust', difficulty: 'intermediate', moduleCount: 8 });
+    const result = await service.createOrReuse('user-1', { topic: 'Rust', difficulty: 'intermediate', timeBudget: '1h' });
     expect(result.reused).toBe(false);
     expect(result.courseId).toBe('new-course-id');
     expect(queueProvider.enqueue).toHaveBeenCalledOnce();

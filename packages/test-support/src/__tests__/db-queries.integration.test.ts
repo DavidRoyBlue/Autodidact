@@ -183,7 +183,7 @@ describe('Constraint: FK and unique', () => {
         title: 'Orphan Module',
         description: 'Should fail',
         objectives: ['obj'],
-        contentOutline: [{ title: 'sec', points: ['p'] }],
+        content: '## sec\np',
         estimatedMinutes: 10,
       }),
     ).rejects.toThrow();

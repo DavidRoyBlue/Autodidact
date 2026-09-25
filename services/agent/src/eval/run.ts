@@ -1,7 +1,7 @@
 /**
  * Agent eval runner — the regression gate for capability phases.
  *
- * Runs the course-generation and module-chat graphs against the seed datasets,
+ * Runs the module-chat graph against the seed dataset,
  * applies the pure scorers, prints a summary, and exits non-zero if any scorer's
  * pass rate falls below its threshold.
  *
@@ -16,23 +16,18 @@
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { createLLMProvider, createCheckpointer } from '@autodidact/providers';
 import { createLogger } from '@autodidact/observability';
-import { buildCourseGenerationGraph } from '../graphs/course-generation/graph.js';
 import { buildModuleChatGraph } from '../graphs/module-chat/graph.js';
 import {
-  scoreBlueprintSchema,
-  scoreBlueprintQuality,
   scoreNoMarkerLeak,
   scoreTutoringRelevance,
   scoreCompletionCalibration,
   summarize,
   type ScoreResult,
 } from './scorers.js';
-import { COURSE_GEN_CASES, TUTORING_CASES } from './datasets.js';
+import { TUTORING_CASES } from './datasets.js';
 
 // Minimum pass rate per scorer for the run to be considered a non-regression.
 const THRESHOLDS: Record<string, number> = {
-  blueprint_schema: 1.0,
-  blueprint_quality: 0.75,
   no_marker_leak: 1.0,
   tutoring_relevance: 0.75,
   completion_calibration: 0.5,
@@ -61,22 +56,6 @@ async function main(): Promise<void> {
   await checkpointer.init();
 
   const results: ScoreResult[] = [];
-
-  // Course generation
-  const courseGraph = buildCourseGenerationGraph(llm, logger);
-  for (const c of COURSE_GEN_CASES) {
-    const out = await courseGraph.invoke({
-      topic: c.topic,
-      difficulty: c.difficulty,
-      moduleCount: c.moduleCount,
-      blueprint: null,
-      retryCount: 0,
-      error: null,
-    });
-    results.push(scoreBlueprintSchema(out.blueprint));
-    if (out.blueprint) results.push(scoreBlueprintQuality(out.blueprint, { moduleCount: c.moduleCount }));
-    logger.info({ case: c.id, ok: Boolean(out.blueprint) }, 'course-gen case scored');
-  }
 
   // Tutoring
   const chatGraph = buildModuleChatGraph(llm, checkpointer, logger);

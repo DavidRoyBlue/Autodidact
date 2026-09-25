@@ -84,7 +84,7 @@ Fastify + LangGraph internal AI runtime (port 3001, never public) — all LLM an
 - Agents: none
 
 **Stack**
-- Framework: Fastify + LangGraph (course-generation + module-chat graphs)
+- Framework: Fastify + LangGraph (module-chat graph; course generation runs on AgentPlatform, ADR-030)
 - LLM: OpenAI (default) / Anthropic via `LLM_PROVIDER`
 - Embeddings: OpenAI text-embedding-3-small (1536-dim)
 - Checkpointer: postgres (prod) / memory (dev) via `CHECKPOINTER`
@@ -106,7 +106,7 @@ Fastify + LangGraph internal AI runtime (port 3001, never public) — all LLM an
 - [retriever.ts](services/agent/src/rag/retriever.ts)
 
 ## Worker 🟢
-_verified: 2026-09-01_
+_verified: 2026-09-25_
 
 Fastify background task handler invoked per-task by Cloud Tasks (prod) / loopback (dev); scale-to-zero.
 
@@ -118,7 +118,7 @@ Fastify background task handler invoked per-task by Cloud Tasks (prod) / loopbac
 
 **Stack**
 - Framework: Fastify (`/tasks/:name` + `/health` only)
-- Tasks: generate-course, generate-embedding, cleanup-stale-anonymous
+- Tasks: generate-course (a run on AgentPlatform's `course-creator` workflow, ADR-030 — reachable from dev only until the platform is hosted), generate-embedding, cleanup-stale-anonymous
 - DB: Drizzle via `@autodidact/db`; raw SQL for `::vector` writes
 - Retry: queue-level (Terraform `retry_config`, 3 attempts); `TASK_MAX_ATTEMPTS` mirrors it; final failure marks course `failed`
 - Auth: none in-app — Cloud Run IAM verifies Cloud Tasks OIDC
@@ -135,6 +135,7 @@ Fastify background task handler invoked per-task by Cloud Tasks (prod) / loopbac
 - [app.ts (task contract)](services/worker/src/app.ts)
 - [processors](services/worker/src/processors/)
 - [agent.client.ts](services/worker/src/services/agent.client.ts)
+- [agent-platform.client.ts](services/worker/src/services/agent-platform.client.ts)
 
 ## Infra 🟢
 _verified: 2026-09-01_
@@ -270,7 +271,7 @@ Zod schemas validating API request bodies and LLM output at service boundaries.
 ## packages/prompts 🟢
 _verified: 2026-09-01_
 
-Centralized system prompts and prompt builders for all LLM interactions (agent-only consumer).
+Centralized system prompts and prompt builders for the Agent service's module teaching and completion evaluation (agent-only consumer). Course generation's prompts live on AgentPlatform now (ADR-030).
 
 **Agent surface**
 - MCP: none
@@ -279,7 +280,7 @@ Centralized system prompts and prompt builders for all LLM interactions (agent-o
 - Agents: none
 
 **Stack**
-- Plain TS prompt builders; blueprint JSON schema embedded in prompts must mirror `CourseBlueprintSchema`
+- Plain TS prompt builders
 - Completion marker `[MODULE_COMPLETE:score=N]` — regex lives in agent `module-chat/nodes.ts`; pass threshold (60) in API `ChatService`
 
 **Secrets**
@@ -289,7 +290,6 @@ Centralized system prompts and prompt builders for all LLM interactions (agent-o
 **State** — In prod via the agent service.
 
 **Useful Files**
-- [course-generation.ts](packages/prompts/src/course-generation.ts)
 - [module-teacher.ts](packages/prompts/src/module-teacher.ts)
 - [completion-evaluator.ts](packages/prompts/src/completion-evaluator.ts)
 

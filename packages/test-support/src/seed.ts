@@ -57,7 +57,7 @@ export async function seedModules(
     title: `Module ${i}`,
     description: `Description ${i}`,
     objectives: ['obj1'],
-    contentOutline: [{ title: 'Section', points: ['point'] }],
+    content: '## Section\npoint',
     estimatedMinutes: 30,
   }));
   return db.insert(modules).values(rows).returning({ id: modules.id, position: modules.position });

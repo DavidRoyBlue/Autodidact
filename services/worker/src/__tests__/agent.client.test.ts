@@ -20,47 +20,6 @@ describe('AgentClient', () => {
     client = new AgentClient(BASE_URL);
   });
 
-  describe('generateCourse()', () => {
-    const payload = { courseId: 'c-1', userId: 'u-1', topic: 'Python', difficulty: 'beginner' as const, moduleCount: 5 };
-    const blueprint = {
-      title: 'Python Basics',
-      description: 'Learn Python.',
-      difficulty: 'beginner',
-      estimatedHours: 10,
-      modules: [],
-    };
-
-    it('POSTs to /course/generate with the correct body', async () => {
-      const mockFetch = vi.fn().mockResolvedValue(makeFetchResponse(true, { blueprint }));
-      vi.stubGlobal('fetch', mockFetch);
-      await client.generateCourse(payload);
-      expect(mockFetch).toHaveBeenCalledWith(
-        `${BASE_URL}/course/generate`,
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }),
-      );
-    });
-
-    it('returns data.blueprint on success', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse(true, { blueprint })));
-      const result = await client.generateCourse(payload);
-      expect(result).toEqual(blueprint);
-    });
-
-    it('throws with status when response is not ok', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse(false, 'Internal error', 500)));
-      await expect(client.generateCourse(payload)).rejects.toThrow('500');
-    });
-
-    it('throws with a message containing the error body on failure', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeFetchResponse(false, 'Bad Request', 400)));
-      await expect(client.generateCourse(payload)).rejects.toThrow(/course\/generate failed/);
-    });
-  });
-
   describe('generateEmbedding()', () => {
     const vector = [0.1, 0.2, 0.3];
 
