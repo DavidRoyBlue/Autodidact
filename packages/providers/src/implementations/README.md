@@ -97,4 +97,4 @@ implementations/
 - **Config**: `{ connectionString }` (the `DATABASE_URL`)
 - **Initialisation**: Lazy async. The `PostgresSaver` instance calls `.setup()` (creates checkpoint tables) once on first use.
 - **Activation**: Set `CHECKPOINTER=postgres`
-- **Required for production**: `MemorySaver` causes conversation history loss on every deploy.
+- **Status**: unused by any service since ADR-031 moved the module teacher (the only consumer) to AgentPlatform; kept pending a follow-up cleanup.

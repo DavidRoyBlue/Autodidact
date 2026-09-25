@@ -23,22 +23,23 @@ model {
 
       authModule     = component 'AuthModule'     { description 'Verifies Supabase JWT on every protected route.' }
       coursesModule  = component 'CoursesModule'  { description 'Course lifecycle: similarity check, enroll, enqueue, status polling.' }
-      chatModule     = component 'ChatModule'     { description 'Creates chat sessions and proxies Agent SSE to the client.' }
+      chatModule     = component 'ChatModule'     { description 'Creates chat sessions and runs course-teacher on AgentPlatform per turn (ADR-031).' }
       progressModule = component 'ProgressModule' { description 'Module progress, start and unlock logic.' }
-      agentClient    = component 'ApiAgentClient' { description 'Thin HTTP wrapper for the Agent service.' }
+      agentClient    = component 'ApiAgentClient' { description 'Thin HTTP wrapper for the Agent service (embeddings).' }
+      platformClient = component 'ApiPlatformClient' { description 'Thin HTTP wrapper for AgentPlatform: creates a thread, runs course-teacher.' }
 
       coursesModule -> agentClient 'embeddings + generation'
-      chatModule    -> agentClient 'streams chat'
+      chatModule    -> agentClient 'RAG query embedding'
+      chatModule    -> platformClient 'runs course-teacher per turn'
       coursesModule -> progressModule 'seeds progress'
       chatModule    -> progressModule 'completes module, unlocks next'
     }
 
     agent = container 'Agent Service' {
       #internal
-      technology 'Fastify / LangGraph :3001'
-      description 'Internal AI service. Runs the module-chat graph and embeddings.'
+      technology 'Fastify :3001'
+      description 'Internal embeddings service. No LLM or graph runtime (ADR-030, ADR-031).'
 
-      chatGraph   = component 'ModuleChatGraph'       { description 'teacher and evaluator nodes.' }
       embeddings  = component 'Embeddings Route'      { description 'POST /embeddings/text' }
     }
 
@@ -59,7 +60,7 @@ model {
   }
 
   llm = externalSystem 'LLM Provider' {
-    description 'OpenAI (GPT-4o) by default, or Anthropic (Claude) via LLM_PROVIDER env var.'
+    description 'OpenAI text-embedding-3-small, called by the Agent service. Course generation and module teaching run on AgentPlatform, not this system boundary.'
   }
 
   tasks = externalSystem 'Cloud Tasks' {
@@ -71,7 +72,7 @@ model {
   }
 
   platform = externalSystem 'AgentPlatform' {
-    description 'course-creator workflow that generates courses (ADR-030). Dev-only until hosted for prod.'
+    description 'course-creator generates courses (ADR-030); course-teacher runs the module chat (ADR-031). Dev-only until hosted for prod.'
   }
 
   otel = externalSystem 'OpenTelemetry Collector' {
@@ -84,7 +85,8 @@ model {
 
   autodidact.mobile -> autodidact.api 'REST + SSE' 'HTTPS'
 
-  autodidact.api -> autodidact.agent 'course gen, embeddings, chat stream' 'HTTP (internal)'
+  autodidact.api -> autodidact.agent 'embeddings' 'HTTP (internal)'
+  autodidact.api -> platform 'creates a thread, runs course-teacher per turn' 'HTTPS /api/v1'
   autodidact.api -> tasks 'creates generation tasks' 'Cloud Tasks API'
   autodidact.api -> autodidact.postgres 'reads/writes course, enrollment, progress, session data' 'PostgreSQL'
   autodidact.api -> supabase 'verifies JWT tokens' 'HTTPS'
@@ -95,8 +97,7 @@ model {
   autodidact.worker -> autodidact.agent 'embeddings route' 'HTTP (internal)'
   autodidact.worker -> autodidact.postgres 'updates status, inserts modules, stores embeddings' 'PostgreSQL'
 
-  autodidact.agent -> llm 'invokes LLM for generation and teaching' 'HTTPS'
-  autodidact.agent -> autodidact.postgres 'reads/writes LangGraph checkpoints' 'PostgreSQL'
+  autodidact.agent -> llm 'invokes embedding model' 'HTTPS'
 
   autodidact.postgres -> supabase 'hosted by'
   autodidact -> gcp 'runs on, stores secrets, pushes images' 'GCP APIs'

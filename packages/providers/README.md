@@ -9,8 +9,10 @@ Provider interfaces, implementations, and factory functions for all external ven
 | Consumer | Providers Used |
 |----------|---------------|
 | `services/api` | `IAuthProvider`, `IQueueProvider` |
-| `services/agent` | `ILLMProvider`, `IEmbeddingProvider`, `ICheckpointerProvider` |
+| `services/agent` | `IEmbeddingProvider` |
 | `services/worker` | `IQueueProvider` |
+
+`ILLMProvider` and `ICheckpointerProvider` are not called by any service since ADR-031 moved the module teacher to AgentPlatform — they remain here, unused, pending a follow-up cleanup (ADR-031 non-goals).
 
 ## Public API
 

@@ -35,6 +35,8 @@ export const apiEnvSchema = baseSchema.extend({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SECRET_KEY: nonEmpty('SUPABASE_SECRET_KEY'),
   AGENT_SERVICE_URL: z.string().url().default('http://localhost:3001'),
+  // AgentPlatform runs the module teacher (ADR-031); reachable from dev only until it is hosted
+  AGENT_PLATFORM_URL: z.string().url().default('http://localhost:8400'),
   API_PORT: Port.default(3000),
 });
 

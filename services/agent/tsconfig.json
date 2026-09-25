@@ -6,7 +6,6 @@
       "@autodidact/types": ["../../packages/types/src/index.ts"],
       "@autodidact/schemas": ["../../packages/schemas/src/index.ts"],
       "@autodidact/providers": ["../../packages/providers/src/index.ts"],
-      "@autodidact/prompts": ["../../packages/prompts/src/index.ts"],
       "@autodidact/observability": ["../../packages/observability/src/index.ts"]
     }
   },

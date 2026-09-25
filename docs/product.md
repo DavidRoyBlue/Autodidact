@@ -32,7 +32,7 @@ course is reused and the user is enrolled instantly — no generation wait time.
 ## Module Unlock Flow
 
 1. On enrollment, module 0 is unlocked (`status = available`), all others locked.
-2. User completes a module (AI signals `[MODULE_COMPLETE:score=N]`).
+2. User completes a module (the teacher's reply carries `module_complete: true` and a `score`).
 3. Module is marked completed with a score.
 4. Next module in sequence is unlocked.
 5. When all modules complete, enrollment is marked done.

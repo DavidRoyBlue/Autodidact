@@ -19,11 +19,7 @@ import type { AuthUser } from '@autodidact/types';
 @Controller('chat')
 @UseGuards(AuthGuard)
 export class ChatController {
-  private readonly agentUrl: string;
-
-  constructor(private readonly chatService: ChatService) {
-    this.agentUrl = process.env['AGENT_SERVICE_URL'] ?? 'http://localhost:3001';
-  }
+  constructor(private readonly chatService: ChatService) {}
 
   @Post('sessions')
   createSession(@Body(new ZodValidationPipe(CreateChatSessionSchema)) dto: CreateChatSession, @CurrentUser() user: AuthUser) {
@@ -51,7 +47,7 @@ export class ChatController {
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
 
-    const stream$ = this.chatService.streamMessage(sessionId, user.id, dto.content, this.agentUrl);
+    const stream$ = this.chatService.streamMessage(sessionId, user.id, dto.content);
     await new Promise<void>((resolve) => {
       const subscription = stream$.subscribe({
         next: (event) => {

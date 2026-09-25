@@ -46,7 +46,7 @@ Derived from runtime usage (some are conditional):
 
 | Service | Required | Conditional | Optional (defaulted) |
 |---------|----------|-------------|----------------------|
-| `api` | `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | — | `AGENT_SERVICE_URL`, `API_PORT` |
+| `api` | `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | — | `AGENT_SERVICE_URL`, `AGENT_PLATFORM_URL`, `API_PORT` |
 | `agent` | — | `OPENAI_API_KEY` (if `LLM_PROVIDER=openai`, the default), `DATABASE_URL` (if `CHECKPOINTER=postgres`), `ANTHROPIC_API_KEY` (if `LLM_PROVIDER=anthropic`) | `LLM_PROVIDER`, `CHECKPOINTER`, `AGENT_PORT` |
 | `worker` | `DATABASE_URL` | — | `AGENT_SERVICE_URL`, `AGENT_PLATFORM_URL`, `WORKER_PORT`, `TASK_MAX_ATTEMPTS` |
 

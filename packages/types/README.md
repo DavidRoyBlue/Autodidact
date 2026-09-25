@@ -13,10 +13,10 @@ The distinction from `@autodidact/schemas`: types here are for static structural
 | `packages/db` | `ModuleResource` in the `modules` schema column type annotation |
 | `packages/schemas` | `DifficultyLevel`, `TimeBudget` imported for their Zod enums |
 | `packages/providers` | `AuthUser`, `JobStatus` in interface definitions |
-| `packages/prompts` | `CourseModule` in `buildModuleSystemPrompt` signature |
 | `services/api` | `UserProfile`, `AuthUser`, `UserProgress`, `ChatSession`, job data types |
-| `services/agent` | `CourseModule`, `StreamChunk`, job data types |
 | `services/worker` | `CourseGenerationJobData`, `EmbeddingJobData`, `TimeBudget` |
+
+`services/agent` does not consume this package — it lost its only uses (`CourseModule`, `StreamChunk`) when the module-chat graph was removed (ADR-031); it is embeddings-only now.
 
 ## Public API
 

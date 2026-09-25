@@ -22,7 +22,7 @@ AI-native learning platform that generates structured courses and teaches them t
 
 ### Backend
 - NestJS (API)
-- LangGraph TS (Agent)
+- Fastify (Agent — embeddings only; module teaching and course generation run on AgentPlatform)
 - Cloud Tasks task handler (Worker)
 
 ### Data
@@ -51,7 +51,6 @@ autodidact/
 │   ├── db/
 │   ├── env/           ← typed, fail-fast env validation (boot-time)
 │   ├── schemas/
-│   ├── prompts/
 │   ├── types/
 │   ├── config/
 │   └── observability/
@@ -98,12 +97,11 @@ pnpm db:studio:dev        # Drizzle Studio; Supabase Studio at http://127.0.0.1:
 
 ## Provider Configuration
 
-Two provider switches are wired to code today — set them in the environment, no code change needed to swap:
-
-| Variable | Options | Default |
-|----------|---------|---------|
-| `LLM_PROVIDER` | `openai`, `anthropic` | `openai` |
-| `CHECKPOINTER` | `memory`, `postgres` | `memory` |
+No service calls `createLLMProvider()` or `createCheckpointer()` any more — the
+module teacher moved to AgentPlatform's `course-teacher` agent (ADR-031), so
+`LLM_PROVIDER` and `CHECKPOINTER` are declared in `packages/providers` and
+`.env.example` but wired to nothing. Their removal is a follow-up (ADR-031
+non-goals), not done yet.
 
 The provider-factory pattern (`packages/providers`) is designed to host more
 switches — `EMBEDDING_PROVIDER`, `QUEUE_PROVIDER`, `AUTH_PROVIDER` are reserved

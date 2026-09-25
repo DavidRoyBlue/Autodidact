@@ -41,7 +41,8 @@ import { InternalServerErrorException } from '@nestjs/common';
 import { ChatService } from '../modules/chat/chat.service.js';
 import { ProgressService } from '../modules/progress/progress.service.js';
 import { ProvisioningService } from '../modules/provisioning/provisioning.service.js';
-import { makeMockProvisioningService } from '@autodidact/config/test-utils';
+import { makeMockProvisioningService, makeMockAgentClient } from '@autodidact/config/test-utils';
+import { ApiPlatformClient } from '../services/agent-platform.client.js';
 
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -54,37 +55,43 @@ afterAll(async () => {
 });
 
 // ────────────────────────────────────────────────────────────────────────────
-// SSE stream builder — reused across all token-streaming tests
+// The platform, stubbed at fetch: a thread on demand, a queued run, then the
+// run read back completed with the reply the test chose.
 // ────────────────────────────────────────────────────────────────────────────
 
-function makeSseStream(lines: string[]): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder();
-  return new ReadableStream({
-    start(controller) {
-      for (const line of lines) {
-        controller.enqueue(encoder.encode(`data: ${line}\n`));
-      }
-      controller.close();
-    },
-  });
+function stubPlatform(reply: { reply: string; module_complete: boolean; score: number | null }) {
+  const calls: Array<{ method: string; url: string; body?: unknown }> = [];
+  const json = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body) });
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      const method = init?.method ?? 'GET';
+      calls.push({ method, url, body: init?.body ? JSON.parse(init.body) : undefined });
+      if (url.endsWith('/api/v1/threads')) return json({ id: 'thr_1' });
+      if (url.endsWith('/api/v1/runs')) return json({ id: 'run_1', status: 'queued', output: null, error: null });
+      if (url.endsWith('/api/v1/runs/run_1')) return json({ id: 'run_1', status: 'completed', output: reply, error: null });
+      return { ok: false, status: 404, json: async () => ({}), text: async () => 'not found' };
+    }),
+  );
+  return calls;
 }
 
 async function collectEvents(obs: Observable<MessageEvent>): Promise<MessageEvent[]> {
   return firstValueFrom(obs.pipe(toArray()));
 }
 
+const NOT_DONE = { reply: 'Tell me what a resolver does.', module_complete: false, score: null };
+const DONE = { reply: 'That covers every objective.', module_complete: true, score: 80 };
+
 // ────────────────────────────────────────────────────────────────────────────
 
 describe('ChatService.createSession() — provisioning gate', () => {
   it('throws InternalServerErrorException for an unprovisioned userId', async () => {
-    // Real ProvisioningService — getDb() is redirected to harness.db by the vi.mock above.
-    // The truncate in a prior test (or fresh harness) ensures this UUID has no public.users row.
-    const unprovisionedUserId = '00000000-0000-0000-0000-000000000099';
-    const service = new ChatService(new ProgressService(), new ProvisioningService());
-
-    await expect(
-      service.createSession(unprovisionedUserId, '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002'),
-    ).rejects.toThrow(InternalServerErrorException);
+    await harness.truncate();
+    const service = new ChatService(new ProgressService(), new ProvisioningService(), makeMockAgentClient() as never, new ApiPlatformClient());
+    await expect(service.createSession('00000000-0000-0000-0000-000000000000', 'mod', 'course')).rejects.toBeInstanceOf(
+      InternalServerErrorException,
+    );
   });
 });
 
@@ -110,136 +117,104 @@ describe('ChatService.streamMessage()', () => {
     await seedEnrollment(harness.db, userId, courseId);
     await seedModuleProgress(harness.db, userId, courseId, mods);
 
-    // Insert a real chat_sessions row
     const [session] = await harness.db
       .insert(chatSessions)
-      .values({ userId, moduleId, threadId: 'test-thread', messages: [] })
+      .values({ userId, moduleId, messages: [] })
       .returning({ id: chatSessions.id });
     if (!session) throw new Error('Failed to create chat session');
     sessionId = session.id;
 
-    // Build real service with real ProgressService (writes real DB rows).
-    // ProvisioningService is mocked (no-op) because the seeded user is always provisioned;
-    // the unprovisioned rejection path is tested separately below.
-    service = new ChatService(new ProgressService(), makeMockProvisioningService() as never);
+    // Real ProgressService (writes real DB rows); provisioning mocked because the
+    // seeded user is always provisioned; embeddings mocked (the chunk table is empty).
+    service = new ChatService(new ProgressService(), makeMockProvisioningService() as never, makeMockAgentClient() as never, new ApiPlatformClient());
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Error cases
-  // ──────────────────────────────────────────────────────────────────────────
-
-  describe('error cases', () => {
-    it('emits an error event when the module is not found', async () => {
-      // Use raw SQL to update the session's module_id to a non-existent UUID,
-      // bypassing the FK constraint (superuser can do this via session_replication_role).
-      // This simulates a session whose module is missing to exercise the "module not found" branch.
-      const fakeModuleId = '00000000-0000-0000-0000-000000000001';
-      await harness.pool.query(`SET session_replication_role = 'replica'`);
-      await harness.pool.query(
-        `UPDATE chat_sessions SET module_id = $1 WHERE id = $2`,
-        [fakeModuleId, sessionId],
-      );
-      await harness.pool.query(`SET session_replication_role = 'origin'`);
-
-      const events = await collectEvents(
-        service.streamMessage(sessionId, userId, 'hi', 'http://agent'),
-      );
-      const errorEvent = events.find((e) => {
-        const parsed = JSON.parse(e.data as string) as { type: string };
-        return parsed.type === 'error';
-      });
-      expect(errorEvent).toBeDefined();
-    });
-
-    it('emits an error event when agent fetch fails (non-ok response)', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, body: null, status: 500 }));
-      const events = await collectEvents(
-        service.streamMessage(sessionId, userId, 'hi', 'http://agent'),
-      );
-      const errorEvent = events.find((e) => {
-        const parsed = JSON.parse(e.data as string) as { type: string };
-        return parsed.type === 'error';
-      });
-      expect(errorEvent).toBeDefined();
-    });
+  it('emits an error event when the session is gone', async () => {
+    await harness.db.delete(chatSessions).where(eq(chatSessions.id, sessionId));
+    stubPlatform(NOT_DONE);
+    const events = await collectEvents(service.streamMessage(sessionId, userId, 'hi'));
+    const last = JSON.parse(events.at(-1)!.data as string) as { type: string; error: string };
+    expect(last.type).toBe('error');
+    expect(last.error).toContain('Session not found');
   });
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Token streaming
-  // ──────────────────────────────────────────────────────────────────────────
+  it('opens a platform thread on the first turn and sends the module with the learner text', async () => {
+    const calls = stubPlatform(NOT_DONE);
+    const events = await collectEvents(service.streamMessage(sessionId, userId, 'What is DNS?'));
 
-  describe('token streaming', () => {
-    it('forwards token events from the SSE stream', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({
-          ok: true,
-          body: makeSseStream([
-            JSON.stringify({ type: 'token', content: 'Hello ' }),
-            JSON.stringify({ type: 'token', content: 'World' }),
-          ]),
-        }),
-      );
-      const events = await collectEvents(
-        service.streamMessage(sessionId, userId, 'hi', 'http://agent'),
-      );
-      const tokenEvents = events.filter((e) => {
-        const p = JSON.parse(e.data as string) as { type: string };
-        return p.type === 'token';
-      });
-      expect(tokenEvents).toHaveLength(2);
-    });
+    expect(calls.map((c) => `${c.method} ${c.url.replace(/^http:\/\/[^/]+/, '')}`)).toEqual([
+      'POST /api/v1/threads',
+      'POST /api/v1/runs',
+      'GET /api/v1/runs/run_1',
+    ]);
+    const run = calls[1]!.body as { agent_id: string; thread_id: string; input: { message: string } };
+    expect(run.agent_id).toBe('course-teacher');
+    expect(run.thread_id).toBe('thr_1');
+    expect(run.input.message).toContain('Module 1/2: Module 0');
+    expect(run.input.message).toContain('Lesson:\n## Section');
+    expect(run.input.message.endsWith('Learner: What is DNS?')).toBe(true);
 
-    it('calls completeModule (real DB effect: module_progress→completed) when score >= 60', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({
-          ok: true,
-          body: makeSseStream([
-            JSON.stringify({ type: 'token', content: 'Great work!' }),
-            JSON.stringify({ type: 'complete', score: 80 }),
-          ]),
-        }),
-      );
+    expect(events.map((e) => (JSON.parse(e.data as string) as { type: string }).type)).toEqual(['token', 'complete']);
+    const [session] = await harness.db.select({ threadId: chatSessions.threadId, messages: chatSessions.messages }).from(chatSessions).where(eq(chatSessions.id, sessionId));
+    expect(session?.threadId).toBe('thr_1');
+    expect(session?.messages.map((m) => m.role)).toEqual(['user', 'assistant']);
+    expect(session?.messages[1]?.content).toBe(NOT_DONE.reply);
+  });
 
-      await collectEvents(service.streamMessage(sessionId, userId, 'hi', 'http://agent'));
+  it('sends only the learner text on later turns, on the same thread', async () => {
+    await harness.db.update(chatSessions).set({ threadId: 'thr_1' }).where(eq(chatSessions.id, sessionId));
+    const calls = stubPlatform(NOT_DONE);
+    await collectEvents(service.streamMessage(sessionId, userId, 'And a stub resolver?'));
 
-      // Real DB cross-check: module_progress row for position-0 module must be 'completed'
-      // with the correct score, proving completeModule wrote through to the real DB.
-      const [progress] = await harness.db
-        .select({ status: moduleProgress.status, completionScore: moduleProgress.completionScore })
-        .from(moduleProgress)
-        .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.moduleId, moduleId)));
+    expect(calls.some((c) => c.url.endsWith('/api/v1/threads'))).toBe(false);
+    const run = calls[0]!.body as { thread_id: string; input: { message: string } };
+    expect(run.thread_id).toBe('thr_1');
+    expect(run.input.message).toBe('And a stub resolver?');
+  });
 
-      expect(progress?.status).toBe('completed');
-      expect(progress?.completionScore).toBe(80);
-    });
+  it('calls completeModule (real DB effect: module_progress→completed) when the teacher completes at >= 60', async () => {
+    stubPlatform(DONE);
+    const events = await collectEvents(service.streamMessage(sessionId, userId, 'I get it now'));
+    expect(events.map((e) => (JSON.parse(e.data as string) as { type: string }).type)).toEqual(['token', 'module_complete', 'complete']);
 
-    it('does NOT call completeModule (module_progress stays unchanged) when score < 60', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockResolvedValue({
-          ok: true,
-          body: makeSseStream([
-            JSON.stringify({ type: 'token', content: 'Keep going.' }),
-            JSON.stringify({ type: 'complete', score: 45 }),
-          ]),
-        }),
-      );
+    const [progress] = await harness.db
+      .select({ status: moduleProgress.status, completionScore: moduleProgress.completionScore })
+      .from(moduleProgress)
+      .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.moduleId, moduleId)));
 
-      await collectEvents(service.streamMessage(sessionId, userId, 'hi', 'http://agent'));
+    expect(progress?.status).toBe('completed');
+    expect(progress?.completionScore).toBe(80);
+  });
 
-      // Real DB cross-check: module_progress for position-0 must NOT be 'completed'
-      const [progress] = await harness.db
-        .select({ status: moduleProgress.status })
-        .from(moduleProgress)
-        .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.moduleId, moduleId)));
+  it('does NOT call completeModule when the teacher completes below 60', async () => {
+    stubPlatform({ ...DONE, score: 45 });
+    await collectEvents(service.streamMessage(sessionId, userId, 'hi'));
 
-      expect(progress?.status).not.toBe('completed');
-    });
+    const [progress] = await harness.db
+      .select({ status: moduleProgress.status })
+      .from(moduleProgress)
+      .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.moduleId, moduleId)));
+
+    expect(progress?.status).not.toBe('completed');
+  });
+
+  it('emits an error event when the platform run fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        const json = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => '' });
+        if (url.endsWith('/api/v1/threads')) return json({ id: 'thr_1' });
+        if (url.endsWith('/api/v1/runs')) return json({ id: 'run_1', status: 'queued', output: null, error: null });
+        return json({ id: 'run_1', status: 'failed', output: null, error: 'model unavailable' });
+      }),
+    );
+    const events = await collectEvents(service.streamMessage(sessionId, userId, 'hi'));
+    const last = JSON.parse(events.at(-1)!.data as string) as { type: string; error: string };
+    expect(last.type).toBe('error');
+    expect(last.error).toContain('run_1 failed: model unavailable');
   });
 });

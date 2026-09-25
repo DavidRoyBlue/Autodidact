@@ -25,25 +25,37 @@ const MOCK_COURSE = {
   })),
 };
 
+/** What the mock platform's course-teacher run returns: one turn completes the module. */
+const MOCK_REPLY = { reply: 'Great — you have grasped the key ideas of this module.', module_complete: true, score: 85 };
+
 /**
- * AgentPlatform stand-in for the worker (ADR-030): a course-creator run is
- * created queued and reads back completed with MOCK_COURSE on the first poll.
+ * AgentPlatform stand-in (ADR-030, ADR-031): a thread is created on demand; a
+ * run is created queued and reads back completed on the first poll — with
+ * MOCK_COURSE for the worker's course-creator run, MOCK_REPLY for the api's
+ * course-teacher run.
  */
-const MOCK_QUEUED_BODY = JSON.stringify({ id: 'run_e2e', status: 'queued', output: null, error: null });
-const MOCK_COMPLETED_BODY = JSON.stringify({ id: 'run_e2e', status: 'completed', output: MOCK_COURSE, error: null });
 
 function startMockPlatform(): Promise<{ url: string; close: () => Promise<void> }> {
   const server = createHttpServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    if (req.method === 'POST' && req.url === '/api/v1/runs') {
-      res.statusCode = 201;
-      res.end(MOCK_QUEUED_BODY);
-    } else if (req.method === 'GET' && req.url?.startsWith('/api/v1/runs/')) {
-      res.end(MOCK_COMPLETED_BODY);
-    } else {
-      res.statusCode = 404;
-      res.end('{}');
-    }
+    let body = '';
+    req.on('data', (chunk: Buffer) => (body += chunk));
+    req.on('end', () => {
+      if (req.method === 'POST' && req.url === '/api/v1/threads') {
+        res.statusCode = 201;
+        res.end(JSON.stringify({ id: 'thr_e2e', title: '', project: 'Autodidact', summary: '' }));
+      } else if (req.method === 'POST' && req.url === '/api/v1/runs') {
+        const { agent_id } = JSON.parse(body) as { agent_id?: string };
+        res.statusCode = 201;
+        res.end(JSON.stringify({ id: agent_id === 'course-teacher' ? 'run_teach' : 'run_course', status: 'queued', output: null, error: null }));
+      } else if (req.method === 'GET' && req.url?.startsWith('/api/v1/runs/')) {
+        const teach = req.url.endsWith('/run_teach');
+        res.end(JSON.stringify({ id: teach ? 'run_teach' : 'run_course', status: 'completed', output: teach ? MOCK_REPLY : MOCK_COURSE, error: null }));
+      } else {
+        res.statusCode = 404;
+        res.end('{}');
+      }
+    });
   });
   return new Promise((done) => {
     server.listen(0, '127.0.0.1', () => {

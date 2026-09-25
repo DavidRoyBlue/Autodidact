@@ -37,6 +37,7 @@ Sort within each section by ADR number.
 - [ADR-026 — End-to-end testing strategy](./cross-cutting/ADR-026-e2e-testing-strategy.md)
 - [ADR-028 — Production auth: identity contract, hybrid provisioning, and data-path posture](./cross-cutting/ADR-028-production-auth-provisioning.md) — Accepted 2026-06-19
 - [ADR-030 — Course generation runs on AgentPlatform's course-creator workflow](./cross-cutting/ADR-030-course-generation-on-agent-platform.md) — Accepted 2026-09-25
+- [ADR-031 — The module teacher runs on AgentPlatform](./cross-cutting/ADR-031-module-teacher-on-agent-platform.md) — Accepted 2026-09-25
 
 ### Apps — Mobile
 - [ADR-003 — Mobile application platform](./apps/mobile/ADR-003-mobile-application-platform.md)

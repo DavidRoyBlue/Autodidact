@@ -58,7 +58,7 @@ Enums are Postgres native types, created in migration `0001_initial.sql`.
 ### `chat_sessions`
 
 - `messages`: JSONB `ChatMessage[]`. Appended on every turn — not a relational structure. Trade-off: simpler to read/write, harder to query individual messages.
-- `threadId`: UUID generated at session creation. Used as LangGraph `thread_id` for conversation checkpointing. **Not the same as the session `id`.** The distinction matters because LangGraph only knows `threadId`, not `id`.
+- `threadId`: the AgentPlatform thread the session's `course-teacher` runs execute on (ADR-031). `NULL` until the first turn, which creates it. **Not the same as the session `id`.** Migration 0015 nulled every pre-ADR-031 `threadId` (they named a LangGraph checkpoint that no longer exists); the messages already shown in the app were kept.
 - `isActive`: Default `true`. Currently not used to gate any logic — set for future session management.
 
 ---

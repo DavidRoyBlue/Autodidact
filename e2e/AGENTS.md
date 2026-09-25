@@ -18,12 +18,13 @@ never imported by application code.
 
 ## Invariants (must not be broken)
 
-- **One mock seam: the model (plus auth).** Services run with `LLM_PROVIDER=mock`,
-  `EMBEDDING_PROVIDER=mock`, and `AUTH_PROVIDER=mock` (we can't mint Supabase
-  JWTs). Everything else is real — real HTTP between api↔agent, the real worker
-  receiving task POSTs over the loopback provider (`QUEUE_PROVIDER=loopback`),
-  real Postgres, real LangGraph graphs, real SSE. Do not stub api, agent, or
-  worker internals.
+- **One mock seam: the model (plus auth).** Services run with `EMBEDDING_PROVIDER=mock`
+  and `AUTH_PROVIDER=mock` (we can't mint Supabase JWTs), and a mock AgentPlatform
+  stand-in (`startMockPlatform()` in `src/harness.ts`) serves deterministic
+  `course-creator` and `course-teacher` runs (ADR-030, ADR-031). Everything else
+  is real — real HTTP between api↔agent, the real worker receiving task POSTs
+  over the loopback provider (`QUEUE_PROVIDER=loopback`), real Postgres, real
+  SSE. Do not stub api, agent, or worker internals.
 - **Auth token shape:** the mock auth provider accepts `Bearer test-<userId>`.
   Seed the user row first so its id matches the token and FK columns resolve.
 - **Services must be built first.** The harness spawns `services/<svc>/dist/main.js`.

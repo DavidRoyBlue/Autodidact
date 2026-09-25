@@ -156,8 +156,8 @@ describe('Golden path: create → generate (worker + mock platform) → enroll �
     expect([200, 201]).toContain(sessionRes.status);
     const session = (await sessionRes.json()) as { id: string };
 
-    // Drive one turn — the mock teacher replies with [MODULE_COMPLETE:score=85],
-    // so the agent emits a completion the api applies as completeModule.
+    // Drive one turn — the mock platform's course-teacher run completes the module
+    // at score 85, which the api applies as completeModule.
     const events = await streamChat(session.id, 'I understand this module now.');
     expect(events.length).toBeGreaterThan(0);
     expect(events.some((e) => e.type === 'complete' || e.type === 'module_complete')).toBe(true);

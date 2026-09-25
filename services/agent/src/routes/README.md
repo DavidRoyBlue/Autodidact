@@ -6,48 +6,10 @@ HTTP route handlers for the Agent service. All routes are registered in `main.ts
 
 | File | Route | Caller |
 |------|-------|--------|
-| `module-chat.ts` | `POST /module-chat/stream` | API service |
 | `embeddings.ts` | `POST /embeddings/text` | API service, Worker service |
+| `health.ts` | `GET /health`, `GET /ready` | Cloud Run health checks |
 
----
-
-## POST /module-chat/stream
-
-Runs the `ModuleChatGraph` with streaming enabled. Returns an SSE stream.
-
-**Request body**:
-```typescript
-{
-  sessionId:      string (UUID),   // LangGraph thread_id
-  message:        string (1–4000 chars),
-  moduleBlueprint: CourseModule,
-  courseProgress: {
-    courseTitle:           string,
-    completedModuleCount:  number,
-    totalModuleCount:      number,
-  },
-  isFirstMessage?: boolean,
-}
-```
-
-**Response headers**:
-```
-Content-Type: text/event-stream
-Cache-Control: no-cache
-Connection: keep-alive
-X-Accel-Buffering: no          ← disables nginx response buffering
-```
-
-**SSE event protocol**:
-
-| Event type | Payload | Description |
-|------------|---------|-------------|
-| `token` | `{ type: 'token', content: string }` | Streamed LLM response chunk |
-| `module_complete` | `{ type: 'module_complete', score: number }` | Emitted when `completionSignaled` is true in final state |
-| `complete` | `{ type: 'complete' }` | Stream finished, connection can be closed |
-| `error` | `{ type: 'error', error: string }` | Unhandled exception during streaming |
-
-Events are JSON-serialised and written as `data: {...}\n\n`.
+Module teaching (formerly `POST /module-chat/stream`, a LangGraph graph) and course generation are runs on AgentPlatform now — see ADR-031 and ADR-030. This service has never run either graph since ADR-031 landed; it is embeddings and health only.
 
 ---
 
@@ -71,14 +33,14 @@ Generates a text embedding vector.
 
 This route is called on:
 1. Every `POST /courses` request (API service, for similarity search)
-2. Every `GENERATE_EMBEDDING` job (Worker service, for storing the vector)
+2. Every learner chat turn after the first, for RAG grounding (API service `chat` module's `retriever.ts`, ADR-024)
+3. Every `GENERATE_EMBEDDING` job (Worker service, for storing the vector)
+4. Worker RAG indexing, once per module chunk after course generation
 
 ---
 
 ## Common Patterns
 
-**Error handling**: All routes wrap their logic in `try/catch`. On error, they emit `{ type: 'error', error: String(err) }` for SSE routes and let Fastify's default error handler respond with 500 for non-SSE routes.
+**Error handling**: The route wraps its logic in `try/catch` and lets Fastify's default error handler respond with 500 on failure.
 
 **No auth**: The Agent service is internal and does not verify JWTs. Network-level access control (Cloud Run internal-only setting) is the security boundary.
-
-**Graph reuse**: The `ModuleChatGraph` is built once and shared across all requests (`buildModuleChatGraph()` is called once in `main.ts`). The graph is stateless at the object level — per-request state lives in the LangGraph checkpointer keyed by `thread_id`.
