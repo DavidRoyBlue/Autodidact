@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { withSpan, setSpanAttributes, isLangSmithTracingEnabled } from '../tracer.js';
+import { withSpan, setSpanAttributes } from '../tracer.js';
 
 // ── Shared mock state ────────────────────────────────────────────────────────
 // Hoist the spy instances so they are created before vi.mock factories run
@@ -160,27 +160,5 @@ describe('setSpanAttributes()', () => {
         return 'ok';
       }),
     ).resolves.toBe('ok');
-  });
-});
-
-describe('isLangSmithTracingEnabled()', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it('returns true when LANGCHAIN_TRACING_V2=true', () => {
-    vi.stubEnv('LANGCHAIN_TRACING_V2', 'true');
-    expect(isLangSmithTracingEnabled()).toBe(true);
-  });
-
-  it('returns true when LANGSMITH_TRACING=true', () => {
-    vi.stubEnv('LANGSMITH_TRACING', 'true');
-    expect(isLangSmithTracingEnabled()).toBe(true);
-  });
-
-  it('returns false when neither tracing env var is set to true', () => {
-    vi.stubEnv('LANGCHAIN_TRACING_V2', '');
-    vi.stubEnv('LANGSMITH_TRACING', '');
-    expect(isLangSmithTracingEnabled()).toBe(false);
   });
 });

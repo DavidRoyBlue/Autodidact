@@ -59,7 +59,7 @@ graph TD
 | Service | Public | CPU | Memory | Min | Max | Notes |
 |---------|--------|-----|--------|-----|-----|-------|
 | `api` | Yes | 1 | 512 Mi | 1 | 10 | Public ingress; scales with traffic |
-| `agent` | No | 2 | 2 Gi | 1 | 5 | Higher memory for LangGraph + LLM responses |
+| `agent` | No | 2 | 2 Gi | 1 | 5 | Sized for the module-chat graph before ADR-031; the service is embeddings-only now and this has not been re-tuned |
 | `worker` | No | 1 | 512 Mi | 0 | 3 | Scale-to-zero HTTP task handler; invoked by Cloud Tasks with an OIDC token (IAM `run.invoker` on the runtime service account) |
 
 Background work flows through **Cloud Tasks** ([ADR-027](ADRs/services/worker/ADR-027-background-job-queue-cloud-tasks.md)): two queues (`autodidact-course-generation`, `autodidact-embedding`) with queue-level retry config (3 attempts, 5 s → 125 s backoff), defined in `infra/modules/cloud-tasks`.
@@ -77,8 +77,7 @@ Secrets are stored in **GCP Secret Manager** and injected as environment variabl
 | `DATABASE_URL` | api, worker, agent (prod) | PostgreSQL connection string |
 | `SUPABASE_URL` | api, agent | Supabase project URL |
 | `SUPABASE_SECRET_KEY` | api, worker | Supabase admin access |
-| `OPENAI_API_KEY` | agent | OpenAI API key |
-| `ANTHROPIC_API_KEY` | agent | Anthropic API key (optional) |
+| `OPENAI_API_KEY` | agent | OpenAI API key (embedding provider) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | api, agent, worker | Trace exporter (optional) |
 | `AGENT_SERVICE_URL` | api, worker | Internal URL of Agent service |
 | `WORKER_TASK_BASE_URL` | api, worker | Worker Cloud Run URL targeted by Cloud Tasks (set after the worker's first deploy) |
@@ -166,9 +165,9 @@ Required GitHub environment secret for the `production` environment:
 |---------|-------|------------|
 | PostgreSQL | Docker (`pgvector/pgvector:pg16`) | Supabase managed |
 | Task queue | Loopback provider (direct HTTP POST to the worker) | GCP Cloud Tasks |
-| LLM | OpenAI API (same) | OpenAI or Anthropic |
+| Embeddings | OpenAI API (same) | OpenAI API |
 | Auth | Supabase (same project) | Supabase (same project) |
-| Checkpointer | `MemorySaver` (in-process) | `PostgresSaver` (DB) |
+| AgentPlatform | `AGENT_PLATFORM_URL` loopback | Not yet hosted for prod — same open gap as ADR-030 |
 | Secrets | `.env` file | GCP Secret Manager |
 | Services | `pnpm dev` (ts-node watch) | Docker containers on Cloud Run |
 

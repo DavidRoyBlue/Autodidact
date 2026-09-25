@@ -42,9 +42,9 @@ Expo React Native app — the only client; talks exclusively to the API service.
 - [docs/](apps/mobile/docs/)
 
 ## API 🟢
-_verified: 2026-09-01_
+_verified: 2026-09-25_
 
-NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course lifecycle, chat SSE proxy, progress. Runs no AI.
+NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course lifecycle, chat streaming to the client, progress. Runs no AI itself; the module teacher is a run on AgentPlatform's `course-teacher` agent, one per learner turn on a thread per session (ADR-031).
 
 **Agent surface**
 - MCP: supabase, gcloud
@@ -70,12 +70,13 @@ NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course l
 **Useful Files**
 - [controllers (HTTP contract)](services/api/src/modules/)
 - [agent.client.ts](services/api/src/services/agent.client.ts)
+- [agent-platform.client.ts](services/api/src/services/agent-platform.client.ts)
 - [main.ts](services/api/src/main.ts)
 
 ## Agent 🟢
-_verified: 2026-09-01_
+_verified: 2026-09-25_
 
-Fastify + LangGraph internal AI runtime (port 3001, never public) — all LLM and embedding calls.
+Fastify internal embeddings runtime (port 3001, never public). Course generation and module teaching run on AgentPlatform instead (ADR-030, ADR-031) — no LangGraph, no LLM chat call, no checkpointer left in this service.
 
 **Agent surface**
 - MCP: supabase, gcloud
@@ -84,13 +85,9 @@ Fastify + LangGraph internal AI runtime (port 3001, never public) — all LLM an
 - Agents: none
 
 **Stack**
-- Framework: Fastify + LangGraph (module-chat graph; course generation runs on AgentPlatform, ADR-030)
-- LLM: OpenAI (default) / Anthropic via `LLM_PROVIDER`
+- Framework: Fastify
 - Embeddings: OpenAI text-embedding-3-small (1536-dim)
-- Checkpointer: postgres (prod) / memory (dev) via `CHECKPOINTER`
-- RAG: pgvector `module_content_chunks` retrieval, gated by `RAG_ENABLED`
-- Resilience: `invokeModel()` — per-attempt timeout, bounded retry, abort propagation
-- Testing: Vitest (nodes, graphs, routes, RAG, resilience)
+- Testing: Vitest (routes, health)
 
 **Secrets**
 - prod: GCP Secret Manager (seeded from `infra/secrets.env`)
@@ -100,10 +97,8 @@ Fastify + LangGraph internal AI runtime (port 3001, never public) — all LLM an
 - deploy: [deploy.yml](.github/workflows/deploy.yml)
 
 **Useful Files**
-- [routes (SSE protocol)](services/agent/src/routes/)
-- [graphs](services/agent/src/graphs/)
-- [resilient-invoke.ts](services/agent/src/llm/resilient-invoke.ts)
-- [retriever.ts](services/agent/src/rag/retriever.ts)
+- [routes](services/agent/src/routes/)
+- [main.ts](services/agent/src/main.ts)
 
 ## Worker 🟢
 _verified: 2026-09-25_
@@ -195,9 +190,9 @@ Drizzle client, schema, and migrations — single source of truth for DB structu
 - [client.ts](packages/db/src/client.ts)
 
 ## packages/providers 🟢
-_verified: 2026-09-01_
+_verified: 2026-09-25_
 
-Vendor abstraction — interfaces + factories for LLM, embedding, queue, auth, and checkpointer providers.
+Vendor abstraction — interfaces + factories for embedding, queue, and auth providers. The module teacher runs on AgentPlatform (ADR-031); this package no longer carries an LLM or checkpointer provider.
 
 **Agent surface**
 - MCP: none
@@ -206,16 +201,16 @@ Vendor abstraction — interfaces + factories for LLM, embedding, queue, auth, a
 - Agents: none
 
 **Stack**
-- LLM: LangChain ChatOpenAI / ChatAnthropic
+- Embedding: LangChain OpenAIEmbeddings (Cohere is a stub)
 - Queue: GCP Cloud Tasks / loopback HTTP
 - Auth: Supabase JWKS JWT verification
-- Switches wired: `LLM_PROVIDER`, `QUEUE_PROVIDER`, `CHECKPOINTER`; `EMBEDDING_PROVIDER`/`AUTH_PROVIDER` reserved (single impl hardcoded); `mock` providers are e2e-only
+- Switches wired: `EMBEDDING_PROVIDER`, `QUEUE_PROVIDER`, `AUTH_PROVIDER`; `mock` providers are e2e-only
 
 **Secrets**
 - prod: GCP Secret Manager (via consuming services)
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — All wired providers exercised in prod; Cohere embedding provider is a stub.
+**State** — Embedding, queue, and auth providers exercised in prod. Cohere embedding provider is a stub.
 
 **Useful Files**
 - [factory.ts](packages/providers/src/factory.ts)
@@ -257,7 +252,7 @@ Zod schemas validating API request bodies and LLM output at service boundaries.
 - Agents: none
 
 **Stack**
-- Validation: Zod; consumed via NestJS `ZodValidationPipe` and agent `safeParse`
+- Validation: Zod; consumed via NestJS `ZodValidationPipe`. `TeacherReplySchema` validates the platform's `course-teacher` reply in `ApiPlatformClient` (ADR-031) — the agent service's own JSON-output parsing (the completion evaluator) went with the module-chat graph.
 
 **Secrets**
 - prod: none
@@ -267,31 +262,6 @@ Zod schemas validating API request bodies and LLM output at service boundaries.
 
 **Useful Files**
 - [src/](packages/schemas/src/)
-
-## packages/prompts 🟢
-_verified: 2026-09-01_
-
-Centralized system prompts and prompt builders for the Agent service's module teaching and completion evaluation (agent-only consumer). Course generation's prompts live on AgentPlatform now (ADR-030).
-
-**Agent surface**
-- MCP: none
-- Skills: none
-- Hooks: none
-- Agents: none
-
-**Stack**
-- Plain TS prompt builders
-- Completion marker `[MODULE_COMPLETE:score=N]` — regex lives in agent `module-chat/nodes.ts`; pass threshold (60) in API `ChatService`
-
-**Secrets**
-- prod: none
-- dev: none
-
-**State** — In prod via the agent service.
-
-**Useful Files**
-- [module-teacher.ts](packages/prompts/src/module-teacher.ts)
-- [completion-evaluator.ts](packages/prompts/src/completion-evaluator.ts)
 
 ## packages/types 🟢
 _verified: 2026-09-01_

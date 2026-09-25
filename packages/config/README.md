@@ -33,7 +33,6 @@ The package exports via named paths defined in `package.json`:
 
 ```typescript
 import {
-  makeMockLLMProvider,        // ILLMProvider mock (invoke, stream, getModel, getModelName)
   makeMockQueueProvider,      // IQueueProvider mock (enqueue, close)
   makeMockAuthProvider,       // IAuthProvider mock (verifyToken)
   makeMockEmbeddingProvider,  // IEmbeddingProvider mock (embed, embedBatch, getEmbeddings)

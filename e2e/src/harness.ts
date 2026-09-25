@@ -25,25 +25,43 @@ const MOCK_COURSE = {
   })),
 };
 
+/** What the mock platform's course-teacher run returns: one turn completes the module. */
+const MOCK_REPLY = { reply: 'Great — you have grasped the key ideas of this module.', module_complete: true, score: 85 };
+
 /**
- * AgentPlatform stand-in for the worker (ADR-030): a course-creator run is
- * created queued and reads back completed with MOCK_COURSE on the first poll.
+ * AgentPlatform stand-in (ADR-030, ADR-031): a thread is created on demand; a
+ * run is created queued and reads back completed on the first poll — with
+ * MOCK_COURSE for the worker's course-creator run, MOCK_REPLY for the api's
+ * course-teacher run.
  */
-const MOCK_QUEUED_BODY = JSON.stringify({ id: 'run_e2e', status: 'queued', output: null, error: null });
-const MOCK_COMPLETED_BODY = JSON.stringify({ id: 'run_e2e', status: 'completed', output: MOCK_COURSE, error: null });
+
+const MOCK_OUTPUT_BY_AGENT: Record<string, unknown> = { 'course-teacher': MOCK_REPLY, 'course-creator': MOCK_COURSE };
 
 function startMockPlatform(): Promise<{ url: string; close: () => Promise<void> }> {
+  const runOutputs = new Map<string, unknown>();
+  let nextRunId = 0;
   const server = createHttpServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    if (req.method === 'POST' && req.url === '/api/v1/runs') {
-      res.statusCode = 201;
-      res.end(MOCK_QUEUED_BODY);
-    } else if (req.method === 'GET' && req.url?.startsWith('/api/v1/runs/')) {
-      res.end(MOCK_COMPLETED_BODY);
-    } else {
-      res.statusCode = 404;
-      res.end('{}');
-    }
+    let body = '';
+    req.on('data', (chunk: Buffer) => (body += chunk));
+    req.on('end', () => {
+      if (req.method === 'POST' && req.url === '/api/v1/threads') {
+        res.statusCode = 201;
+        res.end(JSON.stringify({ id: 'thr_e2e', title: '', project: 'Autodidact', summary: '' }));
+      } else if (req.method === 'POST' && req.url === '/api/v1/runs') {
+        const { agent_id } = JSON.parse(body) as { agent_id?: string };
+        const id = `run_${++nextRunId}`;
+        runOutputs.set(id, MOCK_OUTPUT_BY_AGENT[agent_id ?? ''] ?? MOCK_COURSE);
+        res.statusCode = 201;
+        res.end(JSON.stringify({ id, status: 'queued', output: null, error: null }));
+      } else if (req.method === 'GET' && req.url?.startsWith('/api/v1/runs/')) {
+        const id = req.url.slice('/api/v1/runs/'.length);
+        res.end(JSON.stringify({ id, status: 'completed', output: runOutputs.get(id) ?? null, error: null }));
+      } else {
+        res.statusCode = 404;
+        res.end('{}');
+      }
+    });
   });
   return new Promise((done) => {
     server.listen(0, '127.0.0.1', () => {
@@ -152,7 +170,7 @@ async function killService(svc: SpawnedService): Promise<void> {
 
 /**
  * Boot Postgres (Testcontainers) and the real agent/worker/api services as
- * child processes, wired to the container with the mock LLM/embedding/auth
+ * child processes, wired to the container with the mock embedding/auth
  * providers, a mock AgentPlatform for course generation, and the loopback queue (enqueue POSTs straight to the worker's
  * task endpoints — same HTTP contract Cloud Tasks uses in production).
  * Returns service URLs, a container-backed Drizzle client for assertions,
@@ -185,10 +203,8 @@ export async function startCrossServiceHarness(): Promise<CrossServiceHarness> {
       DATABASE_URL: databaseUrl,
       AGENT_SERVICE_URL: agentUrl,
       AGENT_PLATFORM_URL: platform.url,
-      LLM_PROVIDER: 'mock',
       EMBEDDING_PROVIDER: 'mock',
       AUTH_PROVIDER: 'mock',
-      CHECKPOINTER: 'memory',
       QUEUE_PROVIDER: 'loopback',
       WORKER_TASK_BASE_URL: workerUrl,
       // @autodidact/db builds a Supabase admin client at import; stub the env so

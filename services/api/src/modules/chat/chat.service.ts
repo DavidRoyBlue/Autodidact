@@ -3,17 +3,24 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Observable, Subject } from 'rxjs';
 import type { MessageEvent } from '@nestjs/common';
 import { getDb, chatSessions, courses, modules, moduleProgress, eq, and } from '@autodidact/db';
-import { cloudRunAuthHeaders } from '@autodidact/providers';
 import { ProgressService } from '../progress/progress.service.js';
 import { ProvisioningService } from '../provisioning/provisioning.service.js';
+import { ApiAgentClient } from '../../services/agent.client.js';
+import { ApiPlatformClient } from '../../services/agent-platform.client.js';
+import { referenceMaterial } from './retriever.js';
 import type { ChatMessage } from '@autodidact/types';
 import { v4 as uuidv4 } from 'uuid';
+
+/** A module is completed when the teacher signals completion at this mastery or better. */
+const PASS_SCORE = 60;
 
 @Injectable()
 export class ChatService {
   constructor(
     private readonly progressService: ProgressService,
     private readonly provisioning: ProvisioningService,
+    private readonly agentClient: ApiAgentClient,
+    private readonly platform: ApiPlatformClient,
   ) {}
 
   async createSession(userId: string, moduleId: string, _courseId: string) {
@@ -21,7 +28,7 @@ export class ChatService {
     const db = getDb();
     const [session] = await db
       .insert(chatSessions)
-      .values({ userId, moduleId, threadId: uuidv4(), messages: [] })
+      .values({ userId, moduleId, messages: [] })
       .returning();
     return session;
   }
@@ -37,177 +44,78 @@ export class ChatService {
     return session;
   }
 
-  streamMessage(
-    sessionId: string,
-    userId: string,
-    content: string,
-    agentServiceUrl: string,
-  ): Observable<MessageEvent> {
+  private async setMessages(sessionId: string, messages: ChatMessage[]): Promise<void> {
+    await getDb()
+      .update(chatSessions)
+      .set({ messages, updatedAt: new Date() })
+      .where(eq(chatSessions.id, sessionId));
+  }
+
+  /**
+   * One learner turn: the platform's course-teacher agent runs once on the
+   * session's thread (ADR-031). The first turn opens the thread and carries the
+   * module — course title, position, objectives, the full lesson — so the
+   * platform's thread history holds it for every later turn, which carry the
+   * learner's text plus any retrieved reference material. The phone keeps its
+   * event contract: the reply as one `token`, `module_complete` when the
+   * teacher says so, then `complete`.
+   */
+  streamMessage(sessionId: string, userId: string, content: string): Observable<MessageEvent> {
     const subject = new Subject<MessageEvent>();
 
     void (async () => {
       const db = getDb();
       const session = await this.getSession(sessionId);
 
-      const mod = await db
+      const [mod] = await db
         .select()
         .from(modules)
         .where(eq(modules.id, session.moduleId))
         .limit(1);
 
-      if (!mod[0]) {
+      if (!mod) {
         subject.next({ data: JSON.stringify({ type: 'error', error: 'Module not found' }) });
         subject.complete();
         return;
       }
 
-      // Append user message to session
       const userMsg: ChatMessage = {
         id: uuidv4(),
         role: 'user',
         content,
         createdAt: new Date().toISOString(),
       };
+      const messages = [...session.messages, userMsg];
+      await this.setMessages(sessionId, messages);
 
-      await db
-        .update(chatSessions)
-        .set({
-          messages: [...session.messages, userMsg],
-          updatedAt: new Date(),
-        })
-        .where(eq(chatSessions.id, sessionId));
+      let threadId = session.threadId;
+      let message = content;
+      if (threadId === null) {
+        threadId = await this.platform.createThread(`module ${mod.id}`);
+        await db.update(chatSessions).set({ threadId }).where(eq(chatSessions.id, sessionId));
+        message = `${await this.moduleBrief(userId, mod)}\n\nLearner: ${content}`;
+      } else {
+        message += await referenceMaterial(this.agentClient, mod.id, content);
+      }
 
-      // Build the course-progress context the agent's module-chat route requires.
-      const courseId = mod[0].courseId;
-      const [course] = await db
-        .select({ title: courses.title })
-        .from(courses)
-        .where(eq(courses.id, courseId))
-        .limit(1);
-      const allModules = await db
-        .select({ id: modules.id })
-        .from(modules)
-        .where(eq(modules.courseId, courseId));
-      const completedModules = await db
-        .select({ id: moduleProgress.moduleId })
-        .from(moduleProgress)
-        .where(
-          and(
-            eq(moduleProgress.userId, userId),
-            eq(moduleProgress.courseId, courseId),
-            eq(moduleProgress.status, 'completed'),
-          ),
-        );
-      const courseProgress = {
-        courseTitle: course?.title ?? '',
-        completedModuleCount: completedModules.length,
-        totalModuleCount: allModules.length,
+      const reply = await this.platform.teach(threadId, message);
+
+      subject.next({ data: JSON.stringify({ type: 'token', content: reply.reply }) });
+      if (reply.module_complete) {
+        subject.next({ data: JSON.stringify({ type: 'module_complete', score: reply.score }) });
+      }
+      subject.next({ data: JSON.stringify({ type: 'complete' }) });
+
+      const assistantMsg: ChatMessage = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: reply.reply,
+        createdAt: new Date().toISOString(),
       };
+      await this.setMessages(sessionId, [...messages, assistantMsg]);
 
-      // Proxy SSE stream from agent service (private Cloud Run → needs OIDC token)
-      const authHeaders = await cloudRunAuthHeaders(agentServiceUrl);
-      const res = await fetch(`${agentServiceUrl}/module-chat/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders },
-        body: JSON.stringify({
-          sessionId: session.threadId,
-          userId,
-          message: content,
-          courseProgress,
-          isFirstMessage: session.messages.length === 0,
-          // id lets the agent scope RAG retrieval to this module (ADR-024).
-          moduleBlueprint: {
-            id: mod[0].id,
-            position: mod[0].position,
-            title: mod[0].title,
-            description: mod[0].description,
-            objectives: mod[0].objectives,
-            content: mod[0].content,
-            resources: mod[0].resources,
-            estimatedMinutes: mod[0].estimatedMinutes,
-          },
-        }),
-      });
-
-      if (!res.ok || !res.body) {
-        subject.next({ data: JSON.stringify({ type: 'error', error: 'Agent unavailable' }) });
-        subject.complete();
-        return;
-      }
-
-      let assistantContent = '';
-      let completionScore: number | null = null;
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const text = decoder.decode(value, { stream: true });
-          const lines = text.split('\n');
-
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const jsonStr = line.slice(6).trim();
-            if (!jsonStr) continue;
-
-            try {
-              const event = JSON.parse(jsonStr) as { type: string; content?: string; score?: number; error?: string };
-              subject.next({ data: jsonStr });
-
-              if (event.type === 'token' && event.content) {
-                assistantContent += event.content;
-              } else if (event.type === 'module_complete' || event.type === 'complete') {
-                // The agent carries the score on `module_complete`; `complete` is
-                // the terminator and may omit it. Keep the last score we saw.
-                completionScore = event.score ?? completionScore;
-              }
-            } catch {
-              // Ignore malformed SSE lines
-            }
-          }
-        }
-      } finally {
-        reader.releaseLock();
-      }
-
-      // Persist assistant message
-      if (assistantContent) {
-        const updatedSession = await this.getSession(sessionId);
-        const assistantMsg: ChatMessage = {
-          id: uuidv4(),
-          role: 'assistant',
-          content: assistantContent,
-          createdAt: new Date().toISOString(),
-        };
-        await db
-          .update(chatSessions)
-          .set({
-            messages: [...updatedSession.messages, assistantMsg],
-            updatedAt: new Date(),
-          })
-          .where(eq(chatSessions.id, sessionId));
-      }
-
-      // Handle module completion
-      if (completionScore !== null && completionScore >= 60) {
-        const enrollment = await db
-          .select()
-          .from(modules)
-          .where(eq(modules.id, session.moduleId))
-          .limit(1);
-
-        if (enrollment[0]) {
-          await this.progressService.completeModule(
-            userId,
-            session.moduleId,
-            enrollment[0].courseId,
-            completionScore,
-          );
-        }
+      if (reply.module_complete && reply.score !== null && reply.score >= PASS_SCORE) {
+        await this.progressService.completeModule(userId, mod.id, mod.courseId, reply.score);
       }
 
       subject.complete();
@@ -217,5 +125,36 @@ export class ChatService {
     });
 
     return subject.asObservable();
+  }
+
+  /** The module as the teacher's first message carries it. */
+  private async moduleBrief(userId: string, mod: typeof modules.$inferSelect): Promise<string> {
+    const db = getDb();
+    const [[course], allModules, completed] = await Promise.all([
+      db.select({ title: courses.title }).from(courses).where(eq(courses.id, mod.courseId)).limit(1),
+      db.select({ id: modules.id }).from(modules).where(eq(modules.courseId, mod.courseId)),
+      db
+        .select({ id: moduleProgress.moduleId })
+        .from(moduleProgress)
+        .where(
+          and(
+            eq(moduleProgress.userId, userId),
+            eq(moduleProgress.courseId, mod.courseId),
+            eq(moduleProgress.status, 'completed'),
+          ),
+        ),
+    ]);
+    return [
+      `Course: ${course?.title ?? ''}`,
+      `Module ${mod.position + 1}/${allModules.length}: ${mod.title}`,
+      mod.description,
+      `Learner has completed ${completed.length}/${allModules.length} modules.`,
+      '',
+      'Objectives:',
+      ...mod.objectives.map((o) => `- ${o}`),
+      '',
+      'Lesson:',
+      mod.content,
+    ].join('\n');
   }
 }

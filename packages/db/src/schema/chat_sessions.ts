@@ -12,6 +12,7 @@ export const chatSessions = pgTable('chat_sessions', {
     .notNull()
     .references(() => modules.id),
   messages: jsonb('messages').notNull().default('[]').$type<ChatMessage[]>(),
+  // the AgentPlatform thread the course-teacher runs on; opened on the first turn
   threadId: text('thread_id'),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),

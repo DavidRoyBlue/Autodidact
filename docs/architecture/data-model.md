@@ -176,7 +176,7 @@ A conversation between a user and the AI for one module. A new session is create
 | `user_id` | UUID FK → users | |
 | `module_id` | UUID FK → modules | |
 | `messages` | JSONB (`ChatMessage[]`) | Full conversation history. Appended on every turn. |
-| `thread_id` | TEXT | UUID used as LangGraph `thread_id` for checkpointer keying. **Not the same as `id`.** |
+| `thread_id` | TEXT | The AgentPlatform thread `course-teacher` runs on (ADR-031). `NULL` until the first turn opens it. **Not the same as `id`.** |
 | `is_active` | BOOLEAN | Default `true` |
 
 ---

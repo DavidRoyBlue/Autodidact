@@ -22,7 +22,7 @@ AI-native learning platform that generates structured courses and teaches them t
 
 ### Backend
 - NestJS (API)
-- LangGraph TS (Agent)
+- Fastify (Agent — embeddings only; module teaching and course generation run on AgentPlatform)
 - Cloud Tasks task handler (Worker)
 
 ### Data
@@ -51,7 +51,6 @@ autodidact/
 │   ├── db/
 │   ├── env/           ← typed, fail-fast env validation (boot-time)
 │   ├── schemas/
-│   ├── prompts/
 │   ├── types/
 │   ├── config/
 │   └── observability/
@@ -98,18 +97,11 @@ pnpm db:studio:dev        # Drizzle Studio; Supabase Studio at http://127.0.0.1:
 
 ## Provider Configuration
 
-Two provider switches are wired to code today — set them in the environment, no code change needed to swap:
-
-| Variable | Options | Default |
-|----------|---------|---------|
-| `LLM_PROVIDER` | `openai`, `anthropic` | `openai` |
-| `CHECKPOINTER` | `memory`, `postgres` | `memory` |
-
-The provider-factory pattern (`packages/providers`) is designed to host more
-switches — `EMBEDDING_PROVIDER`, `QUEUE_PROVIDER`, `AUTH_PROVIDER` are reserved
-names but **not yet wired**: each factory currently hardcodes its single
-implemented option and ignores the env var. They live under "RESERVED" in
-`.env.example` so the template doesn't advertise behavior the code lacks.
+The provider-factory pattern (`packages/providers`) selects a vendor
+implementation by environment variable rather than code change:
+`EMBEDDING_PROVIDER`, `QUEUE_PROVIDER`, and `AUTH_PROVIDER` each pick a
+concrete provider at boot (see `packages/providers/README.md` for the full
+table of options and defaults).
 
 ## Deploying
 

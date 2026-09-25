@@ -15,9 +15,12 @@ Each row links to the ADR documenting the choice (drivers, alternatives, rationa
 - **NestJS** — structured TypeScript backend with DI container. → [ADR-004](architecture/ADRs/services/api/ADR-004-rest-api-framework.md)
 
 ## Agent Runtime
-- **Fastify** — lightweight HTTP for service-to-service streaming. → [ADR-005](architecture/ADRs/services/agent/ADR-005-ai-agent-server-framework.md)
-- **LangGraph (TypeScript)** — stateful AI orchestration with checkpointing. → [ADR-006](architecture/ADRs/services/agent/ADR-006-ai-orchestration-framework.md)
-- **SSE** — token streaming transport across agent → API → mobile. → [ADR-011](architecture/ADRs/services/agent/ADR-011-realtime-streaming-transport.md)
+- **Fastify** — lightweight HTTP for the embeddings service. → [ADR-005](architecture/ADRs/services/agent/ADR-005-ai-agent-server-framework.md)
+- **SSE** — event transport from API to mobile for chat. → [ADR-011](architecture/ADRs/services/agent/ADR-011-realtime-streaming-transport.md)
+
+LangGraph is no longer part of the running stack: the module teacher moved to
+AgentPlatform's `course-teacher` agent, so `services/agent` runs no graph
+(ADR-031, which superseded the module-chat use of [ADR-006](architecture/ADRs/services/agent/ADR-006-ai-orchestration-framework.md)).
 
 ## Background Jobs
 - **GCP Cloud Tasks** — async course generation and embedding tasks, pushed to the worker over IAM-authenticated HTTP. → [ADR-027](architecture/ADRs/services/worker/ADR-027-background-job-queue-cloud-tasks.md)
@@ -51,7 +54,7 @@ Each row links to the ADR documenting the choice (drivers, alternatives, rationa
 ## Testing
 - **Vitest + Testcontainers** — fast unit tests; real-Postgres integration tests. → [ADR-018](architecture/ADRs/cross-cutting/ADR-018-testing-strategy.md)
 - **jest-expo + React Native Testing Library** — mobile unit/component tests (Jest scoped to `apps/mobile`); **Maestro** for mobile e2e. → [ADR-025](architecture/ADRs/cross-cutting/ADR-025-mobile-testing-second-runner.md)
-- **Layered e2e** — API-level (supertest), cross-service (compose), mobile (Maestro); LLM mocked via `LLM_PROVIDER=mock`, opt-in live smoke nightly. → [ADR-026](architecture/ADRs/cross-cutting/ADR-026-e2e-testing-strategy.md)
+- **Layered e2e** — API-level (supertest), cross-service (compose), mobile (Maestro); embeddings mocked via `EMBEDDING_PROVIDER=mock`, opt-in live smoke nightly. → [ADR-026](architecture/ADRs/cross-cutting/ADR-026-e2e-testing-strategy.md)
 
 ## Code Quality
 - **ESLint + Prettier** — type-aware linting + format. → [ADR-019](architecture/ADRs/cross-cutting/ADR-019-code-quality-tooling.md)

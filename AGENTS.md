@@ -36,7 +36,7 @@ pnpm db:reset:dev       # DESTRUCTIVE: supabase db reset → re-apply all Drizzl
 
 ## Environment
 
-Copy `.env.example` → `.env.dev` (`pnpm setup` does this). `.env.example` documents every var and provider-swap option (`LLM_PROVIDER`, `CHECKPOINTER`, etc.); per-deployable secret locations are in `PRODUCTION.md`.
+Copy `.env.example` → `.env.dev` (`pnpm setup` does this). `.env.example` documents every var and provider-swap option (`EMBEDDING_PROVIDER`, `QUEUE_PROVIDER`, `AUTH_PROVIDER`, etc.); per-deployable secret locations are in `PRODUCTION.md`.
 
 - WSL2: `DATABASE_URL` against hosted Supabase must be the transaction pooler URL (port 6543) — the direct host is IPv6-only and unreachable.
 - Supabase key naming is `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY` — never `ANON_KEY` / `SERVICE_ROLE_KEY`. Never expose the secret key to clients.

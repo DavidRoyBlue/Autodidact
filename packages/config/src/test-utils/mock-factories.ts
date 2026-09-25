@@ -25,19 +25,6 @@ export const sampleGeneratedCourse = {
   ],
 };
 
-export function makeMockLLMProvider(responseContent = 'mock response') {
-  const mockModel = {
-    invoke: vi.fn().mockResolvedValue({ content: responseContent }),
-    stream: vi.fn(),
-    modelName: 'gpt-4o',
-  };
-  return {
-    getModel: vi.fn().mockReturnValue(mockModel),
-    getModelName: vi.fn().mockReturnValue('gpt-4o'),
-    _mockModel: mockModel,
-  };
-}
-
 export function makeMockQueueProvider() {
   return {
     enqueue: vi.fn().mockResolvedValue('test-job-id'),

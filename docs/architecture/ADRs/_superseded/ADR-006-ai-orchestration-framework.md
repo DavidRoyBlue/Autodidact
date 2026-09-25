@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-031](../cross-cutting/ADR-031-module-teacher-on-agent-platform.md)
 Date: 2026-05-10
 
 ## Context
@@ -20,13 +20,13 @@ Autodidact's two AI workflows are:
    exchange.
 
 Both workflows want: structured stateful execution, retry logic, easy
-streaming, and a clean way to swap LLM vendors ([ADR-009](../../packages/providers/ADR-009-external-vendor-abstraction.md)).
+streaming, and a clean way to swap LLM vendors ([ADR-009](../packages/providers/ADR-009-external-vendor-abstraction.md)).
 Module chat additionally needs **conversation checkpointing** — the
 ability to save state between turns and resume. We use in-memory
 checkpointer in dev (`MemorySaver`) and Postgres in prod (`PostgresSaver`).
 
 This ADR sits inside the agent service ([ADR-005](./ADR-005-ai-agent-server-framework.md))
-and is consumed by [ADR-009](../../packages/providers/ADR-009-external-vendor-abstraction.md)
+and is consumed by [ADR-009](../packages/providers/ADR-009-external-vendor-abstraction.md)
 (`ICheckpointerProvider` returns a LangGraph `BaseCheckpointSaver`). It
 shapes [ADR-011](./ADR-011-realtime-streaming-transport.md) (the streaming
 transport works around whatever the orchestrator yields).
@@ -35,7 +35,7 @@ transport works around whatever the orchestrator yields).
 
 - Specific graph topology — owned by `services/agent/src/graphs/*/CLAUDE.md`.
 - Prompt templates — owned by `packages/prompts`.
-- LLM vendor — wrapped by `ILLMProvider` ([ADR-009](../../packages/providers/ADR-009-external-vendor-abstraction.md)).
+- LLM vendor — wrapped by `ILLMProvider` ([ADR-009](../packages/providers/ADR-009-external-vendor-abstraction.md)).
 - Checkpointer storage backend — operational, owned by `packages/providers/CLAUDE.md` (memory in dev, Postgres in prod).
 
 ## Decision Drivers
@@ -57,7 +57,7 @@ transport works around whatever the orchestrator yields).
 - Checkpointing is the central feature — `MemorySaver` for dev, `PostgresSaver` for prod, both via the `compile({ checkpointer })` API. Resuming a conversation is `graph.invoke(input, { configurable: { thread_id } })`.
 - Stream API yields tokens as they're generated; integrates naturally with our SSE handler.
 - Conditional edges express the course-generation retry loop directly: `conditionalEdges('generateBlueprint', shouldRetry, { retry: 'generateBlueprint', done: END })`.
-- Built on LangChain models (`BaseChatModel`); pairs with our [provider abstraction](../../packages/providers/ADR-009-external-vendor-abstraction.md) without translation.
+- Built on LangChain models (`BaseChatModel`); pairs with our [provider abstraction](../packages/providers/ADR-009-external-vendor-abstraction.md) without translation.
 - Production-stable; used at significant scale by paying customers.
 - Backed by LangChain Inc., active maintenance, fast issue response.
 
@@ -79,11 +79,11 @@ transport works around whatever the orchestrator yields).
 - Growing ecosystem and community in 2026; recommended for new TS projects in several recent comparisons.
 
 **Cons**
-- We don't use the all-in-one pieces. We have BullMQ for job orchestration ([ADR-007](../../_superseded/ADR-007-background-job-queue.md)), pgvector for our specific course-similarity use case ([ADR-010](../../packages/db/ADR-010-vector-search-strategy.md)), pino + OTel for observability ([ADR-017](../../packages/observability/ADR-017-observability-stack.md)). Mastra's bundle bring-along is value we don't use.
+- We don't use the all-in-one pieces. We have BullMQ for job orchestration ([ADR-007](../../_superseded/ADR-007-background-job-queue.md)), pgvector for our specific course-similarity use case ([ADR-010](../packages/db/ADR-010-vector-search-strategy.md)), pino + OTel for observability ([ADR-017](../packages/observability/ADR-017-observability-stack.md)). Mastra's bundle bring-along is value we don't use.
 - Mastra's *checkpoint* model is different from LangGraph's. Migrating means rewriting `state.ts` and reasoning about persistence boundaries again.
 - Younger production track record. LangGraph has years; Mastra has roughly one year of widespread use as of 2026.
 - Migration cost: we have functioning LangGraph code with checkpointing wired through `ICheckpointerProvider`. Replacing it is real engineering effort, not a config change.
-- Integration with our [provider abstraction](../../packages/providers/ADR-009-external-vendor-abstraction.md) currently returns LangChain `BaseChatModel`. Switching to Mastra would mean changing that interface or adding a translation layer.
+- Integration with our [provider abstraction](../packages/providers/ADR-009-external-vendor-abstraction.md) currently returns LangChain `BaseChatModel`. Switching to Mastra would mean changing that interface or adding a translation layer.
 
 ### Option C: Vercel AI SDK 6
 **What it is:** Lightweight TypeScript-first SDK for LLM interaction. Streaming, structured output, tool calling, agent patterns, durable workflow steps (added in v6). Bundle-size-conscious; clean provider switching.
@@ -98,7 +98,7 @@ transport works around whatever the orchestrator yields).
 **Cons**
 - Designed for "handoff chains" rather than graph-based orchestration. Our module-chat graph (with conditional edges, multiple nodes, state reducers) is closer to LangGraph's sweet spot than Vercel's.
 - `DurableAgent` is real but newer and less battle-tested than LangGraph's checkpointing for production-grade conversation persistence.
-- Different model abstraction than LangChain. The agent's existing graph code uses `BaseChatModel`; switching means changing the [provider abstraction](../../packages/providers/ADR-009-external-vendor-abstraction.md) interfaces.
+- Different model abstraction than LangChain. The agent's existing graph code uses `BaseChatModel`; switching means changing the [provider abstraction](../packages/providers/ADR-009-external-vendor-abstraction.md) interfaces.
 - Vercel ownership — non-trivial vendor concentration with Turbo ([ADR-001](../../cross-cutting/ADR-001-monorepo-build-orchestration.md)). Manageable but worth flagging.
 
 ### Option D: Inngest workflows (durable steps + LLM calls)
@@ -160,7 +160,7 @@ What we are sacrificing by picking LangGraph over Mastra:
 
 What we are sacrificing by picking LangGraph over Vercel AI SDK:
 
-- Best-in-class provider-switching ergonomics (which we get partially via [ADR-009](../../packages/providers/ADR-009-external-vendor-abstraction.md) regardless).
+- Best-in-class provider-switching ergonomics (which we get partially via [ADR-009](../packages/providers/ADR-009-external-vendor-abstraction.md) regardless).
 - Smaller bundle size.
 
 No reconsideration flag is raised. LangGraph is the first-principles
@@ -185,12 +185,12 @@ sweet spot.
 
 ### Follow-up decisions
 - Specific graph design (state shape, node responsibilities, retry semantics) — owned by `services/agent/src/graphs/*/CLAUDE.md`.
-- Checkpointer choice (memory dev / Postgres prod) — owned by [ADR-009](../../packages/providers/ADR-009-external-vendor-abstraction.md).
+- Checkpointer choice (memory dev / Postgres prod) — owned by [ADR-009](../packages/providers/ADR-009-external-vendor-abstraction.md).
 - Reconsider this ADR if: our use case shifts toward heavy semantic memory or RAG (Mastra's integrated story would matter), LangChain TS development materially slows, or we need agentic patterns (MCP, tool-use loops, sub-agent delegation) Mastra or Vercel AI SDK supports more cleanly.
 
 ## Update
 
-**2026-09-01** — [ADR-027](../worker/ADR-027-background-job-queue-cloud-tasks.md)
+**2026-09-01** — [ADR-027](../services/worker/ADR-027-background-job-queue-cloud-tasks.md)
 executed ADR-007's flagged migration: the queue moved from BullMQ + Memorystore
 Redis to GCP Cloud Tasks. Options B and D reference BullMQ (ADR-007) as our job
 orchestrator; read those as Cloud Tasks — the arguments are unaffected. The
@@ -198,6 +198,7 @@ decision recorded here is unchanged.
 
 ## Update (2026-09-25)
 
-Course generation, one of the two graphs this ADR chose LangGraph for, now
-runs on AgentPlatform's `course-creator` workflow (ADR-030). LangGraph remains
-the framework for the module-chat graph in `services/agent`.
+Both graphs this ADR chose LangGraph for now run on AgentPlatform: course
+generation as the `course-creator` workflow (ADR-030), the module teacher as
+the `course-teacher` agent (ADR-031). No LangGraph remains in the app;
+`services/agent` serves embeddings only.

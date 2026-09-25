@@ -1,41 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { SystemMessage, HumanMessage } from '@langchain/core/messages';
-import { MockLLMProvider } from '../implementations/llm/mock.provider.js';
 import { MockEmbeddingProvider } from '../implementations/embedding/mock-embedding.provider.js';
 import { MockAuthProvider } from '../implementations/auth/mock-auth.provider.js';
-import {
-  createLLMProvider,
-  createEmbeddingProvider,
-  createAuthProvider,
-} from '../factory.js';
-
-describe('MockLLMProvider', () => {
-  const model = new MockLLMProvider().getModel();
-
-  it('signals completion via the [MODULE_COMPLETE:score=N] marker for a teaching turn', async () => {
-    const res = await model.invoke([
-      new SystemMessage('You are a patient tutor for this module.'),
-      new HumanMessage('I think I understand recursion now.'),
-    ]);
-    const content = typeof res.content === 'string' ? res.content : JSON.stringify(res.content);
-    expect(content).toMatch(/\[MODULE_COMPLETE:score=\d+\]/);
-  });
-
-  it('returns evaluator JSON for the assessment-AI prompt', async () => {
-    const res = await model.invoke([
-      new SystemMessage('You are an educational assessment AI. Evaluate whether the student understood.'),
-      new HumanMessage('Objectives: [...]'),
-    ]);
-    const content = typeof res.content === 'string' ? res.content : JSON.stringify(res.content);
-    const parsed = JSON.parse(content) as { completed: boolean; score: number };
-    expect(typeof parsed.completed).toBe('boolean');
-    expect(typeof parsed.score).toBe('number');
-  });
-
-  it('reports a stable model name', () => {
-    expect(new MockLLMProvider().getModelName()).toBe('mock');
-  });
-});
+import { createEmbeddingProvider, createAuthProvider } from '../factory.js';
 
 describe('MockEmbeddingProvider', () => {
   const provider = new MockEmbeddingProvider();
@@ -82,10 +48,6 @@ describe('MockAuthProvider', () => {
 });
 
 describe('factory honors the mock env values', () => {
-  it('createLLMProvider({llmProvider:"mock"}) → MockLLMProvider', () => {
-    expect(createLLMProvider({ llmProvider: 'mock' })).toBeInstanceOf(MockLLMProvider);
-  });
-
   it('createEmbeddingProvider({embeddingProvider:"mock"}) → MockEmbeddingProvider', () => {
     expect(createEmbeddingProvider({ embeddingProvider: 'mock' })).toBeInstanceOf(MockEmbeddingProvider);
   });

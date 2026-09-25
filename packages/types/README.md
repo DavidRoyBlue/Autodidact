@@ -13,10 +13,9 @@ The distinction from `@autodidact/schemas`: types here are for static structural
 | `packages/db` | `ModuleResource` in the `modules` schema column type annotation |
 | `packages/schemas` | `DifficultyLevel`, `TimeBudget` imported for their Zod enums |
 | `packages/providers` | `AuthUser`, `JobStatus` in interface definitions |
-| `packages/prompts` | `CourseModule` in `buildModuleSystemPrompt` signature |
 | `services/api` | `UserProfile`, `AuthUser`, `UserProgress`, `ChatSession`, job data types |
-| `services/agent` | `CourseModule`, `StreamChunk`, job data types |
 | `services/worker` | `CourseGenerationJobData`, `EmbeddingJobData`, `TimeBudget` |
+
 
 ## Public API
 
@@ -34,7 +33,6 @@ import type {
   // Chat domain
   ChatRole,                 // 'user' | 'assistant' | 'system'
   ChatMessage,              // { id, role, content, createdAt }
-  StreamChunk,              // SSE stream payload union
   ChatSession,              // Full chat session with messages
 
   // User domain
@@ -54,7 +52,7 @@ import type {
 ```
 packages/types/src/
 ├── course.ts   # Status unions, TimeBudget, ModuleResource, CourseModule
-├── chat.ts     # ChatRole, ChatMessage, StreamChunk, ChatSession
+├── chat.ts     # ChatRole, ChatMessage, ChatSession
 ├── user.ts     # UserProfile, AuthUser, ModuleProgressItem, UserProgress
 ├── jobs.ts     # CourseGenerationJobData, EmbeddingJobData
 └── index.ts    # Re-exports all of the above
@@ -63,21 +61,16 @@ packages/types/src/
 ## Usage Example
 
 ```typescript
-import type { CourseModule, ModuleStatus, StreamChunk } from '@autodidact/types';
+import type { CourseModule, ModuleStatus } from '@autodidact/types';
 
 function logModules(modules: CourseModule[]): void {
   modules.forEach((m) => {
     console.log(`Module ${m.position}: ${m.title} (${m.estimatedMinutes}min, ${m.resources.length} resources)`);
   });
 }
-
-function createChunk(token: string): StreamChunk {
-  return { type: 'token', content: token };
-}
 ```
 
 ## Gotchas
 
 - `JobStatus` includes `'delayed'` (a legacy queue state, unused since the Cloud Tasks migration) in addition to the standard `'pending' | 'active' | 'completed' | 'failed'` states. Do not rely on `'delayed'` in business logic.
-- `StreamChunk.type: 'module_complete'` carries `score` and `feedback` fields — these are only populated on the `module_complete` event, not on `token` chunks.
 - Do not add Zod schemas or `z.infer<>` types to this package. They belong in `@autodidact/schemas`.

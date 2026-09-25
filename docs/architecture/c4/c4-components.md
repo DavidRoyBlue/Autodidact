@@ -12,11 +12,12 @@ graph TD
         AM[AppModule<br/>Root NestJS module]
         AUTH[AuthModule<br/>JWT verification]
         COURSES[CoursesModule<br/>Course lifecycle]
-        CHAT[ChatModule<br/>SSE chat proxy]
+        CHAT[ChatModule<br/>Runs course-teacher on AgentPlatform]
         PROG[ProgressModule<br/>Module unlock]
         HEALTH[HealthController<br/>GET /health]
         COMMON[Common Utilities<br/>ZodValidationPipe<br/>AllExceptionsFilter<br/>@CurrentUser decorator]
         AC[ApiAgentClient<br/>HTTP client to Agent service]
+        APC[ApiPlatformClient<br/>HTTP client to AgentPlatform]
     end
 
     AM --> AUTH
@@ -26,6 +27,7 @@ graph TD
     AM --> HEALTH
     COURSES --> AC
     CHAT --> AC
+    CHAT --> APC
     COURSES --> PROG
     CHAT --> PROG
 ```
@@ -34,9 +36,10 @@ graph TD
 |-----------|-------|----------------|
 | **AuthModule** | `modules/auth/` | Provides `AuthGuard` (guards all routes). Delegates JWT verification to `IAuthProvider`. Injects `AuthUser` into request via `@CurrentUser()`. |
 | **CoursesModule** | `modules/courses/` | `POST /courses` — semantic similarity check then enroll or enqueue. `GET /courses` — user's enrolled courses. `GET /courses/:id` — course with modules. `POST /courses/:id/enroll`. `GET /courses/status/:jobId` — job polling. |
-| **ChatModule** | `modules/chat/` | `POST /chat/sessions` — creates `chat_session` row. `POST /chat/sessions/:id/stream` — appends user message, proxies Agent SSE, persists assistant message, triggers completion logic. |
+| **ChatModule** | `modules/chat/` | `POST /chat/sessions` — creates `chat_session` row. `POST /chat/sessions/:id/stream` — appends user message, runs `course-teacher` on AgentPlatform via `ApiPlatformClient` (one thread per session, ADR-031), embeds RAG grounding via `ApiAgentClient` (`retriever.ts`, ADR-024), persists the assistant message, triggers completion logic. |
 | **ProgressModule** | `modules/progress/` | `GET /progress/:courseId` — module progress list. `POST /progress/:moduleId/start`. Called internally by ChatModule to complete modules and unlock the next. |
-| **ApiAgentClient** | `services/agent.client.ts` | Thin HTTP wrapper for the Agent service. Methods: `generateEmbedding(text)`, `streamChat(body)`. Reads `AGENT_SERVICE_URL` env var. |
+| **ApiAgentClient** | `services/agent.client.ts` | Thin HTTP wrapper for the Agent service. Methods: `generateEmbedding(text)`, `isAgentHealthy()`. Reads `AGENT_SERVICE_URL` env var. |
+| **ApiPlatformClient** | `services/agent-platform.client.ts` | Thin HTTP wrapper for AgentPlatform's `/api/v1`. Methods: `createThread(title)`, `teach(threadId, message)` — creates a `course-teacher` run, polls it to a terminal status, parses the reply with `TeacherReplySchema` (ADR-031). Reads `AGENT_PLATFORM_URL` env var. |
 | **Common Utilities** | `common/` | `ZodValidationPipe` — validates request bodies against Zod schemas. `AllExceptionsFilter` — normalises all errors to structured JSON. `@CurrentUser()` — parameter decorator extracting `req.user`. |
 
 ---
@@ -47,26 +50,20 @@ graph TD
 graph TD
     subgraph "Agent Service (Fastify)"
         MAIN[main.ts<br/>Fastify bootstrap]
-        MCR[/module-chat/stream<br/>POST SSE route]
         EMB[/embeddings/text<br/>POST route]
-
-        subgraph "LangGraph Graphs"
-            MCG[ModuleChatGraph<br/>teacher + evaluator nodes]
-        end
+        HEALTH[/health, /ready<br/>GET routes]
     end
 
-    MAIN --> MCR
     MAIN --> EMB
-    MCR --> MCG
+    MAIN --> HEALTH
 ```
 
 | Component | Files | Responsibility |
 |-----------|-------|----------------|
-| **ModuleChatGraph** | `graphs/module-chat/` | LangGraph `StateGraph`. Two nodes: `teacher` and `evaluator`. Teacher node invokes LLM with module system prompt; detects `[MODULE_COMPLETE:score=N]` signal. Evaluator node scores the conversation. Checkpointed by `thread_id` (= session UUID). |
-| **ModuleChatRoute** | `routes/module-chat.ts` | `POST /module-chat/stream` — sets SSE headers, streams graph output token-by-token, reads final state to emit `module_complete` event. |
 | **EmbeddingsRoute** | `routes/embeddings.ts` | `POST /embeddings/text` — calls `IEmbeddingProvider.embed(text)`, returns `{ embedding: number[] }`. |
+| **HealthRoutes** | `routes/health.ts` | `GET /health` (liveness, dependency-free), `GET /ready` (startup complete). |
 
-Course generation is no longer a graph in this service — it is a run on AgentPlatform's `course-creator` workflow, created and polled by the Worker service (ADR-030).
+Module teaching and course generation are not graphs in this service — they are runs on AgentPlatform's `course-teacher` and `course-creator` agents, created and polled by the API and Worker services respectively (ADR-031, ADR-030).
 
 ---
 
@@ -111,11 +108,8 @@ graph LR
     API --> DB[db]
     WORKER --> DB
     API --> SCHEMAS[schemas]
-    AGENT --> SCHEMAS
     API --> TYPES[types]
-    AGENT --> TYPES
     WORKER --> TYPES
-    AGENT --> PROMPTS[prompts]
     API --> OBS[observability]
     AGENT --> OBS
     WORKER --> OBS
@@ -123,15 +117,18 @@ graph LR
 
 | Package | Key Export | Used By |
 |---------|-----------|---------|
-| `@autodidact/providers` | `ILLMProvider`, `IEmbeddingProvider`, `IQueueProvider`, `IAuthProvider`, `ICheckpointerProvider` + factory functions | All 3 services |
+| `@autodidact/providers` | `IEmbeddingProvider`, `IQueueProvider`, `IAuthProvider` + factory functions | All 3 services (Agent: embeddings only) |
 | `@autodidact/db` | `getDb()`, Drizzle schema tables, `eq`, `sql` etc. | API, Worker |
-| `@autodidact/types` | `CourseModule`, `ModuleResource`, `ChatMessage`, `AuthUser`, job data types | All 3 services |
-| `@autodidact/schemas` | Zod schemas for request validation | API, Agent |
-| `@autodidact/prompts` | System prompts + builders for LLM interactions | Agent only |
+| `@autodidact/types` | `CourseModule`, `ModuleResource`, `ChatMessage`, `AuthUser`, job data types | API, Worker |
+| `@autodidact/schemas` | Zod schemas for request validation, incl. `TeacherReplySchema` (validates the AgentPlatform reply) | API |
 | `@autodidact/observability` | `createLogger(service)`, `initTracer(service)` | All 3 services |
+
+Agent reaches only `providers` (`IEmbeddingProvider`) and `observability`.
+
+`@autodidact/prompts` is gone (ADR-031) — its prompts were consumed only by the module-chat graph this service no longer runs.
 
 ---
 
 _Previous: [C4 Level 2 — Containers](c4-containers.md)_
 
-_For code-level detail on individual folders, see the README.md inside each subfolder (e.g., `services/agent/src/graphs/module-chat/README.md`)._
+_For code-level detail on individual folders, see the README.md inside each subfolder (e.g., `services/agent/src/routes/README.md`)._

@@ -6,7 +6,7 @@
 monorepo
 ├── apps/mobile         ← this app
 ├── services/api        ← REST + SSE backend (NestJS)
-├── services/agent      ← AI graph (LangGraph, internal only)
+├── services/agent      ← embeddings (internal only; module teaching runs on AgentPlatform, ADR-031)
 └── packages/           ← shared types, schemas, config
 ```
 
@@ -22,7 +22,7 @@ Mobile  →  services/api  →  Supabase (DB)
 
 - **Supabase Auth** is used only to obtain a JWT. The client never queries Supabase tables directly.
 - **services/api** validates that JWT on every request and owns all business logic.
-- **services/agent** handles LLM orchestration; the mobile client never reaches it directly.
+- **services/agent** generates embeddings only; the module teacher runs on AgentPlatform, reached by `services/api` (ADR-031). The mobile client never reaches either directly.
 
 ## Auth flow
 

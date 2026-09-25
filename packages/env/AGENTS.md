@@ -13,7 +13,7 @@ Typed, fail-fast environment validation. Each backend service validates `process
 - These schemas are the single source of truth for which env vars each service *requires* to boot. `.env.example` documents the same set for humans — keep the two in sync. When a service starts reading a new required var, add it here in the same change.
 - **Validate at boot, never at module import.** Export `loadXEnv()` functions that services call as the first statement of `main.ts`. Do not parse `process.env` at top-level module scope — that would run during test imports and before the env is loaded, re-introducing the empty-connection-string trap documented in `packages/db/AGENTS.md`.
 - Every schema export includes its inferred type (`z.infer<typeof Schema>`), matching the `@autodidact/schemas` convention.
-- Required-var sets reflect *runtime* truth, not aspiration. `DATABASE_URL` is required for `agent` only when `CHECKPOINTER=postgres` (default is in-memory); `ANTHROPIC_API_KEY` only when `LLM_PROVIDER=anthropic`. Encode such conditions with `superRefine`, don't blanket-require.
+- Required-var sets reflect *runtime* truth, not aspiration. A var needed only under some condition (a provider selection, a feature flag) is required only then, encoded with `superRefine` — never blanket-required.
 
 ---
 

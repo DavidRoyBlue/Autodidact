@@ -16,7 +16,7 @@ The golden path, end to end across all three services:
 2. **Generate** — the worker picks up the job, runs `course-creator` on a mock
    AgentPlatform (ADR-030), and writes the course `ready` + module rows.
 3. **Enroll** → `module_progress` rows (position 0 `available`, rest `locked`).
-4. **Chat** a turn over SSE → the teacher signals completion.
+4. **Chat** a turn over SSE → the api runs `course-teacher` on the mock platform, which signals completion.
 5. **Complete & unlock** — the module flips `completed` and the next unlocks.
 
 Plus an auth-rejection failure path.

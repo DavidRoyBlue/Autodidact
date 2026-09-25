@@ -162,3 +162,12 @@ one-way token streaming over HTTP to a React Native client.
 - Specific event schema, error code conventions — owned by `services/agent/src/routes/module-chat.ts` and `services/agent/CLAUDE.md`.
 - Reconnection / resume behavior on the mobile client — owned by `apps/mobile/CLAUDE.md`.
 - Reconsider this ADR if: features emerge that require bidirectional streaming during a turn (real-time interrupt, tool-use confirmation), or if multi-modal streaming (audio chunks, image partials) demands a more efficient wire format than text-event-stream.
+
+## Update (2026-09-25)
+
+[ADR-031](../../cross-cutting/ADR-031-module-teacher-on-agent-platform.md)
+moved the teacher to AgentPlatform, which returns a turn whole. The
+transport is now one hop, API → mobile, still SSE with the same events: the
+reply arrives as a single `token` event, `module_complete` carries the
+teacher's structured `score` (no marker), then `complete`. Token streaming
+returns when the platform streams runs.

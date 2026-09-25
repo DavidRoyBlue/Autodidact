@@ -7,14 +7,6 @@ export interface ChatMessage {
   createdAt: string;
 }
 
-export interface StreamChunk {
-  type: 'token' | 'complete' | 'error' | 'module_complete';
-  content?: string;
-  score?: number;
-  feedback?: string;
-  error?: string;
-}
-
 export interface ChatSession {
   id: string;
   userId: string;

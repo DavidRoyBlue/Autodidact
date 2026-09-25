@@ -37,7 +37,7 @@
 - [ ] Run one full deploy + smoke test against staging/prod
 
 ### 2. Make it durable for real sessions
-- [ ] Flip `CHECKPOINTER=postgres` (currently defaults to in-memory) and verify
+- [x] ~~Flip `CHECKPOINTER=postgres`~~ — moot: ADR-031 moved the module teacher to AgentPlatform, which owns thread history now; the checkpointer provider is unused
 - [ ] Add Worker failed-job recovery so stuck courses aren't unrecoverable
 
 ### 3. Make it observable + safe to expose

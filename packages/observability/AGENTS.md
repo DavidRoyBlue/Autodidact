@@ -28,7 +28,7 @@ Structured logging (pino) and OpenTelemetry trace initialization for all service
 ## Source of truth
 
 - `src/logger.ts` — `createLogger(service)` factory and the `Logger` type alias.
-- `src/tracer.ts` — `initTracer(serviceName)`, `shutdownTracer()`, and the span helpers `withSpan(name, fn, attrs?)`, `setSpanAttributes(attrs)`, plus `isLangSmithTracingEnabled()`.
+- `src/tracer.ts` — `initTracer(serviceName)`, `shutdownTracer()`, and the span helpers `withSpan(name, fn, attrs?)`, `setSpanAttributes(attrs)`.
 - `LOG_LEVEL` env var — controls pino log level (default: `info`).
 - `OTEL_EXPORTER_OTLP_ENDPOINT` env var — OTLP collector URL; if absent, tracing is disabled.
 - `NODE_ENV` env var — controls output format: `production` uses JSON, anything else activates `pino-pretty`.
