@@ -163,7 +163,7 @@ Terraform IaC for the GCP production environment (project `autodidact-494819`, r
 - [deploy.yml](.github/workflows/deploy.yml)
 
 ## packages/db 🟢
-_verified: 2026-09-01_
+_verified: 2026-09-28_
 
 Drizzle client, schema, and migrations — single source of truth for DB structure (Supabase Postgres + pgvector).
 
@@ -182,7 +182,7 @@ Drizzle client, schema, and migrations — single source of truth for DB structu
 - prod: `infra/secrets.env` (used by `migrate:prod` / `db:studio:prod`)
 - dev: [.env.example](.env.example) → `.env.dev` (local stack DB `127.0.0.1:55322`)
 
-**State** — Schema, migrations, and pgvector verified in prod and dev.
+**State** — Schema, migrations, and pgvector verified in dev (local stack re-migrated 2026-09-28, all 15 migrations applied). Prod is at migration `0010`; `0011`–`0013` are still pending there (see roadmap.md).
 
 **Useful Files**
 - [schema/](packages/db/src/schema/)

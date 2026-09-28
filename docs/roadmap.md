@@ -19,6 +19,7 @@
 - [x] Fix Terraform/code secret-name drift — `main.tf` now injects `SUPABASE_SECRET_KEY` (matching the code); dropped the unread `SUPABASE_JWT_SECRET` / `SUPABASE_SERVICE_ROLE_KEY`
 - [x] ~~Flip `CHECKPOINTER=postgres`~~ — moot: ADR-031 moved the module teacher to AgentPlatform, which owns thread history now; the checkpointer provider is unused
 - [x] Drop `LLM_PROVIDER`/`CHECKPOINTER` from `infra/` (ADR-031 follow-up) — removed from `infra/environments/prod/main.tf` and `scripts/gcp-bootstrap.sh`; nothing in the codebase reads either env var (#322)
+- [x] Fix `0013_onboarding` silently skipped everywhere (#320): journal entry moved last with a `when` past the max; guarded by `journal.test.ts`
 - [ ] Worker failed-job recovery so stuck courses aren't unrecoverable
 - [ ] Wire error tracking / OTEL backend
 - [ ] API rate limiting
@@ -51,7 +52,7 @@
 - [ ] Google Play Developer account for Android beta submission
 - [ ] Run the actual deploy + smoke test against real infra
 - [ ] Configure Google + Facebook OAuth providers (Supabase dashboard; Google Cloud Web client + dev/prod Android SHA-1 client IDs; Facebook app) — unblocks social sign-in
-- [ ] Apply auth migrations `0011`/`0012` to prod + enable manual-linking + GoTrue hardening (prod DB is at `0010`)
+- [ ] Apply auth migrations `0011`/`0012` to prod + enable manual-linking + GoTrue hardening (prod DB is at `0010`) — `0013_onboarding` (the onboarding auto-enroll course) has also never reached prod and must ride along in the same catch-up run
 
 ## Phase 2 — Polish
 - [ ] Course generation progress indicator (WebSocket or SSE to mobile during generation)
