@@ -128,7 +128,7 @@ keep a second teacher.
 
 ### Follow-up decisions
 - Token streaming on the platform's run stream.
-- Drop the LLM/checkpointer secret names from `infra/`.
+- ~~Drop the LLM/checkpointer secret names from `infra/`~~ — done (#322): `LLM_PROVIDER`/`CHECKPOINTER` removed from `infra/environments/prod/main.tf` and `scripts/gcp-bootstrap.sh`.
 
 ## Related
 
