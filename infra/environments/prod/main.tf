@@ -55,7 +55,6 @@ module "api" {
     # probe. (The worker uses a plain WORKER_PORT="8080" below for the same
     # reason.)
     API_PORT             = "autodidact-api-port"
-    LLM_PROVIDER         = "autodidact-llm-provider"
     AUTH_PROVIDER        = "autodidact-auth-provider"
     QUEUE_PROVIDER       = "autodidact-queue-provider"
     # Worker Cloud Run URL — set after the worker's first deploy (same
@@ -78,9 +77,7 @@ module "agent" {
   allow_public          = false
   env_vars              = merge(local.common_secrets, {
     AGENT_PORT        = "autodidact-agent-port"
-    LLM_PROVIDER      = "autodidact-llm-provider"
     EMBEDDING_PROVIDER = "autodidact-embedding-provider"
-    CHECKPOINTER      = "autodidact-checkpointer"
   })
   # Internal callers (api, worker) run as this SA and invoke the agent with an
   # OIDC ID token; the agent stays private (allow_public = false).

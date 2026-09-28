@@ -18,6 +18,7 @@
 
 - [x] Fix Terraform/code secret-name drift — `main.tf` now injects `SUPABASE_SECRET_KEY` (matching the code); dropped the unread `SUPABASE_JWT_SECRET` / `SUPABASE_SERVICE_ROLE_KEY`
 - [x] ~~Flip `CHECKPOINTER=postgres`~~ — moot: ADR-031 moved the module teacher to AgentPlatform, which owns thread history now; the checkpointer provider is unused
+- [x] Drop `LLM_PROVIDER`/`CHECKPOINTER` from `infra/` (ADR-031 follow-up) — removed from `infra/environments/prod/main.tf` and `scripts/gcp-bootstrap.sh`; nothing in the codebase reads either env var (#322)
 - [ ] Worker failed-job recovery so stuck courses aren't unrecoverable
 - [ ] Wire error tracking / OTEL backend
 - [ ] API rate limiting
