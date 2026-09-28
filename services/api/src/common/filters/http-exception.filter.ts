@@ -15,8 +15,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const status = isHttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     const message = isHttpException ? exception.getResponse() : 'Internal server error';
 
-    // Unhandled (non-HttpException) errors are otherwise silent — the caller only
-    // sees a generic 500. Log the real cause with its stack at error level.
+    // Otherwise the caller only sees a generic 500 with no trace of the real cause.
     if (!isHttpException) {
       this.logger.error(
         { err: exception, path: request.url, method: request.method },
