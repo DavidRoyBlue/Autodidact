@@ -18,6 +18,7 @@
 
 - [x] Fix Terraform/code secret-name drift — `main.tf` now injects `SUPABASE_SECRET_KEY` (matching the code); dropped the unread `SUPABASE_JWT_SECRET` / `SUPABASE_SERVICE_ROLE_KEY`
 - [x] ~~Flip `CHECKPOINTER=postgres`~~ — moot: ADR-031 moved the module teacher to AgentPlatform, which owns thread history now; the checkpointer provider is unused
+- [x] Fix migration `0013_onboarding` silently skipped everywhere (issue #320) — its journal `when` collided with `0011`'s, and drizzle's migrate() gates on a single global "last applied" timestamp rather than per-migration, so simply de-duplicating the timestamp (as first attempted) wasn't enough once `0014`/`0015` had already applied on an environment; fixed by moving `0013`'s entry to the end of `_journal.json` with a `when` past the current max. Local dev DB re-migrated and confirmed (`users.onboarded_at` / `courses.is_onboarding` now exist); `AllExceptionsFilter` now logs unhandled 500s (was silent); a `journal.test.ts` guard rejects any future non-increasing `when`.
 - [ ] Worker failed-job recovery so stuck courses aren't unrecoverable
 - [ ] Wire error tracking / OTEL backend
 - [ ] API rate limiting
@@ -50,7 +51,7 @@
 - [ ] Google Play Developer account for Android beta submission
 - [ ] Run the actual deploy + smoke test against real infra
 - [ ] Configure Google + Facebook OAuth providers (Supabase dashboard; Google Cloud Web client + dev/prod Android SHA-1 client IDs; Facebook app) — unblocks social sign-in
-- [ ] Apply auth migrations `0011`/`0012` to prod + enable manual-linking + GoTrue hardening (prod DB is at `0010`)
+- [ ] Apply auth migrations `0011`/`0012` to prod + enable manual-linking + GoTrue hardening (prod DB is at `0010`) — `0013_onboarding` (the onboarding auto-enroll course) has also never reached prod and must ride along in the same catch-up run
 
 ## Phase 2 — Polish
 - [ ] Course generation progress indicator (WebSocket or SSE to mobile during generation)

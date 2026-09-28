@@ -4,11 +4,16 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Injectable,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { createLogger } from '@autodidact/observability';
 
+@Injectable()
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = createLogger('api');
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -23,6 +28,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.getResponse()
         : 'Internal server error';
+
+    // Unhandled (non-HttpException) errors are otherwise silent — the caller only
+    // sees a generic 500. Log the real cause with its stack at error level.
+    if (!(exception instanceof HttpException)) {
+      this.logger.error(
+        { err: exception, path: request.url, method: request.method },
+        'Unhandled exception',
+      );
+    }
 
     response.status(status).json({
       statusCode: status,
