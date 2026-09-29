@@ -24,7 +24,7 @@
 - [ ] Wire error tracking / OTEL backend
 - [ ] API rate limiting
 - [ ] LLM cost/token controls in the Agent
-- [x] Mobile runs on the emulator again (#320 follow-up): `scripts/run-mobile.sh --release` builds the APK locally (Accountability's recipe) and installs it — no EAS dev client, no Metro; walkthrough in `apps/mobile/docs/walkthrough-2026-09-29.md`
+- [x] Mobile runs on the emulator again (#320 follow-up): `scripts/run-mobile.sh --release` builds the APK locally (Accountability's recipe) and installs it — no EAS dev client, no Metro; walkthrough in `apps/mobile/docs/walkthrough-2026-09-29.md` — its "Left open" list (chat session resume, server-side enroll on generation, Google end-to-end, streaming UX, generation failures on long budgets) is what remains
 - [ ] EAS build + store-submission path for Mobile — *build config done (`apps/mobile/eas.json`, preview/production profiles); Play Store submission pending*
 - [ ] Real Mobile test coverage (E2E, not just light unit tests)
 

@@ -16,7 +16,9 @@ mobile-mcp taps were broken by the adb-forward bug (Automation #174).
 | Course detail | **working** after fix — real progress bar, locked/available states | `08-course-detail-fixed.png` |
 | Module chat | **working** after fix — teacher reply from AgentPlatform, second turn, `module_complete` | `10-module-chat-reply.png`, `12-module-chat-second-turn.png` |
 | Progress unlock | **working** — module 1 completed (score 95), module 2 available, 1/2 | `13-progress-unlock.png` |
-| Create course (budget selector) | **working** after fix — `30 min` selected, `POST /courses` accepted, the button shows the real generation status (~7 min on AgentPlatform), the app opens the course when ready. Before the fix it opened **0/0 modules, all locked**: a generated course never enrolled its creator. | `14-create-course-form.png`, `15-create-course-generating.png`, `16-generated-course-all-locked.png` (before) |
+| Create course (budget selector) | **working** after fix — `30 min` selected, `POST /courses` accepted, the button shows the real generation status (~7 min on AgentPlatform), the app opens the course when ready. Before the fix it opened **0/0 modules, all locked**: a generated course never enrolled its creator. The enroll fix is verified by curl and unit test, not on-device: the second generation ("Intro to chess openings", 1 h) **failed on AgentPlatform** — `plan_review` exceeded Claude Code's 4096 output-token cap (`run_9a65f09c74e2`, handed to `pm AgentPlatform`) — and the app rendered that state correctly ("Course generation failed. Please try again."). | `14-create-course-form.png`, `15-create-course-generating.png`, `16-generated-course-all-locked.png` (before), `17-create-course-failed.png` |
+| Back navigation | **working** after fix — header back on course and chat, Android BACK pops chat → course | `17-chat-header-back.png`, `18-back-pops-to-course.png` |
+| Guest → Google upgrade (Profile) | **not testable on the local stack** — the web `linkIdentity` flow sends Google `redirect_uri=http://10.0.2.2:55321/auth/v1/callback`; only the hosted Supabase callback is authorized on the Web client, so Google answers `400 redirect_uri_mismatch`. Authorizing it needs the real client secret in local GoTrue, which `social-sign-in.md` forbids — prod-only path. | owner screenshot (Chrome custom tab) |
 
 ## What was broken, and what this PR fixed
 
@@ -65,5 +67,10 @@ mobile-mcp taps were broken by the adb-forward bug (Automation #174).
 - The teacher returns one whole reply; the "streaming" spinner runs 20–50 s
   with nothing on screen. Either stream tokens from AgentPlatform or show a
   "thinking" state that says so.
+- Course generation can fail for long budgets: AgentPlatform's course-creator
+  `plan_review` step hit Claude Code's 4096 output-token cap on a 1 h course
+  (AgentPlatform's side, handed to its manager). The app only says "try
+  again"; it has no retry that reuses the topic/budget, and the failed row
+  stays in `courses` with no way to see it.
 - `pnpm db:reset:dev` drops the onboarding course; `pnpm setup` seeds it but
   nothing re-seeds after a reset (`db:seed:onboarding:dev` by hand).
