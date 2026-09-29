@@ -1,106 +1,89 @@
 ---
 name: run-mobile
-description: Run the Autodidact mobile app on the Android emulator from WSL2. Use when asked to "run the mobile app", "start the app", "boot the emulator", "open the app on the emulator", or to screenshot/drive the mobile UI via mobile-mcp.
+description: Build the Autodidact mobile app (apps/mobile, Expo/React Native) in WSL and run it on the Android emulator on the Windows host. Use whenever asked to run, install, launch, screenshot or check a change in the real app, or when a task needs an Android device. Covers where the device comes from, the backend it needs, and who turns the emulator off.
 ---
 
-## Run the mobile app (WSL2 + Windows-host Android emulator)
+# Run the mobile app
 
-This project runs in WSL2; the Android emulator lives on the Windows host. The
-cross-boundary adb wiring (Windows adb server owns :5037, Linux adb is a pure
-client over mirrored networking) is the registered `adb-up` operation in
-`~/Automation`, and booting the AVD is the registered `android-emulator`
-operation, which calls it first. See `apps/mobile/docs/android-emulator-wsl2.md`
-for this app, and `~/Automation/docs/android-{emulator,adb}-wsl2.md` for the
-machine-wide halves.
-
-### Steps
-
-1. **Pick the scope:**
-   - "boot the emulator" only → run `~/Automation/scripts/bin/android-emulator`
-   - "run the app" / "open the app" / drive it → run `bash scripts/run-mobile.sh`
-     (boots the emulator, then Expo/Metro opens the app in Expo Go).
-2. **Verify with mobile-mcp** (do not trust the script exit alone):
-   - `mobile_list_available_devices` → expect an `emulator-<n>` (usually `emulator-5554`).
-   - `mobile_take_screenshot` → confirm the emulator/app rendered. For the full app
-     run, the screenshot should show the Autodidact sign-in screen once Metro finishes
-     the first bundle (give it a few seconds; re-screenshot if still on the Expo splash).
-3. **If it fails, self-heal once, then report:**
-   - Run `~/Automation/scripts/bin/adb-up --reset` then re-run `~/Automation/scripts/bin/android-emulator`.
-     (Kills both adb servers and re-establishes the Windows one — the most common failure
-     is a stray Linux adb server that grabbed :5037.)
-   - Re-verify with `mobile_list_available_devices`. Only if it still fails, surface
-     the troubleshooting table to the human.
-
-### Prerequisite for mobile-mcp (one-time)
-
-mobile-mcp must be configured with `ANDROID_HOME=~/.android-sdk-wsl` (a WSL shim
-whose `platform-tools/adb` is the Linux adb; `adb-up` maintains it) plus
-`ADB_SERVER_SOCKET=tcp:localhost:5037` in its server env, then Claude restarted
-once. Without this, `mobile_list_available_devices` returns `[]` even though
-`~/android-platform-tools/adb devices` shows the emulator. See
-`~/Automation/docs/android-adb-wsl2.md` → Troubleshooting. If devices are empty but the script
-succeeded, this config is the likely cause — report it rather than looping.
-
-### Notes
-
-- The backend is **not** started by these scripts. For working auth/API, run
-  `pnpm dev` in a separate terminal. The app still loads (sign-in screen) without it.
-- Metro keeps running in the background after `run-mobile.sh`; its log is `.expo-dev.log`.
-- Re-running either script is safe (idempotent): if the AVD is already booted /
-  Metro is already up, it reuses them.
-
-### Applying source edits (Metro runs with reloads DISABLED)
-
-`run-mobile.sh` starts Metro with `CI=1`, which turns OFF file watching — the log
-even says *"Metro is running in CI mode, reloads are disabled."* So **editing
-source does not hot-reload.** A plain Metro restart often isn't enough either,
-because two caches replay the old code and you'll see fixes you already made keep
-"recurring":
-
-1. **Metro transform cache** — lives at `"${TMPDIR:-/tmp}"/metro-cache`. In a
-   Claude Code session `TMPDIR` is usually `/tmp/claude-<uid>`, **not** `/tmp` —
-   so `rm /tmp/metro-*` is a no-op. Always expand `$TMPDIR`.
-2. **Tamagui precompile cache** — `apps/mobile/.tamagui/tamagui.config.json`,
-   written by `@tamagui/babel-plugin`. Metro reads **this file**, not
-   `src/design/config.ts`, at bundle time. If it's stale, the app loads old design
-   tokens regardless of the source. (It's gitignored; it regenerates on build.)
-
-Reliable recipe after editing `apps/mobile/src/design/*` (tokens/themes/config) or
-any source you need Metro to actually re-pick-up:
+`apps/mobile` cannot run in Expo Go (native Google sign-in crashes it at import),
+so running it means building an APK here in WSL and installing it on the
+emulator. The repo script does the whole thing — the same recipe as
+Accountability's `scripts/run-mobile.sh`:
 
 ```bash
-pkill -f "expo/bin/cli start"                      # stop Metro (verify it's down)
-rm -rf apps/mobile/.tamagui \
-       "${TMPDIR:-/tmp}"/metro-cache "${TMPDIR:-/tmp}"/metro-file-map-* \
-       apps/mobile/node_modules/.cache             # clear BOTH caches
-( cd apps/mobile && CI=1 ANDROID_HOME="$HOME/.android-sdk-wsl" \
-    nohup pnpm start -- -c >> "$PWD/../../.expo-dev.log" 2>&1 & )   # cold start (-c)
-# wait for http://localhost:8081/status, then force a fresh bundle on the device
-# (10.0.2.2 is the host loopback; adb reverse is broken across the WSL split):
-~/android-platform-tools/adb -s emulator-5554 shell am force-stop com.autodidact.app
-~/android-platform-tools/adb -s emulator-5554 shell am start -a android.intent.action.VIEW \
-    -d "autodidact://expo-development-client/?url=http%3A%2F%2F10.0.2.2%3A8081" com.autodidact.app
+scripts/run-mobile.sh --release       # build the APK, install and launch on the emulator
+scripts/run-mobile.sh                 # debug APK: needs Metro (`pnpm mobile`) or it shows "Unable to load script"
+scripts/run-mobile.sh --no-install    # build only, print the APK path
 ```
 
-A cold bundle takes ~12s (`Android Bundled … (1686 modules)` in the log). Then
-screenshot to confirm — don't assume the reload landed.
+It boots the emulator, reads the device's own ABI, regenerates `android/` with
+`expo prebuild`, builds pinned to six cores with no daemon (an unbounded build
+has taken the WSL VM down), installs and launches. Prerequisites it checks and
+explains: a Linux Android SDK at `~/Android/Sdk` and a JDK (not a JRE) at
+`~/jdk/current`. A release build takes ~10 minutes from cold.
 
-### Tamagui token rules (design-system edits)
+**Only a release build proves the app runs.** A debug APK carries no JavaScript
+and fetches it from Metro; use it only when you need a readable stack (the
+release bundle is Hermes bytecode).
 
-`createTamagui()` validates at runtime (invisible to `tsc`): `size`, `space`,
-`radius`, `zIndex` each need a `true` key, and **`radius`/`zIndex` keys must be a
-subset of the `size` keys**. This project's `size` scale is `{ true, sm, md, lg,
-xl }`. A red `createTamagui() invalid tokens.*` / `Can't find Tamagui
-configuration` screen means a token group violates this — fix
-`apps/mobile/src/design/tokens.ts`, then apply it with the cache recipe above.
+## The backend it talks to
 
-### Troubleshooting (only after the self-heal step above)
+The APK bakes in `SUPABASE_URL=http://10.0.2.2:55321` and
+`AUTODIDACT_API_BASE_URL=http://10.0.2.2:3000/v1` — qemu's host loopback into
+WSL. So the local stack must be up: `pnpm workspace` (idempotent; owns
+api:3000 / agent:3001 / worker:3002 and the Supabase stack — never start a
+second one, root `AGENTS.md` "Development workspace policy"). Course generation
+and module chat also need AgentPlatform on :8400.
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `adb devices` / mobile-mcp empty after boot, device flickers `offline`, or every `adb` call hangs | a stray Linux adb server grabbed :5037, or two servers fighting | `~/Automation/scripts/bin/adb-up --reset`; re-run `~/Automation/scripts/bin/android-emulator` (qemu VM survives) |
-| `adb-up` exits 3 | Linux and Windows adb builds differ | update platform-tools in the Windows SDK and unpack the same version's Linux zip into `~/android-platform-tools` |
-| "emulator did not register within Ns" | `emulator.exe` mis-launched or wrong AVD | check `AVD` (default `Medium_Phone`); `<sdk>/emulator/emulator.exe -list-avds` |
-| app stuck on Expo splash | Metro still bundling, or can't reach Metro | wait/re-screenshot; check `.expo-dev.log` (the device reaches Metro at `10.0.2.2:8081`, never through `adb reverse`) |
-| a source edit isn't taking effect; an already-fixed error keeps recurring | `CI=1` Metro doesn't watch, and the Metro/Tamagui caches replay old code | use the cache recipe in "Applying source edits"; clearing `apps/mobile/.tamagui` + `"${TMPDIR:-/tmp}"/metro-cache` is the part that matters |
-| red `createTamagui() invalid tokens.*` / `Can't find Tamagui configuration` | a token group violates Tamagui v2 rules (missing `true`, or `radius`/`zIndex` keys not a subset of `size`) | fix `apps/mobile/src/design/tokens.ts`, then apply via the cache recipe |
+The onboarding course is seeded by `pnpm setup`, not by migrations: after a
+`pnpm db:reset:dev` run `pnpm db:seed:onboarding:dev` or every sign-in logs
+"No onboarding course found" and skips auto-enroll.
+
+## Where the device comes from
+
+The emulator, reached through the registered Automation operations, which own
+the one adb server this machine has:
+
+```bash
+~/Automation/scripts/bin/android-emulator     # boot the AVD and wait until WSL sees it (idempotent)
+~/Automation/scripts/bin/adb-up                # the adb wiring on its own; `--reset` when adb hangs
+```
+
+Never start an adb server here and never `adb reverse` — tunnels accept
+connections but deliver no data across the Windows-server/WSL-client split
+(`~/Automation/docs/android-adb-wsl2.md`).
+
+Google sign-in needs a Google account on the AVD once (Settings → Accounts, or
+complete the native sheet's form). It survives reboots; `--bake` / wipe loses it.
+
+## Turning the emulator off
+
+The emulator is leased, not owned: booting it takes a lease for this session,
+and `finishup` and the `SessionEnd` hook release it. A session that has
+verified its change and moves on should let go early:
+
+```bash
+~/Automation/scripts/bin/android-emulator --release
+```
+
+## Verify and drive it
+
+- `mobile_list_available_devices` → expect `emulator-5554`; `mobile_take_screenshot`
+  for what is on screen, `mobile_list_elements_on_screen` to tap by ref.
+- `~/android-platform-tools/adb -s emulator-5554 logcat -s ReactNativeJS` — JS logs.
+- `~/android-platform-tools/adb -s emulator-5554 shell pidof com.autodidact.app` — the process.
+
+mobile-mcp needs `ANDROID_HOME=~/.android-sdk-wsl` and
+`ADB_SERVER_SOCKET=tcp:localhost:5037` in its server env (one-time; Claude
+restarted once). Without it `mobile_list_available_devices` returns `[]` while
+`adb devices` shows the emulator — report it rather than loop.
+
+## Do not
+
+- Do not run Metro against the emulator as "the app": a JS/TS change is checked
+  by rebuilding `--release` (`pnpm mobile` from the workspace is for the debug
+  APK's stack traces).
+- Do not edit `apps/mobile/android/`: generated and gitignored; build tuning
+  goes on the gradle line in `scripts/run-mobile.sh`.
+- Do not use EAS for a device check: `eas.json` profiles are for Play Store
+  builds (`apps/mobile/AGENTS.md` "Build & release").

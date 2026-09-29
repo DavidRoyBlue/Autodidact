@@ -21,9 +21,9 @@ Expo React Native app — the only client; talks exclusively to the API service.
 - UI: NativeWind v4 + React Native Reusables (tokens = CSS variables in global.css)
 - State: TanStack Query 5 (server) / Zustand 5 (client)
 - Auth: Supabase (email/password, anonymous guest, Google native id-token, Facebook PKCE)
-- Streaming: SSE via @microsoft/fetch-event-source
+- Streaming: SSE body read whole via `apiFetch` after the API closes it (`src/hooks/useSSE.ts`; RN fetch cannot stream)
 - Testing: Jest (jest-expo) unit/component; Maestro e2e (manual/nightly, not PR-gated)
-- Build: EAS — development (dev client → local), preview (APK → prod API), production (Play AAB → prod API)
+- Build: local WSL gradle via `scripts/run-mobile.sh` for the emulator; EAS — preview (APK → prod API), production (Play AAB → prod API) for distribution
 
 **Secrets**
 - prod: [eas.json](apps/mobile/eas.json) profile env (publishable values only) + `app.config.ts` injection

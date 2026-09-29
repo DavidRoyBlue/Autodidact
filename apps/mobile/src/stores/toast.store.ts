@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'expo-crypto';
 
 export type ToastVariant = 'success' | 'error' | 'info';
 
@@ -19,7 +19,7 @@ export const useToastStore = create<ToastState>((set) => ({
   toasts: [],
   addToast: (message, variant = 'info') =>
     set((state) => ({
-      toasts: [...state.toasts, { id: uuidv4(), message, variant }],
+      toasts: [...state.toasts, { id: randomUUID(), message, variant }],
     })),
   removeToast: (id) =>
     set((state) => ({

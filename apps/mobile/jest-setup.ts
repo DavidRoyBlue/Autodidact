@@ -9,6 +9,10 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
+// jest-expo auto-mocks expo-crypto's native module, so randomUUID returns
+// undefined; the stores mint message/toast ids with it.
+jest.mock('expo-crypto', () => ({ randomUUID: () => globalThis.crypto.randomUUID() }));
+
 // NativeWind's runtime stylesheet isn't initialized under Jest (no Metro CSS
 // pipeline), so `setColorScheme` throws "without using darkMode: class" even
 // though tailwind.config sets darkMode:'class'. Stub the hook; only `_layout`

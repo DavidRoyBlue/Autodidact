@@ -44,6 +44,9 @@ export default function AppLayout() {
           ),
         }}
       />
+      {/* Nested routes: reachable from My Courses, never tabs of their own. */}
+      <Tabs.Screen name="courses/[id]/index" options={{ href: null, title: 'Course' }} />
+      <Tabs.Screen name="courses/[id]/modules/[moduleId]/chat" options={{ href: null, title: 'Module' }} />
     </Tabs>
   );
 }

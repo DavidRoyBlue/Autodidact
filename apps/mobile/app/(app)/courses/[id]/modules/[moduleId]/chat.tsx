@@ -75,9 +75,11 @@ export default function ModuleChatScreen() {
   }
 
   return (
+    // Android resizes the window for the keyboard itself (softwareKeyboardLayoutMode
+    // "resize"); compensating again with "height" pushed the composer off screen.
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={90}
     >
       <View className="flex-1 bg-background">
