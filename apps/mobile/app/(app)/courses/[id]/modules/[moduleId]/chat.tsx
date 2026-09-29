@@ -96,15 +96,18 @@ export default function ModuleChatScreen() {
         />
 
         <View className="flex-row items-end gap-2 border-t border-border bg-card p-3">
-          <Input
-            className="flex-1"
-            placeholder="Ask a question or respond..."
-            value={input}
-            onChangeText={setInput}
-            multiline
-            maxLength={4000}
-            editable={!isStreaming}
-          />
+          {/* flex-1 on the wrapper: Input's own View sizes to its text and would push the send button off screen. */}
+          <View className="flex-1">
+            <Input
+              className="max-h-32"
+              placeholder="Ask a question or respond..."
+              value={input}
+              onChangeText={setInput}
+              multiline
+              maxLength={4000}
+              editable={!isStreaming}
+            />
+          </View>
           <IconButton
             icon={<UpArrow />}
             variant="primary"
