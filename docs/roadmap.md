@@ -20,7 +20,7 @@
 - [x] ~~Flip `CHECKPOINTER=postgres`~~ — moot: ADR-031 moved the module teacher to AgentPlatform, which owns thread history now; the checkpointer provider is unused
 - [x] Drop `LLM_PROVIDER`/`CHECKPOINTER` from `infra/` (ADR-031 follow-up) — removed from `infra/environments/prod/main.tf` and `scripts/gcp-bootstrap.sh`; nothing in the codebase reads either env var (#322)
 - [x] Fix `0013_onboarding` silently skipped everywhere (#320): journal entry moved last with a `when` past the max; guarded by `journal.test.ts`
-- [x] Catch-up prod deploy runbook (#320) — `docs/gcp_infra_setup.md` §9: restore Supabase → gate on #321 → secrets → `terraform apply` → `pg_dump` → `pnpm migrate:prod` → promote → verify; decisions in `docs/decisions.md`. Execution is owner-only (below); waits on #321
+- [x] Catch-up prod deploy runbook (#320) — `docs/gcp_infra_setup.md` §9; decisions in `docs/decisions.md`. Execution is owner-only (below); waits on #321
 - [ ] Worker failed-job recovery so stuck courses aren't unrecoverable
 - [ ] Wire error tracking / OTEL backend
 - [ ] API rate limiting

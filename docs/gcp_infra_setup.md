@@ -482,10 +482,7 @@ Prod was last deployed on 2026-06-26 (`autodidact-api-00025-g25`). Since then
 the exact sequence for the next deploy. Every step is the owner's (David's); the
 release gate — `git push origin master:production` — is never an agent's.
 
-The decisions behind this sequence are in [`docs/decisions.md`](decisions.md)
-(2026-09-29): one deploy, only after #321 lands; `pg_dump` before `0014`;
-migrate from the laptop before promoting; `terraform apply` before promoting;
-smoke test = health + migrations.
+The reasons behind this sequence are in [`docs/decisions.md`](decisions.md) (2026-09-29).
 
 **Why 9.4 → 9.7 is one sitting:** `0014_course_on_platform` drops
 `courses.blueprint` and `modules.content_outline`, which the June images still
