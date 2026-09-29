@@ -51,6 +51,11 @@ mobile-mcp taps were broken by the adb-forward bug (Automation #174).
 
 ## Left open (issues under #320)
 
+- Chat history does not survive leaving the screen: `POST /chat/sessions`
+  creates a new session on every visit (five rows for one user/module in the
+  local DB), so re-opening a module shows an empty chat and the teacher
+  starts over. The API should resume the module's open session.
+
 - The server should enroll the creator when generation completes (worker or
   `courses.service`), so a course is usable from any client — the app-side
   enroll is a client workaround for the API gap.
