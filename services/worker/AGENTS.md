@@ -6,7 +6,7 @@
 
 Background task handler. A thin Fastify HTTP service whose `/tasks/:name` endpoints are invoked per-task — by GCP Cloud Tasks in production (OIDC-authenticated at the Cloud Run IAM layer) and by the loopback queue provider in local dev:
 
-- `POST /tasks/generate-course` — runs a course-creator workflow on AgentPlatform (ADR-030), writes the returned course and all module rows to PostgreSQL, then enqueues a follow-up embedding task.
+- `POST /tasks/generate-course` — runs a course-creator-lean workflow on AgentPlatform (ADR-030), writes the returned course and all module rows to PostgreSQL, then enqueues a follow-up embedding task.
 - `POST /tasks/generate-embedding` — calls the Agent service to generate a topic embedding vector, stores it in `courses.topic_embedding` via raw pgvector SQL.
 - `POST /tasks/cleanup-stale-anonymous` — deletes anonymous users older than the retention window (default 90 days): `public.users` first (cascading to enrollments/module_progress/chat_sessions), then `auth.users`, in one transaction. Idempotent; `2xx` ack / `5xx` retry. The recurring schedule (Cloud Scheduler → Cloud Tasks) is **deferred to an infra task** — only the endpoint + processor ship here; in dev it is invoked by a manual POST. See `src/processors/AGENTS.md`.
 
@@ -18,7 +18,7 @@ Internal only — never exposed publicly. Scales to zero between tasks.
 
 - **The HTTP surface is the task contract only** — `/tasks/:name` routes plus `GET /health`. Do not add business/API routes; user-facing HTTP belongs in `services/api`.
 - **No auth code in this service** — Cloud Run IAM authenticates Cloud Tasks' OIDC tokens before requests reach the container. Do not add token verification middleware.
-- **No LLM SDKs here** — do not import OpenAI, Anthropic or LangChain directly. Course generation is a run on AgentPlatform's `course-creator` workflow through `src/services/agent-platform.client.ts` (`AGENT_PLATFORM_URL`, ADR-030); embeddings go through `src/services/agent.client.ts` to `AGENT_SERVICE_URL`.
+- **No LLM SDKs here** — do not import OpenAI, Anthropic or LangChain directly. Course generation is a run on AgentPlatform's `course-creator-lean` workflow through `src/services/agent-platform.client.ts` (`AGENT_PLATFORM_URL`, ADR-030); embeddings go through `src/services/agent.client.ts` to `AGENT_SERVICE_URL`.
 - **Course status must be updated at each transition** — set `status = 'generating'` when processing starts; set `status = 'ready'` (inside the transaction) on success; set `status = 'failed'` when the **final attempt** fails (detected via the `X-CloudTasks-TaskRetryCount` header against `TASK_MAX_ATTEMPTS`; a request without the header — loopback — is the single, final attempt).
 - **Never flip a `ready` course back** — the failed-marking update is guarded with `status IN ('pending','generating')`.
 - **Module rows are inserted inside the same DB transaction as the course `status = 'ready'` update** — if either write fails, both roll back. Never split them.

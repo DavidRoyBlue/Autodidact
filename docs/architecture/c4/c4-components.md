@@ -63,7 +63,7 @@ graph TD
 | **EmbeddingsRoute** | `routes/embeddings.ts` | `POST /embeddings/text` — calls `IEmbeddingProvider.embed(text)`, returns `{ embedding: number[] }`. |
 | **HealthRoutes** | `routes/health.ts` | `GET /health` (liveness, dependency-free), `GET /ready` (startup complete). |
 
-Module teaching and course generation are not graphs in this service — they are runs on AgentPlatform's `course-teacher` and `course-creator` agents, created and polled by the API and Worker services respectively (ADR-031, ADR-030).
+Module teaching and course generation are not graphs in this service — they are runs on AgentPlatform's `course-teacher` and `course-creator-lean` agents, created and polled by the API and Worker services respectively (ADR-031, ADR-030).
 
 ---
 
@@ -93,7 +93,7 @@ graph TD
 | **App (task routes)** | `app.ts` | Fastify routes `POST /tasks/generate-course` and `POST /tasks/generate-embedding`. Validates payloads (Zod), maps failures to retry (5xx) or terminal failure (marks course `failed` on the final attempt). |
 | **processCourseGeneration** | `processors/course-generation.processor.ts` | Updates course status `pending → generating`. Calls `AgentPlatformClient.generateCourse()` (ADR-030). Saves the returned course + modules in a DB transaction (`status → ready`). Enqueues the `generate-embedding` follow-up task. |
 | **processEmbedding** | `processors/embedding.processor.ts` | Calls Agent `/embeddings/text`. Stores `topic_embedding` vector via raw SQL (`::vector` cast). |
-| **AgentPlatformClient** | `services/agent-platform.client.ts` | Typed HTTP wrapper for AgentPlatform's `/api/v1` (ADR-030). Creates a `course-creator` run, polls it to a terminal status, validates the output with `GeneratedCourseSchema`. Reads `AGENT_PLATFORM_URL`. |
+| **AgentPlatformClient** | `services/agent-platform.client.ts` | Typed HTTP wrapper for AgentPlatform's `/api/v1` (ADR-030). Creates a `course-creator-lean` run, polls it to a terminal status, validates the output with `GeneratedCourseSchema`. Reads `AGENT_PLATFORM_URL`. |
 | **WorkerAgentClient** | `services/agent.client.ts` | Typed HTTP wrapper. `generateEmbedding(topic)`. Reads `AGENT_SERVICE_URL`. |
 
 ---

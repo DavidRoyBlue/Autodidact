@@ -33,7 +33,7 @@ CourseGenerationJobData {
 ```
 1. UPDATE courses SET status='generating'                   (outside transaction)
 2. platformClient.generateCourse(data) → GeneratedCourse     (creates + polls a run on
-                                                               AgentPlatform's course-creator
+                                                               AgentPlatform's course-creator-lean
                                                                workflow, ADR-030)
 3. DB transaction:
      a. DELETE modules WHERE course_id = $courseId          (idempotency — see below)

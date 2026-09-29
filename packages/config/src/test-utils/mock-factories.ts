@@ -6,7 +6,7 @@ export const sampleUser = {
   email: 'test@example.com',
 };
 
-/** What the course-creator workflow returns, as the worker persists it. */
+/** What the course-creator-lean workflow returns, as the worker persists it. */
 export const sampleGeneratedCourse = {
   title: 'Introduction to Python',
   description: 'Learn Python programming from the ground up.',

@@ -19,7 +19,7 @@ C4Container
     System_Ext(tasks, "Cloud Tasks", "GCP managed task queues (course-generation, embedding)")
     System_Ext(llm, "LLM Provider", "OpenAI (embeddings, via the Agent service)")
     System_Ext(supabase_auth, "Supabase Auth", "JWT verification service")
-    System_Ext(platform, "AgentPlatform", "course-creator + course-teacher — dev-only until hosted for prod (ADR-030, ADR-031)")
+    System_Ext(platform, "AgentPlatform", "course-creator-lean + course-teacher — dev-only until hosted for prod (ADR-030, ADR-031)")
 
     Rel(learner, mobile, "Uses", "Touch / UI")
     Rel(mobile, api, "REST + SSE", "HTTPS")
@@ -30,7 +30,7 @@ C4Container
     Rel(api, supabase_auth, "Verifies JWT tokens", "HTTPS")
     Rel(tasks, worker, "Delivers tasks to /tasks/:name", "HTTPS (OIDC-authenticated POST)")
     Rel(worker, tasks, "Creates embedding follow-up task", "HTTPS (Cloud Tasks API)")
-    Rel(worker, platform, "Creates and polls a course-creator run", "HTTPS /api/v1 (ADR-030)")
+    Rel(worker, platform, "Creates and polls a course-creator-lean run", "HTTPS /api/v1 (ADR-030)")
     Rel(worker, agent, "Calls embeddings route", "HTTP (internal)")
     Rel(worker, postgres, "Updates course status, inserts modules, stores embeddings", "PostgreSQL")
     Rel(agent, llm, "Invokes embedding model", "HTTPS")
@@ -73,7 +73,7 @@ In local development the Cloud Tasks hop is replaced by the loopback queue provi
 | **Technology** | Node.js + Fastify (internal HTTP task handler) |
 | **Endpoints** | `POST /tasks/generate-course`, `POST /tasks/generate-embedding`, `GET /health` |
 | **Task chaining** | After course generation completes, creates the `generate-embedding` task automatically |
-| **Course generation** | Creates and polls a run on AgentPlatform's `course-creator` workflow via `AgentPlatformClient` (`AGENT_PLATFORM_URL`, ADR-030) — reachable from dev only until the platform is hosted for prod |
+| **Course generation** | Creates and polls a run on AgentPlatform's `course-creator-lean` workflow via `AgentPlatformClient` (`AGENT_PLATFORM_URL`, ADR-030) — reachable from dev only until the platform is hosted for prod |
 | **Retries** | Queue-level (Cloud Tasks `retry_config`: 3 attempts, 5 s → 125 s backoff); final failed attempt marks the course `failed` |
 | **Deployment** | Cloud Run, scale-to-zero; invoked by Cloud Tasks with an OIDC token (IAM-authenticated) |
 
@@ -96,7 +96,7 @@ In local development the Cloud Tasks hop is replaced by the loopback queue provi
 | API | Cloud Tasks | HTTPS | Create `generate-course` task |
 | Cloud Tasks | Worker | HTTPS POST (OIDC) | Deliver tasks to `/tasks/:name` |
 | Worker | Cloud Tasks | HTTPS | Create `generate-embedding` follow-up task |
-| Worker | AgentPlatform | HTTPS `/api/v1` | Create + poll a `course-creator` run (ADR-030) |
+| Worker | AgentPlatform | HTTPS `/api/v1` | Create + poll a `course-creator-lean` run (ADR-030) |
 | Worker | Agent | HTTP POST | `/embeddings/text` |
 | Worker | PostgreSQL | SQL | Update course status, insert modules, store embeddings |
 | Agent | LLM Provider | HTTPS | Embedding generation only |

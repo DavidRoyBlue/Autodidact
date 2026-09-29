@@ -15,7 +15,7 @@ export interface CourseGenerationDeps {
 }
 
 /**
- * Generates a course on AgentPlatform's course-creator workflow (ADR-030) and
+ * Generates a course on AgentPlatform's course-creator-lean workflow (ADR-030) and
  * commits it to the DB. Invoked per-task by the HTTP layer (Cloud Tasks in
  * production, the loopback provider locally). A throw propagates to the route
  * handler, which translates it into a retry (5xx) or — on the final attempt —
