@@ -72,7 +72,7 @@ model {
   }
 
   platform = externalSystem 'AgentPlatform' {
-    description 'course-creator generates courses (ADR-030); course-teacher runs the module chat (ADR-031). Dev-only until hosted for prod.'
+    description 'course-creator-lean generates courses (ADR-030); course-teacher runs the module chat (ADR-031). Dev-only until hosted for prod.'
   }
 
   otel = externalSystem 'OpenTelemetry Collector' {
@@ -93,7 +93,7 @@ model {
 
   tasks -> autodidact.worker 'delivers tasks to /tasks/:name' 'OIDC POST'
   autodidact.worker -> tasks 'creates embedding follow-up task' 'Cloud Tasks API'
-  autodidact.worker -> platform 'creates and polls a course-creator run' 'HTTPS /api/v1'
+  autodidact.worker -> platform 'creates and polls a course-creator-lean run' 'HTTPS /api/v1'
   autodidact.worker -> autodidact.agent 'embeddings route' 'HTTP (internal)'
   autodidact.worker -> autodidact.postgres 'updates status, inserts modules, stores embeddings' 'PostgreSQL'
 

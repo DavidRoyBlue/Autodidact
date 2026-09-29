@@ -21,7 +21,7 @@ never imported by application code.
 - **One mock seam: the model (plus auth).** Services run with `EMBEDDING_PROVIDER=mock`
   and `AUTH_PROVIDER=mock` (we can't mint Supabase JWTs), and a mock AgentPlatform
   stand-in (`startMockPlatform()` in `src/harness.ts`) serves deterministic
-  `course-creator` and `course-teacher` runs (ADR-030, ADR-031). Everything else
+  `course-creator-lean` and `course-teacher` runs (ADR-030, ADR-031). Everything else
   is real — real HTTP between api↔agent, the real worker receiving task POSTs
   over the loopback provider (`QUEUE_PROVIDER=loopback`), real Postgres, real
   SSE. Do not stub api, agent, or worker internals.

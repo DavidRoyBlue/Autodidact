@@ -5,6 +5,13 @@
 Accepted
 Date: 2026-09-25
 
+Amended 2026-09-29: the worker runs the platform's `course-creator-lean`
+workflow instead (its `docs/architecture/course-creator.md` §10): one
+`course-author` agent with a short system prompt and the learner's request,
+measured in code, no plan or review loops. Same input and output contract, so
+the rest of this decision stands; the multi-node `course-creator` below is no
+longer what the app calls.
+
 Supersedes the direction of #89 (a multi-node generation graph inside `services/agent`).
 
 ## Context

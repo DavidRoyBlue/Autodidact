@@ -136,7 +136,7 @@ Individual learning units within a course. Inserted in a transaction when the co
 | `title` | TEXT | |
 | `description` | TEXT | |
 | `objectives` | JSONB (`string[]`) | Learning objectives used in the teaching prompt |
-| `content` | TEXT | The full lesson, markdown, as AgentPlatform's `course-creator` workflow wrote it. Included in the teaching prompt; chunked for RAG indexing. |
+| `content` | TEXT | The full lesson, markdown, as AgentPlatform's `course-creator-lean` workflow wrote it. Included in the teaching prompt; chunked for RAG indexing. |
 | `resources` | JSONB (`ModuleResource[]`) | `{ url: string; title: string; why: string }[]` |
 | `estimated_minutes` | INT | |
 | `status` | ENUM | Default `locked`. Per-course status (not per-user). |

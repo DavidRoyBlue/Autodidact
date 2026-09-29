@@ -17,7 +17,7 @@ interface Run {
 
 /**
  * The AgentPlatform `/api/v1` surface the worker uses (ADR-030): one
- * course-creator workflow run per course, polled to a terminal status. The
+ * course-creator-lean workflow run per course, polled to a terminal status. The
  * platform validates the run's output against its own contract; the app
  * re-parses only the fields it persists.
  */
@@ -27,7 +27,7 @@ export class AgentPlatformClient {
   async generateCourse(job: CourseGenerationJobData): Promise<GeneratedCourse> {
     const minutes = job.timeBudget === 'unrestricted' ? null : BUDGET_MINUTES[job.timeBudget];
     const run = await this.request<Run>('POST', '/api/v1/runs', {
-      workflow_id: 'course-creator',
+      workflow_id: 'course-creator-lean',
       input: {
         subject: job.topic,
         difficulty: job.difficulty,
@@ -37,7 +37,7 @@ export class AgentPlatformClient {
     });
     const finished = await this.waitFor(run.id);
     if (finished.status !== 'completed') {
-      throw new Error(`course-creator run ${run.id} ${finished.status}: ${finished.error ?? 'no error recorded'}`);
+      throw new Error(`course-creator-lean run ${run.id} ${finished.status}: ${finished.error ?? 'no error recorded'}`);
     }
     return GeneratedCourseSchema.parse(finished.output);
   }

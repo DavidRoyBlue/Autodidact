@@ -44,7 +44,7 @@ Enums are Postgres native types, created in migration `0001_initial.sql`.
 
 - `position`: 0-indexed. Enforces teaching order. Used in the module unlock SQL query.
 - `objectives`: JSONB `string[]`. Passed to the teacher prompt and evaluated by the completion evaluator.
-- `content`: TEXT — the full lesson, markdown, as AgentPlatform's `course-creator` workflow wrote it. Included in the teacher prompt; chunked for RAG indexing.
+- `content`: TEXT — the full lesson, markdown, as AgentPlatform's `course-creator-lean` workflow wrote it. Included in the teacher prompt; chunked for RAG indexing.
 - `resources`: JSONB `ModuleResource[]` — `{ url: string; title: string; why: string }[]`.
 - `status`: Generation-time default (`locked`). **This is not per-user.** Per-user progress is in `module_progress.status`.
 
