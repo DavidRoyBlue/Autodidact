@@ -105,7 +105,7 @@ Throughout this doc, set these once so you can copy-paste:
 
 ```bash
 export PROJECT_ID="your-gcp-project-id"     # e.g. autodidact-494819
-export REGION="us-central1"                  # must match infra default
+export REGION="northamerica-northeast1"      # must match infra/environments/prod/variables.tf default
 export SA_NAME="autodidact-run"              # the runtime service account name
 export SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 gcloud config set project "$PROJECT_ID"
@@ -217,10 +217,8 @@ create_secret () {  # usage: create_secret <secret-name> <value>
 | `autodidact-otel-endpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` | Your OTEL collector URL, or a placeholder like `http://localhost:4318` if you're not wiring telemetry yet |
 | `autodidact-api-port` | `API_PORT` | `8080` (Cloud Run sends traffic to port 8080) |
 | `autodidact-agent-port` | `AGENT_PORT` | `8080` |
-| `autodidact-llm-provider` | `LLM_PROVIDER` | `openai` |
 | `autodidact-embedding-provider` | `EMBEDDING_PROVIDER` | `openai` |
 | `autodidact-auth-provider` | `AUTH_PROVIDER` | `supabase` |
-| `autodidact-checkpointer` | `CHECKPOINTER` | `postgres` |
 | `autodidact-queue-provider` | `QUEUE_PROVIDER` | **`cloudtasks`** ← the switch that activates this whole migration in prod |
 | `autodidact-agent-service-url` | `AGENT_SERVICE_URL` | **Placeholder now** (`https://placeholder`); set to the real agent URL in Step 6 |
 | `autodidact-worker-task-base-url` | `WORKER_TASK_BASE_URL` | **Placeholder now** (`https://placeholder`); set to the real worker URL in Step 6 |
@@ -243,10 +241,8 @@ create_secret autodidact-supabase-url        'https://YOURREF.supabase.co'
 create_secret autodidact-otel-endpoint       'http://localhost:4318'
 create_secret autodidact-api-port            '8080'
 create_secret autodidact-agent-port          '8080'
-create_secret autodidact-llm-provider        'openai'
 create_secret autodidact-embedding-provider  'openai'
 create_secret autodidact-auth-provider       'supabase'
-create_secret autodidact-checkpointer        'postgres'
 create_secret autodidact-queue-provider      'cloudtasks'
 
 # Placeholders — real values come in Step 6
@@ -265,7 +261,7 @@ cd infra/environments/prod
 ```
 
 Provide your project id (Terraform reads `var.project_id`; `region` defaults to
-`us-central1`). Easiest is a `terraform.tfvars` file **in this folder** — it's
+`northamerica-northeast1`). Easiest is a `terraform.tfvars` file **in this folder** — it's
 not committed:
 
 ```bash
@@ -474,6 +470,166 @@ api/worker Cloud Run logs for that error first.
 | See queue retry/backoff config | `infra/modules/cloud-tasks/main.tf` |
 | See exactly which secrets each service reads | `infra/environments/prod/main.tf` |
 | See what env vars a service expects | `packages/env/src/schema.ts` |
+| Redeploy after months without a deploy / a paused Supabase project | **§9** below |
+
+---
+
+## 9. Redeploy after a pause — the 2026-10 catch-up deploy (#320)
+
+Prod was last deployed on 2026-06-26 (`autodidact-api-00025-g25`). Since then
+`master` gained ~65 commits, the prod DB sits at migration `0010` with
+`0011`–`0015` pending, and the Supabase project went `INACTIVE`. This section is
+the exact sequence for the next deploy. Every step is the owner's (David's); the
+release gate — `git push origin master:production` — is never an agent's.
+
+The reasons behind this sequence are in [`docs/decisions.md`](decisions.md) (2026-09-29).
+
+**Why 9.4 → 9.7 is one sitting:** `0014_course_on_platform` drops
+`courses.blueprint` and `modules.content_outline`, which the June images still
+read. From the moment `0014` runs until the new revisions serve traffic, the old
+API is broken. Do not stop between those steps.
+
+### 9.0 Now — restore Supabase and take an early backup (independent of deploy day)
+
+The project is on the Pro plan, so there is no 90-day paused-restore deadline,
+but a paused DB blocks both the backup and the health check.
+
+1. Supabase dashboard → project `cbzdsoojfhpsexuyeyxt` → **Restore project**.
+   Wait for status `ACTIVE`.
+2. Confirm the pooler URL did not change: Settings → Database → Connection
+   string → Transaction pooler (6543) must equal `DATABASE_URL` in
+   `infra/secrets.env`. If it differs, update `infra/secrets.env` and rerun
+   `scripts/gcp-bootstrap.sh` so Secret Manager follows (read 9.2 first).
+3. Prove connectivity from WSL2 (the pooler is IPv4; the direct host is not):
+
+   ```bash
+   set -a; source infra/secrets.env; set +a
+   psql "$DATABASE_URL" -Atc "select count(*) from courses; select count(*) from modules; select count(*) from drizzle.__drizzle_migrations"
+   ```
+
+   Expected: two row counts and `10` (migrations `0001`…`0010` applied).
+4. Take the early dump — the 9.4 command, unchanged. It is the fallback if
+   anything goes wrong between now and deploy day.
+5. `curl -s https://autodidact-api-3tynnutnpq-nn.a.run.app/v1/health` now
+   reports `"db":"ok"`. `"agent"` may stay `"error"` until the redeploy; expected.
+
+### 9.1 Gate — do not continue until all are true
+
+- [ ] #321 (production route to AgentPlatform) is **merged to `master`** and
+      `master`'s CI is green: `gh run list --branch master --limit 3`.
+- [ ] `git fetch origin && git log --oneline origin/production..origin/master`
+      shows exactly the commits you intend to ship, nothing you do not recognise.
+- [ ] Supabase project is `ACTIVE` (9.0) — a paused DB fails 9.4 and 9.5.
+- [ ] You have ~45 uninterrupted minutes for 9.4 → 9.7.
+
+### 9.2 Secrets — only if `main.tf` gained env vars since June
+
+```bash
+git diff fa60dde origin/master -- infra/environments/prod/main.tf | grep -E '^[+-] +[A-Z_]+ +='
+```
+
+If #321 (or anything else) added secret names, put their values in
+`infra/secrets.env` and rerun `scripts/gcp-bootstrap.sh`. The script is
+idempotent and re-versions every secret from `infra/secrets.env`, except that it
+leaves `autodidact-agent-service-url` / `autodidact-worker-task-base-url` alone
+while `infra/secrets.env` still holds `https://placeholder` for them — so the
+real Cloud Run URLs set in Step 6 survive a re-run. If nothing was added, skip
+this step; do not re-run bootstrap for its own sake.
+
+### 9.3 Terraform — align Cloud Run env wiring with `master`, before the images roll
+
+```bash
+cd infra/environments/prod
+terraform init
+terraform plan
+```
+
+The plan must contain **only**:
+
+- the services losing their `LLM_PROVIDER` / `CHECKPOINTER` secret refs (#323);
+- each service's `image` going from the June `:<sha>` tag back to `:latest` —
+  harmless: `:latest` in Artifact Registry *is* the June build, and 9.6
+  replaces it minutes later;
+- whatever #321 added to `main.tf`.
+
+Anything else (a queue, IAM, a service being *created* or *destroyed*) means
+state or config drifted — stop and investigate before applying. When the plan
+matches: `terraform apply`.
+
+### 9.4 Backup — `pg_dump` before `0014` (irreversible drop)
+
+`pg_dump` needs a session-mode connection; the transaction pooler (6543) is not
+one. Supabase serves session mode on the same pooler host, port **5432**.
+
+```bash
+set -a; source infra/secrets.env; set +a
+SESSION_URL="${DATABASE_URL/:6543\//:5432/}"
+mkdir -p ~/backups
+DUMP=~/backups/autodidact-prod-$(date +%Y%m%d-%H%M).dump
+pg_dump "$SESSION_URL" --format=custom --no-owner --no-privileges --schema=public --schema=drizzle --file "$DUMP"
+pg_restore --list "$DUMP" | grep -c 'TABLE DATA'      # one line per table that has data; must not be 0
+psql "$DATABASE_URL" -Atc "select 'courses', count(*) from courses union all select 'modules', count(*) from modules union all select 'module_progress', count(*) from module_progress"
+```
+
+Keep the row counts; 9.7 compares against them. `~/backups` is outside every
+repo — never copy the dump into one. The `auth` and `storage` schemas are
+Supabase-managed and covered by Supabase's own daily backup; the app's data is
+`public` plus the Drizzle journal.
+
+**Rollback if a later step fails:**
+
+```bash
+pg_restore --clean --if-exists --no-owner --dbname "$SESSION_URL" "$DUMP"
+```
+
+then stop and reassess with the project manager. Never retry `0014` blind
+against a half-migrated database.
+
+### 9.5 Migrate — from your laptop, before promoting
+
+```bash
+pnpm migrate:prod        # loads infra/secrets.env → scripts/migrate.sh → drizzle-kit migrate
+```
+
+Drizzle applies, in journal order: `0011`, `0012`, `0014`, `0015`, `0013`
+(`0013` is last because #326 moved its journal entry). Then:
+
+```bash
+psql "$DATABASE_URL" -Atc "select count(*) from drizzle.__drizzle_migrations"    # 15
+psql "$DATABASE_URL" -Atc "select column_name from information_schema.columns where table_name='courses' and column_name in ('blueprint','time_budget','is_onboarding')"   # time_budget, is_onboarding — no blueprint
+psql "$DATABASE_URL" -Atc "select count(*) from modules where content is null"    # 0
+```
+
+From here the June API revision is broken (dropped columns). Go straight to 9.6.
+
+### 9.6 Promote — the deploy
+
+```bash
+git fetch origin
+git push origin origin/master:production
+gh run watch "$(gh run list --workflow Deploy --limit 1 --json databaseId -q '.[0].databaseId')"
+```
+
+`deploy.yml` then runs lint → typecheck → test → build + push 3 images →
+migrate (**no-op**, 9.5 did it) → seed onboarding course → `gcloud run deploy`
+×3. If the `ci` job fails, nothing touched prod: fix on `master` and repeat
+9.6. If the `deploy` job fails, rerun it from the Actions UI — migrate and seed
+are both idempotent.
+
+### 9.7 Verify — health + migrations (the agreed smoke scope)
+
+```bash
+curl -s https://autodidact-api-3tynnutnpq-nn.a.run.app/v1/health      # {"status":"ok","services":{"db":"ok","agent":"ok"}}
+gcloud run revisions list --region northamerica-northeast1 --project autodidact-494819 --format='table(metadata.name,status.conditions[0].status,metadata.creationTimestamp)' | head -6
+psql "$DATABASE_URL" -Atc "select count(*) from courses where is_onboarding"   # 1
+psql "$DATABASE_URL" -Atc "select 'courses', count(*) from courses union all select 'modules', count(*) from modules union all select 'module_progress', count(*) from module_progress"
+```
+
+The last query must equal the 9.4 counts plus the seeded onboarding course and
+its modules. Then tick the checklist in `docs/roadmap.md` (Owner-only) and bump
+the Infra `_verified:` date in `PRODUCTION.md`. Generating a course and opening a
+module chat end to end is **not** part of this deploy's gate: it is the first
+thing to try afterwards, and a failure there is a bug to file, not a rollback.
 
 ---
 
