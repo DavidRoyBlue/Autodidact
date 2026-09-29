@@ -1,5 +1,5 @@
 import { FlatList, RefreshControl, View } from 'react-native';
-import { Tabs, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourse } from '@/api/courses';
 import { useProgress } from '@/api/progress';
 import { Screen, Heading, AppText, Card, ProgressBar, PositionBadge, SkeletonLine, SkeletonCard } from '@/components';
@@ -47,7 +47,7 @@ export default function CourseDetailScreen() {
 
   return (
     <Screen>
-      <Tabs.Screen options={{ title: course.title }} />
+      <Stack.Screen options={{ title: course.title }} />
       <FlatList
         data={(course.modules ?? []) as CourseModule[]}
         keyExtractor={(item) => item.id}

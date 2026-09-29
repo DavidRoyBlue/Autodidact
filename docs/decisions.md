@@ -4,6 +4,21 @@ Short-form decisions with their reason, newest first. Durable architectural
 choices get an ADR under `docs/architecture/ADRs/`; this file records the
 smaller calls a PR makes so the next reader knows why.
 
+## 2026-09-29 — Courses are a stack inside the My Courses tab; the app enrolls after generation (#320)
+
+`app/(app)/courses/_layout.tsx` is a `Stack` (list → course → module chat)
+under the My Courses tab, with the tab's own header off. Why: the three
+routes sat directly under the tab navigator, so they showed up as tabs,
+the header showed the route name, and Android BACK from a chat landed on
+the Learn tab. A stack gives a back button and pops to the course.
+
+`useCourseGeneration` calls `POST /courses/:id/enroll` when generation
+completes, before navigating. Why: `courses.service.createOrReuse` enrolls
+the creator only when it reuses an existing course; a new one has no
+enrollment and no `module_progress`, so it opened 0/0 with every module
+locked. This is a client-side workaround — the server should enroll on
+completion so any client gets a usable course (left open under #320).
+
 ## 2026-09-29 — Module chat reads the SSE reply whole instead of streaming it (#320)
 
 `useSSE` now POSTs through `apiFetch`, reads the response body once the API

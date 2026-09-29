@@ -27,9 +27,10 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="courses/index"
+        name="courses"
         options={{
           title: 'My Courses',
+          headerShown: false, // the courses stack draws its own header (with back)
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="library-outline" color={color} size={size} />
           ),
@@ -44,9 +45,6 @@ export default function AppLayout() {
           ),
         }}
       />
-      {/* Nested routes: reachable from My Courses, never tabs of their own. */}
-      <Tabs.Screen name="courses/[id]/index" options={{ href: null, title: 'Course' }} />
-      <Tabs.Screen name="courses/[id]/modules/[moduleId]/chat" options={{ href: null, title: 'Module' }} />
     </Tabs>
   );
 }

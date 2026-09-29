@@ -16,7 +16,7 @@ mobile-mcp taps were broken by the adb-forward bug (Automation #174).
 | Course detail | **working** after fix — real progress bar, locked/available states | `08-course-detail-fixed.png` |
 | Module chat | **working** after fix — teacher reply from AgentPlatform, second turn, `module_complete` | `10-module-chat-reply.png`, `12-module-chat-second-turn.png` |
 | Progress unlock | **working** — module 1 completed (score 95), module 2 available, 1/2 | `13-progress-unlock.png` |
-| Create course (budget selector) | **working** — `30 min` selected, `POST /courses` accepted, button shows the real generation status; see "Generation" below | `14-create-course-form.png`, `15-create-course-generating.png` |
+| Create course (budget selector) | **working** after fix — `30 min` selected, `POST /courses` accepted, the button shows the real generation status (~7 min on AgentPlatform), the app opens the course when ready. Before the fix it opened **0/0 modules, all locked**: a generated course never enrolled its creator. | `14-create-course-form.png`, `15-create-course-generating.png`, `16-generated-course-all-locked.png` (before) |
 
 ## What was broken, and what this PR fixed
 
@@ -38,13 +38,22 @@ mobile-mcp taps were broken by the adb-forward bug (Automation #174).
    wrapper now owns `flex-1`, input capped at `max-h-32`.
 6. **Build itself** — `babel-preset-expo`, the JSX plugin and Reanimated were
    undeclared; NativeWind 4.2 needs Reanimated 4 / RN 0.78 (pinned to 4.1).
+7. **Generated course unusable** — `createOrReuse` enrolls the creator only
+   when it reuses a course; a new one has no enrollment and no
+   `module_progress`, so it opened 0/0 with every module locked.
+   `useCourseGeneration` now calls the existing `POST /courses/:id/enroll`
+   (the unused `useEnrollCourse` hook) before navigating. Verified with curl:
+   after enroll, module 1 `available`, 4 `locked`.
+8. **No way back from a course or a chat** — the course routes lived directly
+   under the tab navigator, so Android BACK from a chat landed on the Learn
+   tab. `courses/` is now a stack inside the My Courses tab (header back,
+   BACK pops to the course).
 
 ## Left open (issues under #320)
 
-- Nested routes live inside the tab navigator, so there is no back affordance
-  from a course or a chat: Android BACK returns to the Learn tab, not the
-  course. Course detail → chat → back should pop to the course (a stack
-  inside the My Courses tab).
+- The server should enroll the creator when generation completes (worker or
+  `courses.service`), so a course is usable from any client — the app-side
+  enroll is a client workaround for the API gap.
 - "Intermediate" difficulty chip wraps to two lines at 720 px width.
 - Google sign-in end to end (needs a Google account on the AVD, and the
   Android OAuth client SHA-1 for the local debug keystore — `social-sign-in.md` §2).
