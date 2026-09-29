@@ -117,60 +117,19 @@ For cloud builds (eas build), set the same variables in `eas.json` per profile:
 
 ---
 
-## 5. Building and running on a dev build
+## 5. Building and running on a device
 
-Native Google sign-in does not run in **Expo Go** (the sandboxed preview). You must build and install a **custom dev build** that includes the native Google Sign-In SDK.
-
-### First build (cloud)
-
-```bash
-cd apps/mobile
-eas build --profile development --platform android
-```
-
-This creates a custom APK that includes the native Google SDK. Grab the APK URL from the CLI output.
-
-### Install on emulator or device
-
-```bash
-# Download and install the APK on the Android emulator or device
-adb install <path-to-apk>
-```
-
-Or use the EAS simulator:
-```bash
-eas build --profile development --platform android --device
-```
-
-### Start Metro for JS iteration
-
-Once the APK is installed:
-
-```bash
-pnpm --filter @autodidact/mobile start
-```
-
-This starts the Expo development server (Metro bundler). The app will hot-reload your JS changes without rebuilding the native code.
-
-**Day-to-day workflow:** edit JS, fast-refresh picks it up. Only rebuild the APK when native dependencies change.
-
----
-
-## 6. Testing the flow
-
-### On the dev build
-
-1. **Google Sign-In** → tap "Continue with Google" → native sheet appears → sign in → automatically navigates to the app home screen
-2. **Facebook Sign-In** → tap "Continue with Facebook" → in-app browser opens → sign in → redirects to `autodidact://auth-callback` → app receives the auth code and completes sign-in
-3. **Email / Password** → tap "Use email instead" → email/password form appears (retained from Phase 0)
-4. **Guest** → tap "Continue as guest" → anonymous session created, app enters immediately
+Native Google sign-in does not run in **Expo Go**. Build and install the app with
+`scripts/run-mobile.sh --release` (local WSL gradle; see its header) — it includes
+the native Google SDK. Rebuild after any native change (plugins, `app.config.ts`,
+a dependency with native code); pure JS/TS changes are checked the same way.
 
 ### Troubleshooting
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | "Google works in dev, fails in prod" | Forgot the prod Android client ID in Google Cloud Console | Create both dev AND prod Android client IDs; add both to Supabase |
-| Native Google sheet doesn't appear | Running in Expo Go or didn't rebuild the dev APK | Rebuild with `eas build --profile development --platform android` |
+| Native Google sheet doesn't appear | Running in Expo Go or a stale APK | Rebuild with `scripts/run-mobile.sh --release` |
 | Facebook redirect doesn't work | Redirect URI not set in Facebook app or not added to Supabase | Check both: Facebook App Dashboard → Login → Settings, and Supabase → URL Configuration |
 | "Invalid client" errors | Mismatched client IDs between Supabase and Google/Facebook dashboards | Verify Supabase has the correct Web client ID and secrets |
 
@@ -187,8 +146,8 @@ flow as prod. Wiring (all committed 2026-07-19):
   a **dummy** secret (`SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=dev-dummy-not-used` in `.env.dev` —
   the id-token flow validates via Google's JWKS, no real secret; never put the prod secret in dev
   env), and `skip_nonce_check = true` (the Android native sheet sends no nonce).
-- The dev client reaches the local stack at `http://10.0.2.2:55321` (set by `run-mobile.sh` for
-  Metro; **not** `adb reverse` — broken across the Windows-adb-server/WSL split).
+- The APK reaches the local stack at `http://10.0.2.2:55321` (baked in by `run-mobile.sh`;
+  **not** `adb reverse` — broken across the Windows-adb-server/WSL split).
 - **One-time per AVD:** a Google account must be signed into the emulator (Settings → Accounts,
   or complete the sheet's sign-in form once). The account lives on the AVD's data partition and
   survives reboots; only `-wipe-data`/AVD recreation loses it.

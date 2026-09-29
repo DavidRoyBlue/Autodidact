@@ -14,7 +14,7 @@ die() { echo -e "${RED}✗ $*${NC}"; exit 1; }
 command -v npx &>/dev/null || die "npx not found. Is Node installed?"
 
 echo -e "${CYAN}${BOLD}▶ Starting Expo dev server${NC}"
-echo -e "${YELLOW}  Scan the QR code with Expo Go, or press i/a for simulator${NC}"
+echo -e "${YELLOW}  Serves the debug APK from scripts/run-mobile.sh (Expo Go cannot run this app)${NC}"
 echo -e "${YELLOW}  Backend must be running (./scripts/dev.sh) for API calls to work${NC}\n"
 
 cd apps/mobile

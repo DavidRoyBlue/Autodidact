@@ -40,22 +40,20 @@ export AUTODIDACT_API_BASE_URL="http://10.0.2.2:3000/v1"
 # A Linux SDK and a JDK for gradle. The shell's ANDROID_HOME is the Windows SDK
 # (emulator.exe, adb.exe) and stays that for the Automation operations, which
 # derive adb.exe from it — so gradle gets ours on its own line.
-LINUX_SDK="${ANDROID_HOME_LINUX:-$HOME/Android/Sdk}"
-for candidate in "${JAVA_HOME:-}" "$HOME/jdk/current" /usr/lib/jvm/java-17-openjdk-amd64 /usr/lib/jvm/java-21-openjdk-amd64; do
-  [[ -n $candidate && -x $candidate/bin/javac ]] && { JDK="$candidate"; break; }
-done
+LINUX_SDK="$HOME/Android/Sdk"
+JDK="$HOME/jdk/current"
 [[ -d $LINUX_SDK/platforms ]] || {
   echo "No Linux Android SDK at $LINUX_SDK." >&2
   echo "Install one: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.1.12297006'" >&2
   exit 1
 }
-[[ -x ${JDK:-}/bin/javac ]] || {
+[[ -x $JDK/bin/javac ]] || {
   echo "No JDK with a compiler found (a JRE is not enough)." >&2
   echo "Unpack a Temurin JDK under ~/jdk and link it: ln -sfn ~/jdk/jdk-17* ~/jdk/current" >&2
   exit 1
 }
 
-[[ -d node_modules ]] || pnpm install --frozen-lockfile
+[[ -d node_modules ]] || { echo "node_modules missing: run pnpm install first." >&2; exit 1; }
 
 # The APK carries one ABI and it has to be the device's own: an x86_64 emulator
 # lists arm64-v8a in its abilist and installs an arm64 APK happily, then dies
@@ -102,7 +100,7 @@ echo "Installing on $serial…"
   "$adb" -s "$serial" uninstall "$APP_ID"
   "$adb" -s "$serial" install "$apk"
 }
-"$adb" -s "$serial" shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+"$adb" -s "$serial" shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null
 echo "Installed and launched. Backend: the dev workspace (pnpm workspace) owns api/agent/worker; Supabase is the local stack."
 [[ $variant == debug ]] && echo "Debug build: it needs Metro serving on :8081 (pnpm mobile) or it shows 'Unable to load script'."
 exit 0

@@ -16,11 +16,9 @@ scripts/run-mobile.sh                 # debug APK: needs Metro (`pnpm mobile`) o
 scripts/run-mobile.sh --no-install    # build only, print the APK path
 ```
 
-It boots the emulator, reads the device's own ABI, regenerates `android/` with
-`expo prebuild`, builds pinned to six cores with no daemon (an unbounded build
-has taken the WSL VM down), installs and launches. Prerequisites it checks and
-explains: a Linux Android SDK at `~/Android/Sdk` and a JDK (not a JRE) at
-`~/jdk/current`. A release build takes ~10 minutes from cold.
+The script's header explains what it does and why (ABI, core pin, no daemon,
+prebuild); it checks its own prerequisites (`~/Android/Sdk`, `~/jdk/current`) and
+says how to meet them. A release build takes ~10 minutes from cold.
 
 **Only a release build proves the app runs.** A debug APK carries no JavaScript
 and fetches it from Metro; use it only when you need a readable stack (the

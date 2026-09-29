@@ -115,7 +115,8 @@ is the human release gate. For first-time infra setup, Terraform, secrets, and r
 prod DB migrations, see the [GCP setup runbook](docs/gcp_infra_setup.md).
 
 **Mobile.** The Expo app is built and released with EAS (`apps/mobile/eas.json`),
-which defines three profiles: `development` (dev client → local backend), `preview`
+which defines three profiles: `development` (cloud dev client; local runs use
+`scripts/run-mobile.sh` instead), `preview`
 (internal APK → prod Cloud Run API), and `production` (Play Store AAB → prod Cloud
 Run API). The backend URL and Supabase keys are injected per profile and resolved at
 runtime via `apps/mobile/app.config.ts`. See the Mobile section of

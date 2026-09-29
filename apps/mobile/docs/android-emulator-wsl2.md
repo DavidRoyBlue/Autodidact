@@ -23,11 +23,8 @@ owns no emulator script of its own.
 
 ## Reaching this app's services
 
-The emulator reaches WSL services via `10.0.2.2` — qemu's host loopback →
-Windows localhost → WSL mirrored networking. `run-mobile.sh` exports
-`SUPABASE_URL` / `AUTODIDACT_API_BASE_URL` at `10.0.2.2` for the build, which
-`app.config.ts` bakes into the APK; backend services still read the `127.0.0.1`
-values from `.env.dev`.
+`run-mobile.sh` bakes the `10.0.2.2` (qemu host loopback) Supabase/api URLs into
+the APK — see its header; backend services keep the `127.0.0.1` values from `.env.dev`.
 
 ## Troubleshooting this app
 

@@ -46,8 +46,9 @@ event that carries that, and `complete` only ends streaming now.
 
 `scripts/run-mobile.sh` now builds the APK here (expo prebuild + gradle, one
 ABI, pinned to six cores, no daemon) and installs it on the emulator — the
-same recipe as Accountability's `scripts/run-mobile.sh`. The EAS `development`
-profile and the Metro/dev-client launch path are gone.
+same recipe as Accountability's `scripts/run-mobile.sh`. The Metro/dev-client
+launch path is gone; the EAS `development` profile and `expo-dev-client` stay
+for cloud dev builds (`apps/mobile/AGENTS.md` "Build & release").
 
 Why: the EAS dev client expired after two weeks and nobody could run the app
 for a month; a local build is reproducible on this machine with no account,
