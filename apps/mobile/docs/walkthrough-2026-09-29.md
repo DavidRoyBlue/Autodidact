@@ -9,7 +9,7 @@ mobile-mcp taps were broken by the adb-forward bug (Automation #174).
 | Flow | Result | Evidence |
 |---|---|---|
 | Launch | **working** — sign-in screen, no `RNGoogleSignin` crash | `01-sign-in.png` |
-| Google sign-in | **working** after console fix (2026-09-30) — with no Google account on the AVD the native sheet asks for full credentials (cancel returns cleanly); with the account it returned `DEVELOPER_ERROR` because the Android OAuth client carried the EAS dev keystore's SHA-1, not the local build's debug keystore (`5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`). Owner switched the client's SHA-1; the chooser then signs straight into the app (local GoTrue identity updated). | `02-google-sheet-no-account.png`, `20-google-developer-error.png`, `23-google-account-chooser.png`, `24-google-signed-in.png` |
+| Google sign-in | **working** after console fix (2026-09-30) — without a Google account on the AVD the sheet asks for credentials; with one it returned `DEVELOPER_ERROR`, a SHA-1 mismatch between the Android OAuth client and the local build's keystore (`social-sign-in.md` §2). | `02-google-sheet-no-account.png`, `20-google-developer-error.png`, `23-google-account-chooser.png`, `24-google-signed-in.png` |
 | Profile (guest) | **working** after fix — the guest card overflowed a non-scrolling `Screen`, so **Sign Out was unreachable**; `profile.tsx` now scrolls. | `21-profile-scrolls-sign-out.png` |
 | Facebook sign-in | not tested (no Facebook app configured for the local stack) | — |
 | Continue as guest | **working** after fix — anonymous session, `sync_user_from_auth`, auto-enrolled | `03-guest-onboarding-course.png` |

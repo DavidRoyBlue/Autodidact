@@ -48,11 +48,8 @@ Social sign-in (Google native + Facebook web-PKCE) requires configuration in thr
      ```bash
      keytool -list -v -keystore apps/mobile/android/app/debug.keystore \
        -alias androiddebugkey -storepass android | grep SHA1
-     # 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25 (2026-09-30)
      ```
-     The dev Android client carries this one since 2026-09-30; it replaced the EAS dev
-     keystore's `E5:1A:…:AF:45`, so an EAS `development`/`preview` build now gets
-     `DEVELOPER_ERROR` until a client with that SHA-1 is added back.
+     EAS `development`/`preview` builds are signed with the EAS keystore and need their own Android client.
    - Create an Android OAuth client with:
      - **Package name:** `com.autodidact.app` (must match `android.package` in `app.json`)
      - **SHA-1 certificate fingerprint:** (paste the dev keystore SHA-1)
