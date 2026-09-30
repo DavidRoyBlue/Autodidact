@@ -54,7 +54,7 @@ export class AgentPlatformClient {
       const run = await this.request<Run>('GET', `/api/v1/runs/${runId}`);
       if (TERMINAL.includes(run.status)) return run;
       if (Date.now() >= deadline) {
-        await this.request<Run>('POST', `/api/v1/runs/${runId}/cancel`);
+        await this.request('POST', `/api/v1/runs/${runId}/cancel`);
         throw new Error(`course-creator-lean run ${runId} timed out after ${RUN_TIMEOUT_MS / 60_000} min; cancelled`);
       }
       await new Promise((resolve) => setTimeout(resolve, POLL_MS));

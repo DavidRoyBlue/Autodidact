@@ -238,8 +238,8 @@ create_secret () {  # usage: create_secret <secret-name> <value>
 create_secret autodidact-database-url        'postgresql://...pooler...:6543/postgres'
 create_secret autodidact-supabase-secret-key 'your-supabase-secret-key'
 create_secret autodidact-openai-api-key      'sk-...'
-create_secret autodidact-api-agent-platform-key    "$(openssl rand -hex 32)"
-create_secret autodidact-worker-agent-platform-key "$(openssl rand -hex 32)"
+create_secret autodidact-api-agent-platform-key    "${AGENT_PLATFORM_API_KEY_API}"
+create_secret autodidact-worker-agent-platform-key "${AGENT_PLATFORM_API_KEY_WORKER}"
 
 # Config
 create_secret autodidact-supabase-url        'https://YOURREF.supabase.co'
