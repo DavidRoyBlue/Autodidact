@@ -6,7 +6,12 @@ import path from 'node:path';
 // config at resolution time. Missing file (EAS/CI) is a silent no-op.
 loadEnv({ path: path.resolve(__dirname, '../../.env.dev') });
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
+export default ({ config }: ConfigContext): ExpoConfig => {
+  const apiBaseUrl =
+    process.env.AUTODIDACT_API_BASE_URL ??
+    (config.extra?.apiBaseUrl as string | undefined) ??
+    'http://localhost:3000/v1';
+  return {
   ...config,
   name: config.name ?? 'Autodidact',
   slug: config.slug ?? 'autodidact',
@@ -14,16 +19,23 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...(config.plugins ?? []),
     'expo-router',
     '@react-native-google-signin/google-signin',
-    // Kotlin 1.9.25: expo-modules-core's Compose Compiler 1.5.15 rejects the
-    // RN-default 1.9.24 (EAS build 0f3cdd0d failed on exactly this).
-    ['expo-build-properties', { android: { kotlinVersion: '1.9.25' } }],
+    [
+      'expo-build-properties',
+      {
+        android: {
+          // Kotlin 1.9.25: expo-modules-core's Compose Compiler 1.5.15 rejects the
+          // RN-default 1.9.24 (EAS build 0f3cdd0d failed on exactly this).
+          kotlinVersion: '1.9.25',
+          // A release build blocks plain http by default; a build aimed at the
+          // local stack (10.0.2.2) needs it, a Cloud Run build never does.
+          usesCleartextTraffic: apiBaseUrl.startsWith('http://'),
+        },
+      },
+    ],
   ],
   extra: {
     ...config.extra,
-    apiBaseUrl:
-      process.env.AUTODIDACT_API_BASE_URL ??
-      (config.extra?.apiBaseUrl as string | undefined) ??
-      'http://localhost:3000/v1',
+    apiBaseUrl,
     supabaseUrl:
       process.env.SUPABASE_URL ??
       (config.extra?.supabaseUrl as string | undefined),
@@ -41,4 +53,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       (process.env.FACEBOOK_ENABLED ?? config.extra?.facebookEnabled) === 'true' ||
       config.extra?.facebookEnabled === true,
   },
-});
+  };
+};

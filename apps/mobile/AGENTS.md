@@ -199,16 +199,17 @@ pnpm --filter @autodidact/mobile typecheck  # Type-check
 pnpm --filter @autodidact/mobile test       # Jest unit/component tests (jest-expo)
 
 # WSL2 + Windows-host Android emulator
-pnpm emulator      # boot the AVD on Windows, make it visible to WSL adb / mobile-mcp
-pnpm mobile:run    # boot emulator + start Metro + open the app in the DEV CLIENT
+pnpm emulator                    # boot the AVD on Windows, make it visible to WSL adb / mobile-mcp
+pnpm mobile:run -- --release     # build the APK here (expo prebuild + gradle), install and launch it on the emulator
 ```
 
-The app runs **only in the custom dev client** (Expo Go crashes on the native Google module).
-Rebuild the dev client (`npx eas-cli build --profile development --platform android`, then
-`adb install -r`) when `app.json`/`app.config.ts` plugins or native config change, committed
-assets change, or a native-code dependency is added/upgraded — never for JS/TS-only changes.
-The device reaches Metro/api/Supabase via `10.0.2.2`; do not add `adb reverse` calls (broken
-across the Windows-adb-server/WSL split — see `scripts/run-mobile.sh`).
+- Run on a device only through `scripts/run-mobile.sh --release` (Expo Go crashes at
+  import; a debug APK needs Metro). The script header explains every flag.
+- Never edit `apps/mobile/android/` (generated, gitignored); never `adb reverse`.
+- Keep `babel-preset-expo`, `@babel/plugin-transform-react-jsx` and
+  `react-native-reanimated` declared here: the release bundle resolves them from
+  `apps/mobile` under pnpm's isolated layout; only the debug build hides their absence.
+- Workflow, backend prerequisites and the emulator lease: the `run-mobile` skill.
 
 ### Build & release (EAS → Google Play)
 

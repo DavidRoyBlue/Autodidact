@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { ChatMessage } from '@autodidact/types';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'expo-crypto';
 
 interface ChatState {
   messages: ChatMessage[];
@@ -23,7 +23,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       messages: [
         ...state.messages,
         {
-          id: uuidv4(),
+          id: randomUUID(),
           role: 'user' as const,
           content,
           createdAt: new Date().toISOString(),
@@ -46,7 +46,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       messages: [
         ...messages,
         {
-          id: uuidv4(),
+          id: randomUUID(),
           role: 'assistant' as const,
           content: streamingContent,
           createdAt: new Date().toISOString(),

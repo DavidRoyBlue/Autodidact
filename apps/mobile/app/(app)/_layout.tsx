@@ -27,9 +27,10 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="courses/index"
+        name="courses"
         options={{
           title: 'My Courses',
+          headerShown: false, // the courses stack draws its own header (with back)
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="library-outline" color={color} size={size} />
           ),

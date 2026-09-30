@@ -5,15 +5,19 @@ const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ replace: mockReplace }) }));
 
 const mockUseGenerationStatus = jest.fn();
+const mockEnroll = jest.fn().mockResolvedValue({});
 jest.mock('../../api/courses', () => ({
   useGenerationStatus: (courseId: string | null) => mockUseGenerationStatus(courseId),
+  useEnrollCourse: () => ({ mutateAsync: mockEnroll }),
 }));
 
+import { waitFor } from '@testing-library/react-native';
 import { useCourseGeneration } from '../useCourseGeneration';
 
 describe('useCourseGeneration', () => {
   beforeEach(() => {
     mockReplace.mockReset();
+    mockEnroll.mockClear();
     mockUseGenerationStatus.mockReset();
   });
 
@@ -38,15 +42,23 @@ describe('useCourseGeneration', () => {
     expect(result.current.isGenerating).toBe(false);
   });
 
-  it('navigates to the course on completion', () => {
+  it('enrolls the creator, then navigates to the course on completion', async () => {
     mockUseGenerationStatus.mockReturnValue({ data: { status: 'completed' } });
     renderHook(() => useCourseGeneration('course-9'));
-    expect(mockReplace).toHaveBeenCalledWith('/(app)/courses/course-9');
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(app)/courses/course-9'));
+    expect(mockEnroll).toHaveBeenCalledWith('course-9');
+  });
+
+  it('does not enroll while generation is still running', () => {
+    mockUseGenerationStatus.mockReturnValue({ data: { status: 'active' } });
+    renderHook(() => useCourseGeneration('course-9'));
+    expect(mockEnroll).not.toHaveBeenCalled();
   });
 
   it('does not navigate when completed but courseId is null', () => {
     mockUseGenerationStatus.mockReturnValue({ data: { status: 'completed' } });
     renderHook(() => useCourseGeneration(null));
+    expect(mockEnroll).not.toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalled();
   });
 

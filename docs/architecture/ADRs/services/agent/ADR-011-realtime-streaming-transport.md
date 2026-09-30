@@ -5,6 +5,11 @@
 Accepted
 Date: 2026-05-10
 
+Amended 2026-09-29: the mobile client no longer uses `@microsoft/fetch-event-source`
+(it needs `document` and a streaming `response.body`, neither of which React
+Native has). `useSSE` reads the SSE body whole through `apiFetch` once the API
+closes it; the wire format is unchanged. See `docs/decisions.md`.
+
 ## Context
 
 The module-chat experience streams LLM tokens from the agent service to

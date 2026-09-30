@@ -1,56 +1,53 @@
 import { useCallback } from 'react';
-import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatStore } from '../stores/chat.store';
-import { API_BASE_URL } from '../api/client';
-import { useAuthStore } from '../stores/auth.store';
+import { apiFetch } from '../api/client';
 import { useToastStore } from '../stores/toast.store';
+
+type StreamEvent = { type: string; content?: string; score?: number; error?: string };
+
+// The reply arrives as SSE (`data: {...}` lines) that the API closes after
+// `complete`. React Native's fetch has no streaming body and no `document`,
+// which is what broke @microsoft/fetch-event-source here — so the body is
+// read whole once the server closes it and the events are replayed in order.
+function parseEvents(body: string): StreamEvent[] {
+  return body
+    .split('\n')
+    .filter((line) => line.startsWith('data:'))
+    .map((line) => JSON.parse(line.slice(5)) as StreamEvent);
+}
 
 export function useSSE(sessionId: string, courseId: string) {
   const queryClient = useQueryClient();
-  const token = useAuthStore((s) => s.accessToken);
   const { addUserMessage, appendStreamToken, finalizeStreamMessage } = useChatStore();
 
   const send = useCallback(
     async (content: string) => {
+      const toast = useToastStore.getState().addToast;
       addUserMessage(content);
-
-      await fetchEventSource(`${API_BASE_URL}/chat/sessions/${sessionId}/stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ content, sessionId }),
-        onmessage(event) {
-          try {
-            const data = JSON.parse(event.data) as {
-              type: string;
-              content?: string;
-              score?: number;
-              error?: string;
-            };
-
-            if (data.type === 'token' && data.content) {
-              appendStreamToken(data.content);
-            } else if (data.type === 'complete') {
-              finalizeStreamMessage();
-              useToastStore.getState().addToast('Module complete! Great work.', 'success');
-              void queryClient.invalidateQueries({ queryKey: ['progress', courseId] });
-            } else if (data.type === 'error') {
-              finalizeStreamMessage();
-            }
-          } catch {
-            // Ignore malformed events
+      try {
+        const res = await apiFetch(`/chat/sessions/${sessionId}/stream`, {
+          method: 'POST',
+          body: JSON.stringify({ content, sessionId }),
+        });
+        if (!res.ok) throw new Error(`The teacher did not answer (HTTP ${res.status})`);
+        for (const event of parseEvents(await res.text())) {
+          if (event.type === 'token' && event.content) {
+            appendStreamToken(event.content);
+          } else if (event.type === 'module_complete') {
+            toast('Module complete! Great work.', 'success');
+            void queryClient.invalidateQueries({ queryKey: ['progress', courseId] });
+          } else if (event.type === 'error') {
+            toast(event.error ?? 'The teacher did not answer', 'error');
           }
-        },
-        onerror() {
-          finalizeStreamMessage();
-          throw new Error('SSE connection error');
-        },
-      });
+        }
+      } catch (e) {
+        toast(e instanceof Error ? e.message : 'The teacher did not answer', 'error');
+      } finally {
+        finalizeStreamMessage();
+      }
     },
-    [sessionId, courseId, token, addUserMessage, appendStreamToken, finalizeStreamMessage, queryClient],
+    [sessionId, courseId, addUserMessage, appendStreamToken, finalizeStreamMessage, queryClient],
   );
 
   return { send };

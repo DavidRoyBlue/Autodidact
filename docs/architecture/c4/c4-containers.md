@@ -47,7 +47,7 @@ In local development the Cloud Tasks hop is replaced by the loopback queue provi
 | **Routing** | Expo Router (file-based) |
 | **State** | TanStack Query (server state), Zustand (auth session + streaming chat) |
 | **Auth token** | Stored in Expo SecureStore via Zustand persist |
-| **SSE** | `@microsoft/fetch-event-source` for streaming chat |
+| **SSE** | `useSSE` reads the chat stream through `apiFetch` (RN fetch cannot stream; ADR-011) |
 | **Network** | Talks only to API Service (never directly to Agent or Worker) |
 
 ### API Service
