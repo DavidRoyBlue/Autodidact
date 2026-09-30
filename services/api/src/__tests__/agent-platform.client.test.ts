@@ -17,6 +17,7 @@ describe('ApiPlatformClient', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it('creates a thread for the project and returns its id', async () => {
@@ -25,6 +26,16 @@ describe('ApiPlatformClient', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:8400/api/v1/threads',
       expect.objectContaining({ method: 'POST', body: JSON.stringify({ title: 'module m', project: 'Autodidact' }) }),
+    );
+  });
+
+  it('authenticates with the bearer key when one is configured', async () => {
+    vi.stubEnv('AGENT_PLATFORM_API_KEY', 'tok');
+    fetchMock.mockResolvedValueOnce(response({ id: 'thr_9' }, 201));
+    await new ApiPlatformClient().createThread('module m');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ headers: { 'Content-Type': 'application/json', Authorization: 'Bearer tok' } }),
     );
   });
 

@@ -105,14 +105,17 @@ create_secret autodidact-database-url        "${DATABASE_URL:?}"
 create_secret autodidact-supabase-url        "${SUPABASE_URL:?}"
 create_secret autodidact-supabase-secret-key "${SUPABASE_SECRET_KEY:?}"
 create_secret autodidact-openai-api-key      "${OPENAI_API_KEY:?}"
+create_secret autodidact-api-agent-platform-key    "${AGENT_PLATFORM_API_KEY_API:?}"
+create_secret autodidact-worker-agent-platform-key "${AGENT_PLATFORM_API_KEY_WORKER:?}"
 create_secret autodidact-otel-endpoint       "${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318}"
 create_secret autodidact-api-port            "${API_PORT:-8080}"
 create_secret autodidact-agent-port          "${AGENT_PORT:-8080}"
 create_secret autodidact-embedding-provider  "${EMBEDDING_PROVIDER:-openai}"
 create_secret autodidact-auth-provider       "${AUTH_PROVIDER:-supabase}"
 create_secret autodidact-queue-provider      "${QUEUE_PROVIDER:-cloudtasks}"
-# The two Cloud Run URLs are filled with real values in Step 6; a re-run with the
-# placeholder still in secrets.env must not clobber them.
+# The two Cloud Run URLs are filled with real values in Step 6, the AgentPlatform
+# URL once the platform is hosted (ADR-032); a re-run with the placeholder still
+# in secrets.env must not clobber them.
 seed_url_secret () {  # usage: seed_url_secret <secret-name> <value>
   if [ "$2" = "https://placeholder" ] && gcloud secrets describe "$1" --project "$PROJECT_ID" >/dev/null 2>&1; then
     info "secret $1 (kept — placeholder not applied over an existing value)"
@@ -122,7 +125,8 @@ seed_url_secret () {  # usage: seed_url_secret <secret-name> <value>
 }
 seed_url_secret autodidact-agent-service-url    "${AGENT_SERVICE_URL:-https://placeholder}"
 seed_url_secret autodidact-worker-task-base-url "${WORKER_TASK_BASE_URL:-https://placeholder}"
-ok "12 secrets present (real values + config + 2 placeholders for Step 6)"
+seed_url_secret autodidact-agent-platform-url   "${AGENT_PLATFORM_URL:-https://placeholder}"
+ok "15 secrets present (real values + config + 3 URL placeholders)"
 
 # ── 5. Workload Identity Federation (keyless GitHub Actions deploys) ──────────
 step "Workload Identity Federation for ${GITHUB_REPO}"

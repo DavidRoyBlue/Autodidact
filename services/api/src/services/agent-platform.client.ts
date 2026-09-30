@@ -20,6 +20,7 @@ interface Run {
 @Injectable()
 export class ApiPlatformClient {
   private readonly baseUrl = process.env['AGENT_PLATFORM_URL'] ?? 'http://localhost:8400';
+  private readonly apiKey = process.env['AGENT_PLATFORM_API_KEY'];
 
   async createThread(title: string): Promise<string> {
     const thread = await this.request<{ id: string }>('POST', '/api/v1/threads', { title, project: 'Autodidact' });
@@ -50,7 +51,7 @@ export class ApiPlatformClient {
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const res = await fetch(`${this.baseUrl}${path}`, {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(this.apiKey && { Authorization: `Bearer ${this.apiKey}` }) },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     if (!res.ok) {

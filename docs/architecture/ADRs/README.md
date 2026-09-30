@@ -38,6 +38,7 @@ Sort within each section by ADR number.
 - [ADR-028 — Production auth: identity contract, hybrid provisioning, and data-path posture](./cross-cutting/ADR-028-production-auth-provisioning.md) — Accepted 2026-06-19
 - [ADR-030 — Course generation runs on AgentPlatform's course-creator workflow](./cross-cutting/ADR-030-course-generation-on-agent-platform.md) — Accepted 2026-09-25
 - [ADR-031 — The module teacher runs on AgentPlatform](./cross-cutting/ADR-031-module-teacher-on-agent-platform.md) — Accepted 2026-09-25 (supersedes [ADR-006](./_superseded/ADR-006-ai-orchestration-framework.md))
+- [ADR-032 — Production reaches AgentPlatform on GCP with a bearer key per service](./cross-cutting/ADR-032-production-route-to-agent-platform.md) — Accepted 2026-09-30
 
 ### Apps — Mobile
 - [ADR-003 — Mobile application platform](./apps/mobile/ADR-003-mobile-application-platform.md)

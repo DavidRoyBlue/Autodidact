@@ -77,3 +77,4 @@ Terraform provisions and updates **infrastructure**. **Application code** deploy
 - [ADR-021 — Infrastructure as code](../docs/architecture/ADRs/infra/ADR-021-infrastructure-as-code.md) (Terraform)
 - [ADR-022 — CI/CD platform](../docs/architecture/ADRs/infra/ADR-022-cicd-platform.md) (GitHub Actions)
 - [ADR-027 — Background job queue — migrate to GCP Cloud Tasks](../docs/architecture/ADRs/services/worker/ADR-027-background-job-queue-cloud-tasks.md) (Cloud Tasks queues; supersedes ADR-007)
+- [ADR-032 — Production reaches AgentPlatform on GCP with a bearer key per service](../docs/architecture/ADRs/cross-cutting/ADR-032-production-route-to-agent-platform.md) (platform URL + per-service key secrets)
