@@ -101,7 +101,7 @@ Fastify internal embeddings runtime (port 3001, never public). Course generation
 - [main.ts](services/agent/src/main.ts)
 
 ## Worker 🟢
-_verified: 2026-09-25_
+_verified: 2026-09-29_
 
 Fastify background task handler invoked per-task by Cloud Tasks (prod) / loopback (dev); scale-to-zero.
 
@@ -113,7 +113,7 @@ Fastify background task handler invoked per-task by Cloud Tasks (prod) / loopbac
 
 **Stack**
 - Framework: Fastify (`/tasks/:name` + `/health` only)
-- Tasks: generate-course (a run on AgentPlatform's `course-creator` workflow, ADR-030 — reachable from dev only until the platform is hosted), generate-embedding, cleanup-stale-anonymous
+- Tasks: generate-course (a run on AgentPlatform's `course-creator-lean` workflow, ADR-030 — reachable from dev only until the platform is hosted), generate-embedding, cleanup-stale-anonymous
 - DB: Drizzle via `@autodidact/db`; raw SQL for `::vector` writes
 - Retry: queue-level (Terraform `retry_config`, 3 attempts); `TASK_MAX_ATTEMPTS` mirrors it; final failure marks course `failed`
 - Auth: none in-app — Cloud Run IAM verifies Cloud Tasks OIDC

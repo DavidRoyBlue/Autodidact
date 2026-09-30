@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Zod validation schemas for API request bodies and the data AgentPlatform's `course-creator` workflow returns. Used for runtime validation at service boundaries — HTTP request parsing and the worker's parse of the platform run output.
+Zod validation schemas for API request bodies and the data AgentPlatform's `course-creator-lean` workflow returns. Used for runtime validation at service boundaries — HTTP request parsing and the worker's parse of the platform run output.
 
 ## Consumers
 
@@ -19,7 +19,7 @@ import {
   CreateCourseRequestSchema,   // POST /courses body
   TimeBudgetSchema,            // '30min' | '1h' | '4h' | 'unrestricted'
   DifficultyLevelSchema,
-  GeneratedCourseSchema,       // AgentPlatform course-creator run output
+  GeneratedCourseSchema,       // AgentPlatform course-creator-lean run output
   GeneratedModuleSchema,
 
   // Chat domain
@@ -105,7 +105,7 @@ create(@Body() dto: CreateCourseRequest) {
 ```typescript
 const parsed = GeneratedCourseSchema.safeParse(run.output);
 if (!parsed.success) {
-  throw new Error(`course-creator run ${run.id} returned an invalid course: ${parsed.error.message}`);
+  throw new Error(`course-creator-lean run ${run.id} returned an invalid course: ${parsed.error.message}`);
 }
 return parsed.data;
 ```

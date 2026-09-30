@@ -14,7 +14,7 @@ Zod validation schemas for cross-service data contracts: API request bodies and 
 - Every schema export must include its inferred TypeScript type (`z.infer<typeof Schema>`) so consumers do not need to re-derive the type themselves.
 - Schema changes are breaking changes for all consumers. When you change a schema, update all consumer usages in the same PR — do not merge a schema change with broken consumers.
 - Keep schemas in sync with the corresponding TypeScript types in `@autodidact/types`. If a type gains a required field, the matching schema must gain the same validation rule.
-- `GeneratedCourseSchema`/`GeneratedModuleSchema` validate what AgentPlatform's `course-creator` workflow returns (its `docs/architecture/course-creator.md` §5), reduced to what the app persists; the platform validates the whole document, so unknown keys are dropped here rather than rejected.
+- `GeneratedCourseSchema`/`GeneratedModuleSchema` validate what AgentPlatform's `course-creator-lean` workflow returns (its `docs/architecture/course-creator.md` §5), reduced to what the app persists; the platform validates the whole document, so unknown keys are dropped here rather than rejected.
 
 ---
 

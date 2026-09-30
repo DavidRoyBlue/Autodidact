@@ -13,7 +13,7 @@ loopback task dispatch (the same `/tasks/:name` HTTP contract Cloud Tasks uses i
 The golden path, end to end across all three services:
 
 1. **Create** a course (`POST /v1/courses`) → api dispatches a task POST to the worker.
-2. **Generate** — the worker picks up the job, runs `course-creator` on a mock
+2. **Generate** — the worker picks up the job, runs `course-creator-lean` on a mock
    AgentPlatform (ADR-030), and writes the course `ready` + module rows.
 3. **Enroll** → `module_progress` rows (position 0 `available`, rest `locked`).
 4. **Chat** a turn over SSE → the api runs `course-teacher` on the mock platform, which signals completion.

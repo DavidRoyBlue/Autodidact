@@ -41,7 +41,7 @@ describe('AgentPlatformClient.generateCourse()', () => {
     vi.unstubAllGlobals();
   });
 
-  it('creates a course-creator run with the word budget the preset implies, then polls it to completion', async () => {
+  it('creates a course-creator-lean run with the word budget the preset implies, then polls it to completion', async () => {
     fetchMock
       .mockResolvedValueOnce(response({ id: 'run_1', status: 'queued', output: null, error: null }))
       .mockResolvedValueOnce(response({ id: 'run_1', status: 'running', output: null, error: null }))
@@ -58,7 +58,7 @@ describe('AgentPlatformClient.generateCourse()', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          workflow_id: 'course-creator',
+          workflow_id: 'course-creator-lean',
           input: { subject: 'DNS', difficulty: 'intermediate', budget: { preset: '30min', words: 4500 }, words_per_minute: 150 },
         }),
       }),

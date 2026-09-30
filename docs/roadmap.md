@@ -20,6 +20,7 @@
 - [x] ~~Flip `CHECKPOINTER=postgres`~~ — moot: ADR-031 moved the module teacher to AgentPlatform, which owns thread history now; the checkpointer provider is unused
 - [x] Drop `LLM_PROVIDER`/`CHECKPOINTER` from `infra/` (ADR-031 follow-up) — removed from `infra/environments/prod/main.tf` and `scripts/gcp-bootstrap.sh`; nothing in the codebase reads either env var (#322)
 - [x] Fix `0013_onboarding` silently skipped everywhere (#320): journal entry moved last with a `when` past the max; guarded by `journal.test.ts`
+- [x] Catch-up prod deploy runbook (#320) — `docs/gcp_infra_setup.md` §9; decisions in `docs/decisions.md`. Execution is owner-only (below); waits on #321
 - [ ] Worker failed-job recovery so stuck courses aren't unrecoverable
 - [ ] Wire error tracking / OTEL backend
 - [ ] API rate limiting
@@ -49,11 +50,20 @@
 - [x]  Cloud Tasks for prod job durability 
 
 ### Credentials & provisioning to do
-- [ ] Populate Secret Manager with real values (see `docs/todo.md` → ENV setup)
 - [ ] Google Play Developer account for Android beta submission
-- [ ] Run the actual deploy + smoke test against real infra
 - [ ] Configure Google + Facebook OAuth providers (Supabase dashboard; Google Cloud Web client + dev/prod Android SHA-1 client IDs; Facebook app) — unblocks social sign-in
-- [ ] Apply auth migrations `0011`/`0012` to prod + enable manual-linking + GoTrue hardening (prod DB is at `0010`) — `0013_onboarding` (the onboarding auto-enroll course) has also never reached prod and must ride along in the same catch-up run
+- [ ] Enable manual-linking + GoTrue hardening in the Supabase dashboard (goes with the `0011`/`0012` auth migrations below)
+
+### Catch-up prod deploy (#320) — run `docs/gcp_infra_setup.md` §9 in order
+Prod last deployed 2026-06-26; DB at `0010`; Supabase project paused. Secret Manager already holds the June values — §9.2 only adds what `main.tf` gained since.
+- [ ] §9.0 now: restore Supabase project `cbzdsoojfhpsexuyeyxt`, confirm pooler URL, connectivity check, early `pg_dump`
+- [ ] §9.1 gate: #321 merged to `master`, CI green, `origin/production..origin/master` reviewed
+- [ ] §9.2 secrets: new `main.tf` env vars → `infra/secrets.env` → `scripts/gcp-bootstrap.sh` (skip if none)
+- [ ] §9.3 `terraform plan` matches the enumerated diff → `terraform apply`
+- [ ] §9.4 `pg_dump` to `~/backups`, row counts recorded
+- [ ] §9.5 `pnpm migrate:prod` → journal at 15 rows (`0011`, `0012`, `0014`, `0015`, `0013`), no `blueprint`, no null `modules.content`
+- [ ] §9.6 `git push origin origin/master:production`, watch the Deploy run
+- [ ] §9.7 `/v1/health` all `ok`, onboarding course seeded, row counts match; tick here and bump `PRODUCTION.md` Infra `_verified:`
 
 ## Phase 2 — Polish
 - [ ] Course generation progress indicator (WebSocket or SSE to mobile during generation)

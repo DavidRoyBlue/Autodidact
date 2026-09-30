@@ -8,7 +8,7 @@ Autodidact uses a monorepo with separate applications, services, and shared pack
 
 ### Course Generation
 ```
-Mobile → API (POST /courses) → Cloud Tasks → Worker (HTTP) → AgentPlatform (course-creator run, ADR-030)
+Mobile → API (POST /courses) → Cloud Tasks → Worker (HTTP) → AgentPlatform (course-creator-lean run, ADR-030)
                                                             → DB (Drizzle/Supabase)
                                                             → Agent service (/embeddings/text, RAG chunk indexing)
                                                             → Cloud Tasks (embedding follow-up)

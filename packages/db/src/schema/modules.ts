@@ -13,7 +13,7 @@ export const modules = pgTable('modules', {
   title: text('title').notNull(),
   description: text('description').notNull(),
   objectives: jsonb('objectives').notNull().$type<string[]>(),
-  // the full lesson, markdown, as the course-creator workflow wrote it
+  // the full lesson, markdown, as the course-creator-lean workflow wrote it
   content: text('content').notNull(),
   resources: jsonb('resources').notNull().default(sql`'[]'::jsonb`).$type<ModuleResource[]>(),
   estimatedMinutes: integer('estimated_minutes').notNull(),

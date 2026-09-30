@@ -31,11 +31,11 @@ const MOCK_REPLY = { reply: 'Great — you have grasped the key ideas of this mo
 /**
  * AgentPlatform stand-in (ADR-030, ADR-031): a thread is created on demand; a
  * run is created queued and reads back completed on the first poll — with
- * MOCK_COURSE for the worker's course-creator run, MOCK_REPLY for the api's
+ * MOCK_COURSE for the worker's course-creator-lean run, MOCK_REPLY for the api's
  * course-teacher run.
  */
 
-const MOCK_OUTPUT_BY_AGENT: Record<string, unknown> = { 'course-teacher': MOCK_REPLY, 'course-creator': MOCK_COURSE };
+const MOCK_OUTPUT_BY_AGENT: Record<string, unknown> = { 'course-teacher': MOCK_REPLY };
 
 function startMockPlatform(): Promise<{ url: string; close: () => Promise<void> }> {
   const runOutputs = new Map<string, unknown>();

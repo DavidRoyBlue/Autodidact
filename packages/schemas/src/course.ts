@@ -10,7 +10,7 @@ export const CreateCourseRequestSchema = z.object({
 });
 
 /**
- * What AgentPlatform's course-creator workflow returns (its
+ * What AgentPlatform's course-creator-lean workflow returns (its
  * docs/architecture/course-creator.md §5), reduced to what the app persists;
  * the platform validates the whole document, so unknown keys are dropped here.
  */

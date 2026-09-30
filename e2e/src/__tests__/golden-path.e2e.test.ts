@@ -105,7 +105,7 @@ describe('Golden path: create → generate (worker + mock platform) → enroll �
     expect(typeof courseId).toBe('string');
     expect(body.status).toBe('pending');
 
-    // Worker receives the loopback task POST, runs course-creator on the (mock) platform, writes ready + modules.
+    // Worker receives the loopback task POST, runs course-creator-lean on the (mock) platform, writes ready + modules.
     await waitForCourseReady(courseId);
 
     const mods = await harness.db
