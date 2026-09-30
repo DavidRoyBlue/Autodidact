@@ -44,7 +44,7 @@ Terraform infrastructure as code for the Autodidact production environment on GC
 ## Key patterns to follow
 
 - One Cloud Run service per backend service (api, agent, worker), each instantiated via `modules/cloud-run-service`
-- `allow_public = true` only for the api service — agent and worker are internal only
+- `allow_public = true` only for the api service — agent and worker are IAM-invoker-only (ingress `all`, invoker = runtime SA)
 - Environment variables for services are Secret Manager references — add new secrets to the `env_vars` map by secret name
 - All three services run `min_instances = 0` (scale-to-zero, since 2026-07-20): cold-start latency on the first request is accepted over idle cost. For the worker, Cloud Tasks pushes tasks over HTTP, and a ~1 s cold start on a 10–30 s job is accepted (ADR-027)
 

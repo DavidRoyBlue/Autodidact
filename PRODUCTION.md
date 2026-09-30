@@ -54,7 +54,7 @@ NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course l
 
 **Stack**
 - Framework: NestJS
-- Auth: Supabase JWT via JWKS (RS256), `AuthGuard` on every controller except `/v1/health` (no root `/health`)
+- Auth: Supabase JWT via JWKS (RS256), `AuthGuard` on every controller except `/v1/health`
 - DB: Drizzle via `@autodidact/db`
 - Queue: Cloud Tasks (prod) / loopback HTTP (dev)
 - Validation: Zod pipes from `@autodidact/schemas`
@@ -64,7 +64,7 @@ NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course l
 - prod: GCP Secret Manager (seeded from `infra/secrets.env`)
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — Stale on Cloud Run (public, 0–10 instances, scale-to-zero): last deploy 2026-06-26 (68 commits behind `master`); redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). The module teacher cannot run in prod until it can reach AgentPlatform (#321). Deploys on `master` → `production` promotion.
+**State** — Stale on Cloud Run (public, 0–10 instances, scale-to-zero): last deploy 2026-06-26; redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). The module teacher cannot run in prod until it can reach AgentPlatform (#321). Deploys on `master` → `production` promotion.
 - deploy: [deploy.yml](.github/workflows/deploy.yml)
 
 **Useful Files**
@@ -93,7 +93,7 @@ Fastify internal embeddings runtime (port 3001, never public). Course generation
 - prod: GCP Secret Manager (seeded from `infra/secrets.env`)
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — Stale on Cloud Run (ingress `all`, invoker IAM = runtime SA only; 0–5 instances, scale-to-zero): last deploy 2026-06-26 (68 commits behind `master`); redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). Deploys on `master` → `production` promotion.
+**State** — Stale on Cloud Run (ingress `all`, invoker IAM = runtime SA only; 0–5 instances, scale-to-zero): last deploy 2026-06-26; redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). Deploys on `master` → `production` promotion.
 - deploy: [deploy.yml](.github/workflows/deploy.yml)
 
 **Useful Files**
@@ -123,7 +123,7 @@ Fastify background task handler invoked per-task by Cloud Tasks (prod) / loopbac
 - prod: GCP Secret Manager (seeded from `infra/secrets.env`)
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — Stale on Cloud Run (ingress `all`, invoker IAM = runtime SA only; 0–3 instances): last deploy 2026-06-26 (68 commits behind `master`); redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). generate-course cannot run in prod until it can reach AgentPlatform (#321). Deploys on `master` → `production` promotion.
+**State** — Stale on Cloud Run (ingress `all`, invoker IAM = runtime SA only; 0–3 instances): last deploy 2026-06-26; redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). generate-course cannot run in prod until it can reach AgentPlatform (#321). Deploys on `master` → `production` promotion.
 - deploy: [deploy.yml](.github/workflows/deploy.yml)
 
 **Useful Files**
@@ -154,7 +154,7 @@ Terraform IaC for the GCP production environment (project `autodidact-494819`, r
 - prod: `infra/secrets.env` (gitignored, single source) → Secret Manager via [gcp-bootstrap.sh](scripts/gcp-bootstrap.sh)
 - dev: none
 
-**State** — Live (Cloud Run revisions last rolled 2026-06-26); apply from `infra/environments/prod` after `terraform plan`.
+**State** — Live; apply from `infra/environments/prod` after `terraform plan`.
 - runbook: [docs/gcp_infra_setup.md](docs/gcp_infra_setup.md)
 
 **Useful Files**

@@ -38,9 +38,9 @@ pipeline are ready to run.
                                          ▼             ▼
                               ┌────────────────┐  ┌──────────────────────┐
                               │ autodidact-    │  │ autodidact-worker     │ (Cloud Run,
-                              │ agent          │◀─│ Fastify task handler  │  INTERNAL,
+                              │ agent          │◀─│ Fastify task handler  │  IAM-only,
                               │ (Cloud Run,    │  │ scale-to-zero         │  scale-to-0)
-                              │  INTERNAL)     │  └──────────────────────┘
+                              │  IAM-only)     │  └──────────────────────┘
                               └────────────────┘
                                          │
                         ┌────────────────┴───────────────┐
@@ -53,7 +53,7 @@ pipeline are ready to run.
 
 | GCP product | What it does here | How you create it |
 |---|---|---|
-| **Cloud Run** | Runs the 3 services (`api` public, `agent` + `worker` internal) | Terraform |
+| **Cloud Run** | Runs the 3 services (`api` public, `agent` + `worker` IAM-invoker-only) | Terraform |
 | **Cloud Tasks** | 2 managed queues that push background jobs to the worker over HTTP, with retry/backoff | Terraform |
 | **Artifact Registry** | Stores the Docker images CI builds (`api`, `agent`, `worker`) | Terraform |
 | **Secret Manager** | Holds all runtime env vars (DB URL, keys, config) — Cloud Run reads them by name | **You, manually (gcloud)** |
@@ -284,7 +284,7 @@ What this creates:
 - Artifact Registry repo `autodidact`
 - Cloud Tasks queues `autodidact-course-generation` + `autodidact-embedding`
   (retry: 3 attempts, 5s→125s backoff) and the enqueuer/OIDC IAM
-- 3 Cloud Run services (`api` public; `agent` + `worker` internal; worker scales
+- 3 Cloud Run services (`api` public; `agent` + `worker` IAM-invoker-only; worker scales
   to zero) wired to the secrets from Step 3
 
 > **First-apply note:** the three Cloud Run services need their Docker images to
