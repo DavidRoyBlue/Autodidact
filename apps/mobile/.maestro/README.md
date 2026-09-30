@@ -18,8 +18,8 @@ default).
 2. A running backend reachable at the app's `apiBaseUrl` — start it with
    `EMBEDDING_PROVIDER=mock AUTH_PROVIDER=mock` for a fast, deterministic run
    (see `@autodidact/e2e`).
-3. A built app on a booted emulator/simulator (`scripts/run-mobile.sh --release`),
-   or Expo Go (then set `appId: host.exp.Exponent`).
+3. A built app on a booted emulator/simulator (`scripts/run-mobile.sh --release`;
+   Expo Go cannot run this app).
 4. A seeded test account (pass via `-e EMAIL=… -e PASSWORD=…`).
 
 ## Run
