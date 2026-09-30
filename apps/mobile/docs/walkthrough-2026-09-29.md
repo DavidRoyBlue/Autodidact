@@ -9,7 +9,8 @@ mobile-mcp taps were broken by the adb-forward bug (Automation #174).
 | Flow | Result | Evidence |
 |---|---|---|
 | Launch | **working** — sign-in screen, no `RNGoogleSignin` crash | `01-sign-in.png` |
-| Google sign-in | **not completed** — the native sheet opens (module works) but the AVD has no Google account, so it asks for full credentials; cancel returns cleanly with no alert. Needs the one-time account step (`social-sign-in.md`, "Local stack"). | `02-google-sheet-no-account.png` |
+| Google sign-in | **working** after console fix (2026-09-30) — with no Google account on the AVD the native sheet asks for full credentials (cancel returns cleanly); with the account it returned `DEVELOPER_ERROR` because the Android OAuth client carried the EAS dev keystore's SHA-1, not the local build's debug keystore (`5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25`). Owner switched the client's SHA-1; the chooser then signs straight into the app (local GoTrue identity updated). | `02-google-sheet-no-account.png`, `20-google-developer-error.png`, `23-google-account-chooser.png`, `24-google-signed-in.png` |
+| Profile (guest) | **working** after fix — the guest card overflowed a non-scrolling `Screen`, so **Sign Out was unreachable**; `profile.tsx` now scrolls. | `21-profile-scrolls-sign-out.png` |
 | Facebook sign-in | not tested (no Facebook app configured for the local stack) | — |
 | Continue as guest | **working** after fix — anonymous session, `sync_user_from_auth`, auto-enrolled | `03-guest-onboarding-course.png` |
 | Onboarding deep-link | **working** — first launch lands on the onboarding course | `03-…` |
@@ -50,6 +51,11 @@ mobile-mcp taps were broken by the adb-forward bug (Automation #174).
    under the tab navigator, so Android BACK from a chat landed on the Learn
    tab. `courses/` is now a stack inside the My Courses tab (header back,
    BACK pops to the course).
+9. **Guest Profile could not sign out** — `UpgradeAccountCard` pushed Sign Out
+   below the fold of a non-scrolling `Screen`; the profile is `<Screen scroll>`.
+10. **Small ghost buttons clipped their label** ("Use email instead", "Continue
+    as guest"): `size="sm"` was `h-9` with `py-2`, leaving 20 px for a 22 px
+    line — now `h-10` (`22-sign-in-buttons-fixed.png`).
 
 ## Left open (issues under #320)
 
@@ -62,8 +68,6 @@ mobile-mcp taps were broken by the adb-forward bug (Automation #174).
   `courses.service`), so a course is usable from any client — the app-side
   enroll is a client workaround for the API gap.
 - "Intermediate" difficulty chip wraps to two lines at 720 px width.
-- Google sign-in end to end (needs a Google account on the AVD, and the
-  Android OAuth client SHA-1 for the local debug keystore — `social-sign-in.md` §2).
 - The teacher returns one whole reply; the "streaming" spinner runs 20–50 s
   with nothing on screen. Either stream tokens from AgentPlatform or show a
   "thinking" state that says so.

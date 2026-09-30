@@ -14,7 +14,7 @@ const buttonVariants = cva(
         ghost: 'bg-transparent border border-border',
       },
       size: {
-        sm: 'px-3 py-2 h-9',
+        sm: 'px-3 py-2 h-10',
         md: 'px-4 py-3 h-11',
         lg: 'px-4 py-4 h-[52px]',
       },

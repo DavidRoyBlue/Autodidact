@@ -17,8 +17,8 @@ export default function ProfileScreen() {
   };
 
   return (
-    <Screen>
-      <View className="gap-4 pt-4">
+    <Screen scroll>
+      <View className="gap-4 py-4">
         <UpgradeAccountCard />
 
         <Card variant="default">

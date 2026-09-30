@@ -43,13 +43,16 @@ Social sign-in (Google native + Facebook web-PKCE) requires configuration in thr
 
 4. **Create two Android OAuth client IDs** — one for dev build, one for prod:
    - Click **Create Credentials** → **OAuth client ID** → **Android**
-   - For the **dev build**, get its signing SHA-1:
+   - For the **dev build**, the SHA-1 of the keystore `scripts/run-mobile.sh` signs with —
+     the generated debug keystore, for both variants:
      ```bash
-     cd apps/mobile
-     eas credentials --platform android
-     # Navigate: Android → Manage credentials → choose the dev keystore
-     # Copy the "SHA-1 fingerprint"
+     keytool -list -v -keystore apps/mobile/android/app/debug.keystore \
+       -alias androiddebugkey -storepass android | grep SHA1
+     # 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25 (2026-09-30)
      ```
+     The dev Android client carries this one since 2026-09-30; it replaced the EAS dev
+     keystore's `E5:1A:…:AF:45`, so an EAS `development`/`preview` build now gets
+     `DEVELOPER_ERROR` until a client with that SHA-1 is added back.
    - Create an Android OAuth client with:
      - **Package name:** `com.autodidact.app` (must match `android.package` in `app.json`)
      - **SHA-1 certificate fingerprint:** (paste the dev keystore SHA-1)
