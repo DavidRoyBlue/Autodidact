@@ -3,8 +3,8 @@
 # at the app's apiBaseUrl (use EMBEDDING_PROVIDER=mock AUTH_PROVIDER=mock for a
 # deterministic backend).
 #
-# appId: the installed app's package id. For a dev/standalone build this is
-# com.autodidact.app; for Expo Go use host.exp.Exponent and launch the dev URL.
+# appId: the installed app's package id (the APK from scripts/run-mobile.sh;
+# Expo Go cannot run this app).
 appId: com.autodidact.app
 flows:
   - "*.yaml"
