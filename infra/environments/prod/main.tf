@@ -60,6 +60,9 @@ module "api" {
     # Worker Cloud Run URL — set after the worker's first deploy (same
     # chicken-and-egg pattern as autodidact-agent-service-url).
     WORKER_TASK_BASE_URL = "autodidact-worker-task-base-url"
+    # GCP-hosted AgentPlatform (ADR-032); the key authenticates as actor autodidact-api.
+    AGENT_PLATFORM_URL     = "autodidact-agent-platform-url"
+    AGENT_PLATFORM_API_KEY = "autodidact-api-agent-platform-key"
   })
   plain_env_vars        = local.cloud_tasks_env
 }
@@ -103,6 +106,9 @@ module "worker" {
     QUEUE_PROVIDER       = "autodidact-queue-provider"
     # The worker enqueues the embedding follow-up task to itself.
     WORKER_TASK_BASE_URL = "autodidact-worker-task-base-url"
+    # GCP-hosted AgentPlatform (ADR-032); the key authenticates as actor autodidact-worker.
+    AGENT_PLATFORM_URL     = "autodidact-agent-platform-url"
+    AGENT_PLATFORM_API_KEY = "autodidact-worker-agent-platform-key"
   })
   plain_env_vars        = merge(local.cloud_tasks_env, {
     # Cloud Run routes traffic to $PORT (8080); the worker listens on WORKER_PORT.

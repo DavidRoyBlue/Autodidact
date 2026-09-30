@@ -145,8 +145,8 @@ decision this ADR does not make).
   the ~16 minutes a course takes — tightened with the Cloud Tasks deadlines.
 
 ### Follow-up decisions
-- Host or expose the platform for GCP (and enforce API keys) before production
-  relies on it.
+- ~~Host or expose the platform for GCP (and enforce API keys) before production
+  relies on it.~~ — decided in [ADR-032](./ADR-032-production-route-to-agent-platform.md).
 - Move the module teacher to the platform's `course-teacher` agent (the chat
   service calls it per turn; the in-app teacher goes).
 - Progress UX from the run's `step.iteration` events (#96).

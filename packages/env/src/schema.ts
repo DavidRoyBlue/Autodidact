@@ -35,8 +35,10 @@ export const apiEnvSchema = baseSchema.extend({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SECRET_KEY: nonEmpty('SUPABASE_SECRET_KEY'),
   AGENT_SERVICE_URL: z.string().url().default('http://localhost:3001'),
-  // AgentPlatform runs the module teacher (ADR-031); reachable from dev only until it is hosted
+  // AgentPlatform runs the module teacher (ADR-031); hosted on GCP in prod (ADR-032)
   AGENT_PLATFORM_URL: z.string().url().default('http://localhost:8400'),
+  // Bearer token for actor autodidact-api; unset only against a keyless (local) platform
+  AGENT_PLATFORM_API_KEY: z.string().optional(),
   API_PORT: Port.default(3000),
 });
 
@@ -58,8 +60,10 @@ export const agentEnvSchema = baseSchema.extend({
 export const workerEnvSchema = baseSchema.extend({
   DATABASE_URL: nonEmpty('DATABASE_URL'),
   AGENT_SERVICE_URL: z.string().url().default('http://localhost:3001'),
-  // AgentPlatform runs course generation (ADR-030); reachable from dev only until it is hosted
+  // AgentPlatform runs course generation (ADR-030); hosted on GCP in prod (ADR-032)
   AGENT_PLATFORM_URL: z.string().url().default('http://localhost:8400'),
+  // Bearer token for actor autodidact-worker; unset only against a keyless (local) platform
+  AGENT_PLATFORM_API_KEY: z.string().optional(),
   WORKER_PORT: Port.default(3002),
   // Mirrors max_attempts in the Cloud Tasks queue retry_config (infra/modules/cloud-tasks).
   TASK_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),

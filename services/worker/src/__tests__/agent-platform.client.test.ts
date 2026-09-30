@@ -83,6 +83,25 @@ describe('AgentPlatformClient.generateCourse()', () => {
     await expect(new AgentPlatformClient(BASE_URL).generateCourse(job)).rejects.toThrow('run_3 failed: planner timed out');
   });
 
+  it('authenticates with the bearer key when one is configured', async () => {
+    fetchMock.mockResolvedValue(response({ id: 'run_4', status: 'completed', output: generated, error: null }));
+    await new AgentPlatformClient(BASE_URL, 'tok').generateCourse(job);
+    for (const [, init] of fetchMock.mock.calls) {
+      expect((init as { headers: Record<string, string> }).headers['Authorization']).toBe('Bearer tok');
+    }
+  });
+
+  it('cancels a run that outlives the timeout, then throws', async () => {
+    fetchMock.mockImplementation((_url: string, init: { method: string }) =>
+      Promise.resolve(response({ id: 'run_5', status: init.method === 'POST' ? 'queued' : 'running', output: null, error: null })),
+    );
+    const pending = new AgentPlatformClient(BASE_URL).generateCourse(job);
+    const outcome = expect(pending).rejects.toThrow('run_5 timed out after 15 min; cancelled');
+    await vi.advanceTimersByTimeAsync(15 * 60_000);
+    await outcome;
+    expect(fetchMock).toHaveBeenLastCalledWith(`${BASE_URL}/api/v1/runs/run_5/cancel`, expect.objectContaining({ method: 'POST' }));
+  });
+
   it('throws with the status when the platform rejects the request', async () => {
     fetchMock.mockResolvedValueOnce(response({ detail: 'unknown workflow' }, 404));
     await expect(new AgentPlatformClient(BASE_URL).generateCourse(job)).rejects.toThrow('POST /api/v1/runs failed: 404');

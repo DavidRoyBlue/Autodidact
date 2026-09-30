@@ -208,6 +208,8 @@ create_secret () {  # usage: create_secret <secret-name> <value>
 | `autodidact-database-url` | `DATABASE_URL` | Supabase → Project Settings → **Database** → Connection string → **Transaction pooler (port 6543)**. Used by api, agent, worker. |
 | `autodidact-supabase-secret-key` | `SUPABASE_SECRET_KEY` | Supabase → Project Settings → **API** → **secret key** (admin). Server-side DB/admin access; tokens are verified via JWKS from `SUPABASE_URL`. Never ships to the mobile app. |
 | `autodidact-openai-api-key` | `OPENAI_API_KEY` | OpenAI platform → **API keys**. Used by the agent. |
+| `autodidact-api-agent-platform-key` | `AGENT_PLATFORM_API_KEY` (api) | `openssl rand -hex 32`; the platform lists it as `autodidact-api:<token>` in its `AGENT_PLATFORM_API_KEYS` (ADR-032). |
+| `autodidact-worker-agent-platform-key` | `AGENT_PLATFORM_API_KEY` (worker) | `openssl rand -hex 32`; listed as `autodidact-worker:<token>` on the platform. |
 
 **Config-stored-as-secret — not sensitive, but the module still reads them from Secret Manager:**
 
@@ -222,6 +224,7 @@ create_secret () {  # usage: create_secret <secret-name> <value>
 | `autodidact-queue-provider` | `QUEUE_PROVIDER` | **`cloudtasks`** ← the switch that activates this whole migration in prod |
 | `autodidact-agent-service-url` | `AGENT_SERVICE_URL` | **Placeholder now** (`https://placeholder`); set to the real agent URL in Step 6 |
 | `autodidact-worker-task-base-url` | `WORKER_TASK_BASE_URL` | **Placeholder now** (`https://placeholder`); set to the real worker URL in Step 6 |
+| `autodidact-agent-platform-url` | `AGENT_PLATFORM_URL` | **Placeholder now** (`https://placeholder`); set to the GCP-hosted AgentPlatform URL once `~/AgentPlatform` deploys it (ADR-032). Until then course generation and the module teacher fail closed. |
 
 > **Why placeholders?** `agent-service-url` and `worker-task-base-url` are Cloud
 > Run URLs that don't exist until the services are first deployed
@@ -235,6 +238,8 @@ create_secret () {  # usage: create_secret <secret-name> <value>
 create_secret autodidact-database-url        'postgresql://...pooler...:6543/postgres'
 create_secret autodidact-supabase-secret-key 'your-supabase-secret-key'
 create_secret autodidact-openai-api-key      'sk-...'
+create_secret autodidact-api-agent-platform-key    "$(openssl rand -hex 32)"
+create_secret autodidact-worker-agent-platform-key "$(openssl rand -hex 32)"
 
 # Config
 create_secret autodidact-supabase-url        'https://YOURREF.supabase.co'
@@ -248,6 +253,7 @@ create_secret autodidact-queue-provider      'cloudtasks'
 # Placeholders — real values come in Step 6
 create_secret autodidact-agent-service-url    'https://placeholder'
 create_secret autodidact-worker-task-base-url 'https://placeholder'
+create_secret autodidact-agent-platform-url   'https://placeholder'
 ```
 
 ---
