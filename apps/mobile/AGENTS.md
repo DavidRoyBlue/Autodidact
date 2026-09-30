@@ -193,8 +193,6 @@ Chat streaming flow:
 ```bash
 # From monorepo root
 pnpm --filter @autodidact/mobile start      # Expo dev server
-pnpm --filter @autodidact/mobile ios        # iOS simulator
-pnpm --filter @autodidact/mobile android    # Android emulator
 pnpm --filter @autodidact/mobile typecheck  # Type-check
 pnpm --filter @autodidact/mobile test       # Jest unit/component tests (jest-expo)
 
@@ -206,6 +204,8 @@ pnpm mobile:run -- --release     # build the APK here (expo prebuild + gradle), 
 - Run on a device only through `scripts/run-mobile.sh --release` (Expo Go crashes at
   import; a debug APK needs Metro). The script header explains every flag.
 - Never edit `apps/mobile/android/` (generated, gitignored); never `adb reverse`.
+- The `android`/`ios` package scripts are `expo prebuild`'s own — it writes `expo run:*` on
+  every run, so keep that value; running on a device is still `run-mobile.sh`.
 - Keep `babel-preset-expo`, `@babel/plugin-transform-react-jsx` and
   `react-native-reanimated` declared here: the release bundle resolves them from
   `apps/mobile` under pnpm's isolated layout; only the debug build hides their absence.

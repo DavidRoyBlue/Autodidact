@@ -31,9 +31,8 @@ Hard-won build fixes (all committed — don't undo):
 - `expo-asset` as a direct dep (release bundling can't resolve it transitively under pnpm)
 
 Auth against the local stack (verified on device 2026-07-19): guest sign-in ✅ ·
-guest→email upgrade ✅ · Google native sheet opens with a valid client (no `DEVELOPER_ERROR`) ⚠️
-full Google token exchange pending a Google account signed into the AVD (one-time per AVD;
-see [social-sign-in.md](../apps/mobile/docs/social-sign-in.md) local-stack section).
+guest→email upgrade ✅ · Google native sign-in end to end ✅ (2026-09-30, local build's
+debug-keystore SHA-1 on the Android client — [social-sign-in.md](../apps/mobile/docs/social-sign-in.md) §2).
 
 ## 3. Prod backend (GCP)
 
