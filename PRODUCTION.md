@@ -42,7 +42,7 @@ Expo React Native app — the only client; talks exclusively to the API service.
 - [docs/](apps/mobile/docs/)
 
 ## API 🟢
-_verified: 2026-09-25_
+_verified: 2026-09-30_
 
 NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course lifecycle, chat streaming to the client, progress. Runs no AI itself; the module teacher is a run on AgentPlatform's `course-teacher` agent, one per learner turn on a thread per session (ADR-031).
 
@@ -54,7 +54,7 @@ NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course l
 
 **Stack**
 - Framework: NestJS
-- Auth: Supabase JWT via JWKS (RS256), `AuthGuard` on every controller except `/health`
+- Auth: Supabase JWT via JWKS (RS256), `AuthGuard` on every controller except `/v1/health` (no root `/health`)
 - DB: Drizzle via `@autodidact/db`
 - Queue: Cloud Tasks (prod) / loopback HTTP (dev)
 - Validation: Zod pipes from `@autodidact/schemas`
@@ -64,7 +64,7 @@ NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course l
 - prod: GCP Secret Manager (seeded from `infra/secrets.env`)
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — Live on Cloud Run (public, 0–10 instances, scale-to-zero); deploys on `master` → `production` promotion.
+**State** — Stale on Cloud Run (public, 0–10 instances, scale-to-zero): last deploy 2026-06-26 (68 commits behind `master`); redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). The module teacher cannot run in prod until it can reach AgentPlatform (#321). Deploys on `master` → `production` promotion.
 - deploy: [deploy.yml](.github/workflows/deploy.yml)
 
 **Useful Files**
@@ -74,7 +74,7 @@ NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course l
 - [main.ts](services/api/src/main.ts)
 
 ## Agent 🟢
-_verified: 2026-09-25_
+_verified: 2026-09-30_
 
 Fastify internal embeddings runtime (port 3001, never public). Course generation and module teaching run on AgentPlatform instead (ADR-030, ADR-031) — no LangGraph, no LLM chat call, no checkpointer left in this service.
 
@@ -93,7 +93,7 @@ Fastify internal embeddings runtime (port 3001, never public). Course generation
 - prod: GCP Secret Manager (seeded from `infra/secrets.env`)
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — Live on Cloud Run (internal-only ingress, 0–5 instances, scale-to-zero); deploys on `master` → `production` promotion.
+**State** — Stale on Cloud Run (ingress `all`, invoker IAM = runtime SA only; 0–5 instances, scale-to-zero): last deploy 2026-06-26 (68 commits behind `master`); redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). Deploys on `master` → `production` promotion.
 - deploy: [deploy.yml](.github/workflows/deploy.yml)
 
 **Useful Files**
@@ -101,7 +101,7 @@ Fastify internal embeddings runtime (port 3001, never public). Course generation
 - [main.ts](services/agent/src/main.ts)
 
 ## Worker 🟢
-_verified: 2026-09-29_
+_verified: 2026-09-30_
 
 Fastify background task handler invoked per-task by Cloud Tasks (prod) / loopback (dev); scale-to-zero.
 
@@ -123,7 +123,7 @@ Fastify background task handler invoked per-task by Cloud Tasks (prod) / loopbac
 - prod: GCP Secret Manager (seeded from `infra/secrets.env`)
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — Live on Cloud Run (internal, 0–3 instances); deploys on `master` → `production` promotion.
+**State** — Stale on Cloud Run (ingress `all`, invoker IAM = runtime SA only; 0–3 instances): last deploy 2026-06-26 (68 commits behind `master`); redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). generate-course cannot run in prod until it can reach AgentPlatform (#321). Deploys on `master` → `production` promotion.
 - deploy: [deploy.yml](.github/workflows/deploy.yml)
 
 **Useful Files**
@@ -133,7 +133,7 @@ Fastify background task handler invoked per-task by Cloud Tasks (prod) / loopbac
 - [agent-platform.client.ts](services/worker/src/services/agent-platform.client.ts)
 
 ## Infra 🟢
-_verified: 2026-09-01_
+_verified: 2026-09-30_
 
 Terraform IaC for the GCP production environment (project `autodidact-494819`, region `northamerica-northeast1`).
 
@@ -145,7 +145,7 @@ Terraform IaC for the GCP production environment (project `autodidact-494819`, r
 
 **Stack**
 - IaC: Terraform ≥ 1.9, GCP provider ~> 5.0, remote state in GCS (`autodidact-terraform-state`)
-- Compute: Cloud Run ×3 (api public 0–10, agent internal 0–5, worker internal 0–3; all scale-to-zero)
+- Compute: Cloud Run ×3 (api public 0–10, agent 0–5 and worker 0–3 IAM-invoker-only; all scale-to-zero)
 - Queues: Cloud Tasks (course-generation, embedding)
 - Images: Artifact Registry
 - CI/CD: GitHub Actions — PRs validated by ci.yml; deploy on `master` → `production` promotion (WIF, no key files)
@@ -154,7 +154,7 @@ Terraform IaC for the GCP production environment (project `autodidact-494819`, r
 - prod: `infra/secrets.env` (gitignored, single source) → Secret Manager via [gcp-bootstrap.sh](scripts/gcp-bootstrap.sh)
 - dev: none
 
-**State** — Live; apply from `infra/environments/prod` after `terraform plan`.
+**State** — Live (Cloud Run revisions last rolled 2026-06-26); apply from `infra/environments/prod` after `terraform plan`.
 - runbook: [docs/gcp_infra_setup.md](docs/gcp_infra_setup.md)
 
 **Useful Files**
@@ -163,7 +163,7 @@ Terraform IaC for the GCP production environment (project `autodidact-494819`, r
 - [deploy.yml](.github/workflows/deploy.yml)
 
 ## packages/db 🟢
-_verified: 2026-09-28_
+_verified: 2026-09-30_
 
 Drizzle client, schema, and migrations — single source of truth for DB structure (Supabase Postgres + pgvector).
 
@@ -182,7 +182,7 @@ Drizzle client, schema, and migrations — single source of truth for DB structu
 - prod: `infra/secrets.env` (used by `migrate:prod` / `db:studio:prod`)
 - dev: [.env.example](.env.example) → `.env.dev` (local stack DB `127.0.0.1:55322`)
 
-**State** — Schema, migrations, and pgvector verified in dev (local stack re-migrated 2026-09-28, all 15 migrations applied). Prod is at migration `0010`; `0011`–`0013` are still pending there (see roadmap.md).
+**State** — Schema, migrations, and pgvector verified in dev (local stack re-migrated 2026-09-28, all 15 migrations applied). Prod is at migration `0010`; `0011`–`0015` are pending there, applied by the [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320) catch-up deploy. Prod Supabase restored (Pro) 2026-09-29.
 
 **Useful Files**
 - [schema/](packages/db/src/schema/)
@@ -218,7 +218,7 @@ Vendor abstraction — interfaces + factories for embedding, queue, and auth pro
 - [implementations/](packages/providers/src/implementations/)
 
 ## packages/env 🟢
-_verified: 2026-09-01_
+_verified: 2026-09-30_
 
 Typed fail-fast Zod env validation, called once per service at boot (in `main.ts`, never at import time).
 
@@ -241,7 +241,7 @@ Typed fail-fast Zod env validation, called once per service at boot (in `main.ts
 - [src/](packages/env/src/)
 
 ## packages/schemas 🟢
-_verified: 2026-09-01_
+_verified: 2026-09-30_
 
 Zod schemas validating API request bodies and LLM output at service boundaries.
 
@@ -264,7 +264,7 @@ Zod schemas validating API request bodies and LLM output at service boundaries.
 - [src/](packages/schemas/src/)
 
 ## packages/types 🟢
-_verified: 2026-09-01_
+_verified: 2026-09-30_
 
 Pure compile-time domain types — no runtime code; Zod belongs in `packages/schemas`.
 
@@ -287,7 +287,7 @@ Pure compile-time domain types — no runtime code; Zod belongs in `packages/sch
 - [src/](packages/types/src/)
 
 ## packages/observability 🟢
-_verified: 2026-09-01_
+_verified: 2026-09-30_
 
 Structured logging (pino) + opt-in OpenTelemetry tracing for all services.
 
@@ -312,7 +312,7 @@ Structured logging (pino) + opt-in OpenTelemetry tracing for all services.
 - [tracer.ts](packages/observability/src/tracer.ts)
 
 ## packages/config 🔵
-_verified: 2026-09-01_
+_verified: 2026-09-30_
 
 Shared tooling config (tsconfig, ESLint, Prettier, Vitest bases) + canonical provider mock factories. Dev-only, never deployed.
 
@@ -338,7 +338,7 @@ Shared tooling config (tsconfig, ESLint, Prettier, Vitest bases) + canonical pro
 - [mock-factories.ts](packages/config/src/test-utils/mock-factories.ts)
 
 ## packages/test-support 🔵
-_verified: 2026-09-01_
+_verified: 2026-09-30_
 
 Testcontainers harness providing a real pgvector Postgres for integration tests (real infra only — mocks live in `packages/config`).
 

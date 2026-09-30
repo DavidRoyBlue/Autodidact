@@ -79,7 +79,7 @@ terraform apply         # apply after reviewing plan
 - Always run `terraform plan` first — `environments/prod/` is the live environment
 - State is stored in GCS (`autodidact-terraform-state`) — never commit local `.tfstate` files
 - All environment variables in service definitions are Secret Manager secret names, not values — the `cloud-run-service` module resolves them via `secret_key_ref` at runtime
-- `min_instances = 1` on all services keeps them warm; setting to 0 will introduce cold start latency on first request
+- `min_instances = 0` on all services (scale-to-zero): the first request after idle pays a cold start
 
 ## Key Decisions
 

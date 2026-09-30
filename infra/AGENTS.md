@@ -46,7 +46,7 @@ Terraform infrastructure as code for the Autodidact production environment on GC
 - One Cloud Run service per backend service (api, agent, worker), each instantiated via `modules/cloud-run-service`
 - `allow_public = true` only for the api service — agent and worker are internal only
 - Environment variables for services are Secret Manager references — add new secrets to the `env_vars` map by secret name
-- `min_instances = 1` on api and agent prevents cold starts in production. The worker intentionally runs `min_instances = 0` — Cloud Tasks pushes tasks over HTTP, and a ~1 s cold start on a 10–30 s job is accepted (ADR-027)
+- All three services run `min_instances = 0` (scale-to-zero, since 2026-07-20): cold-start latency on the first request is accepted over idle cost. For the worker, Cloud Tasks pushes tasks over HTTP, and a ~1 s cold start on a 10–30 s job is accepted (ADR-027)
 
 ---
 
