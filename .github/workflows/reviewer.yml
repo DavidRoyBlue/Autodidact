@@ -1,0 +1,40 @@
+# reviewer — the standard listener every pipeline repo carries, byte-identical
+# (installed by `ci-autoland init` on a repo whose .ci-policy says `review`;
+# source: ~/Automation/scripts/ci-autoland).
+#
+# Runs one `pr-review run` pass on the control machine when a PR is marked
+# ready — the one event that hands a PR from its worker to the pipeline:
+# every hand-back (changes requested, a conflicting rebase, red CI on the
+# rebased head, blocked-on-human) returns the PR to draft, so marking it
+# ready again is always the re-entry. The pass reviews every ready PR whose
+# required checks are green on its exact head and which carries no current
+# approval, and posts the verdict as that App: an APPROVED review tied to
+# the reviewed commit plus the `reviewed` label (which starts autoland),
+# CHANGES_REQUESTED plus `changes-requested` and back to draft, or
+# `blocked-on-human`. A PR marked ready before its CI finished is picked up
+# by the sweep timer.
+#
+# `pull_request_target`, not `pull_request`: this file runs from the default
+# branch and nothing here checks the PR out — the model reads the diff as
+# text, with no tools. The job runs on the `reviewer` control runner, a
+# separate process from autoland's so neither waits on the other, guarded
+# like it. No workflow token: `pr-review` mints the reviewer App's token from
+# the key on the control machine. Never set GH_TOKEN here.
+name: reviewer
+
+on:
+  pull_request_target:
+    types: [ready_for_review]
+
+concurrency:
+  group: reviewer-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  review:
+    runs-on: [self-hosted, control, reviewer]
+    timeout-minutes: 30
+    steps:
+      - run: $HOME/Automation/scripts/bin/pr-review --repo ${{ github.repository }} run
