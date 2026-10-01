@@ -71,7 +71,7 @@ pipeline are ready to run.
 | `infra/environments/prod/variables.tf` | Where `project_id`, `region`, `service_account_name` are declared |
 | `infra/backend.tf` | The GCS state bucket name (`autodidact-terraform-state`) |
 | `infra/modules/` | Reusable building blocks — read-only, you normally don't edit these |
-| `.github/workflows/deploy.yml` | The CI/CD pipeline that builds images + deploys on push to `prod` (only `app-release promote` does it) (see §5) |
+| `.github/workflows/deploy.yml` | The CI/CD pipeline that builds images + deploys on push to `prod` (see §5) |
 | `packages/env/src/schema.ts` | Canonical list of env vars each service expects (cross-check) |
 
 ---
@@ -304,9 +304,9 @@ What this creates:
 
 ## 5. CI/CD — let GitHub Actions build and deploy (`.github/workflows/deploy.yml`)
 
-The Deploy workflow triggers on **every push to `prod` (only `app-release promote` does it)** (and manual
-dispatch). It: lint → typecheck → test → build 3 Docker images → push to
-Artifact Registry → run DB migrations → `gcloud run deploy` each service.
+The Deploy workflow triggers on **every push to `prod`**, which only
+`app-release promote` makes. It runs `scripts/ci/deploy`: build 3 Docker images →
+push to Artifact Registry → run DB migrations → `gcloud run deploy` each service.
 
 It authenticates to GCP via **Workload Identity Federation** (no JSON key file
 to download or leak).
@@ -327,13 +327,10 @@ or Cloud Build trigger.
 app-release promote            # Automation: tags master at the declared version once CI is green there
 ```
 
-Manual deploys are still
-available any time via **Actions → Deploy → Run workflow** (`workflow_dispatch`).
-
-> **First promotion warning:** the first push to `prod` (only `app-release promote` does it) that carries this
+> **First promotion warning:** the first push to `prod` that carries this
 > updated workflow will trigger a full deploy of all three services (build → push →
 > migrate → deploy). Merely *creating* the `prod` branch does not deploy — only
-> a push to `prod` (only `app-release promote` does it) does.
+> a push to `prod` does.
 
 ### 5.1 Set up Workload Identity Federation (one time)
 
@@ -470,7 +467,7 @@ api/worker Cloud Run logs for that error first.
 | Create the project, SA, state bucket, enable APIs | **gcloud CLI** (Step 2) |
 | Create / update keys & config | **Secret Manager** via gcloud (Step 3) |
 | Provision queues, registry, Cloud Run | **Terraform** in `infra/environments/prod/` (Step 4) |
-| Build images & deploy | **GitHub Actions** `deploy.yml`, push to `prod` (only `app-release promote` does it) (Step 5) |
+| Build images & deploy | **GitHub Actions** `deploy.yml`, push to `prod` (Step 5) |
 | Get the DB URL, secret key, Supabase URL | **Supabase dashboard** → Project Settings |
 | Get the LLM key | **OpenAI dashboard** → API keys |
 | See queue retry/backoff config | `infra/modules/cloud-tasks/main.tf` |
@@ -619,8 +616,8 @@ gh run watch "$(gh run list --workflow Deploy --limit 1 --json databaseId -q '.[
 
 `deploy.yml` then runs `scripts/ci/deploy`: build + push 3 images →
 migrate (**no-op**, 9.5 did it) → seed onboarding course → `gcloud run deploy`
-×3. If the `ci` job fails, nothing touched prod: fix on `master` and repeat
-9.6. If the `deploy` job fails, rerun it from the Actions UI — migrate and seed
+×3. If the build or push fails, nothing touched prod: fix on `master` and repeat
+9.6. If a later step fails, rerun it from the Actions UI — migrate and seed
 are both idempotent.
 
 ### 9.7 Verify — health + migrations (the agreed smoke scope)
