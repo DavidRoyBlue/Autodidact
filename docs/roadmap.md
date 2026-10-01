@@ -57,7 +57,7 @@
 ### Catch-up prod deploy (#320) — run `docs/gcp_infra_setup.md` §9 in order
 Prod last deployed 2026-06-26; DB at `0010`; Supabase project paused. Secret Manager already holds the June values — §9.2 only adds what `main.tf` gained since.
 - [ ] §9.0 now: restore Supabase project `cbzdsoojfhpsexuyeyxt`, confirm pooler URL, connectivity check, early `pg_dump`
-- [ ] §9.1 gate: #321 merged to `master`, CI green, `origin/production..origin/master` reviewed
+- [ ] §9.1 gate: #321 merged to `master`, CI green, `origin/prod..origin/master` reviewed
 - [ ] §9.2 secrets: new `main.tf` env vars → `infra/secrets.env` → `scripts/gcp-bootstrap.sh` (skip if none)
 - [ ] §9.3 `terraform plan` matches the enumerated diff → `terraform apply`
 - [ ] §9.4 `pg_dump` to `~/backups`, row counts recorded
