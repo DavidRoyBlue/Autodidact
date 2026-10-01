@@ -316,21 +316,17 @@ to download or leak).
 | Branch | Role | Auto-deploys to GCP? |
 |---|---|---|
 | `master` | Active development. The default branch you push day-to-day. | **No.** Never triggers a Cloud Run deploy. |
-| `production` | Release branch. The only branch the Deploy workflow watches. | **Yes** — every push redeploys all three Cloud Run services. |
+| `prod` | Release pointer, moved only by `app-release promote` (a fast-forward to a tagged `master`). The only branch the Deploy workflow watches. | **Yes** — every move redeploys all three Cloud Run services. |
 
 GitHub Actions is the **only** deploy path — there is no Cloud Run source-connect
 or Cloud Build trigger.
 
-**Promote a release** (development → production):
+**Promote a release** (`master` → `prod`):
 
 ```bash
-app-release promote            # Automation: tags master at the declared version once CI is green there
+app-release promote -C ~/Projects/Autodidact   # Automation: tags master at the declared version, fast-forwards prod
 ```
 
-> **First promotion warning:** the first push to `prod` that carries this
-> updated workflow will trigger a full deploy of all three services (build → push →
-> migrate → deploy). Merely *creating* the `prod` branch does not deploy — only
-> a push to `prod` does.
 
 ### 5.1 Set up Workload Identity Federation (one time)
 
@@ -393,9 +389,9 @@ In **GitHub → repo → Settings → Secrets and variables → Actions**:
 |---|---|
 | `PROD_DATABASE_URL` | same Supabase pooler URL as `autodidact-database-url` (used by the migration step) |
 
-Also confirm a GitHub **Environment** named `production` exists (the workflow
-pins `environment: production`) — add required reviewers there if you want a
-manual gate before prod deploys.
+The deploy runs in the GitHub **Environment** `prod` (Automation's
+`release-deploy` pins it; GitHub creates it on first use) — add required
+reviewers there if you want a manual gate before prod deploys.
 
 ### 5.3 Deploy
 

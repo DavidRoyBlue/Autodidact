@@ -20,8 +20,9 @@ for svc in api agent worker; do
 done
 
 pnpm install --frozen-lockfile
-DATABASE_URL="$(jq -er .PROD_DATABASE_URL <<<"$SECRETS")" pnpm --filter @autodidact/db db:migrate
-DATABASE_URL="$(jq -er .PROD_DATABASE_URL <<<"$SECRETS")" pnpm --filter @autodidact/db db:seed:onboarding
+export DATABASE_URL="$(jq -er .PROD_DATABASE_URL <<<"$SECRETS")"
+pnpm --filter @autodidact/db db:migrate
+pnpm --filter @autodidact/db db:seed:onboarding
 
 for svc in api agent worker; do
 	gcloud run deploy "autodidact-$svc" --image "$REGISTRY/$svc:$GITHUB_SHA" --region "$REGION" --project "$PROJECT_ID"

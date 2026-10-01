@@ -188,9 +188,9 @@ cat <<EOF
        GCP_SERVICE_ACCOUNT            = ${SA_EMAIL}
      Secrets:
        PROD_DATABASE_URL              = <same Supabase pooler URL as DATABASE_URL>
-   Confirm a 'production' Environment exists (deploy.yml pins environment: production).
+   The deploy runs in the GitHub Environment 'prod' (Automation's release-deploy pins it; created on first use).
 
-3. Deploy: git push origin master:production (or Actions → Deploy → Run workflow).
+3. Deploy: app-release promote -C ~/Projects/Autodidact (tags master at the declared version, fast-forwards prod).
    Deploy the worker before the api on a cold project. See docs/gcp_infra_setup.md
    Steps 6–7 to fill the real agent/worker URLs into the two placeholder secrets and
    verify end-to-end; §9 for a redeploy after a long pause.

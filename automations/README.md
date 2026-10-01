@@ -52,7 +52,7 @@ system).
 | Code-graph update / status | CC Edit/Write/Bash hook; session start | local hook | pre-dates registry — `code-review-graph` (AGENTS.md § Code graph) |
 | Plan-review suggestion | CC `Write` hook | local hook | pre-dates registry — `.claude/hooks/suggest-plan-review.sh` |
 | CI validation | GH pull request | repo workflow | pre-dates registry — `.github/workflows/ci.yml` |
-| Deploy | GH push to `production` | repo workflow | pre-dates registry — `.github/workflows/deploy.yml` (docs/gcp_infra_setup.md) |
+| Deploy | `app-release promote` → push to `prod` | repo workflow | pre-dates registry — `.github/workflows/deploy.yml` (docs/gcp_infra_setup.md) |
 | @claude assistant | GH comments/mentions | repo workflow | pre-dates registry — `.github/workflows/claude.yml` |
 | Claude PR reviews | GH pull request | repo workflow | pre-dates registry — `claude-code-review.yml`, `claude-pr-review.yml` |
 | API doc sync check | GH PR touching `services/api/**` | repo workflow | pre-dates registry — `claude-api-sync-documentation.yml` |

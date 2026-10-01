@@ -36,9 +36,9 @@ debug-keystore SHA-1 on the Android client — [social-sign-in.md](../apps/mobil
 
 ## 3. Prod backend (GCP)
 
-- **Deploy = promote:** `git push origin master:production` → `.github/workflows/deploy.yml`
-  (lint/typecheck/test → build & push 3 images → migrate prod DB → seed onboarding course →
-  `gcloud run deploy` ×3, via Workload Identity Federation). Pushing to `master` alone does not deploy.
+- **Deploy = promote:** `app-release promote` (Automation's release flow) tags `master` and fast-forwards
+  `prod` → `.github/workflows/deploy.yml` → `scripts/ci/deploy` (build & push 3 images → migrate prod DB →
+  seed onboarding course → `gcloud run deploy` ×3, via Workload Identity Federation). Pushing to `master` alone does not deploy.
 - **Status: ✅ live** — Cloud Run ×3 in `autodidact-494819` / `northamerica-northeast1`;
   API at `https://autodidact-api-3tynnutnpq-nn.a.run.app`.
 - Secrets: `infra/secrets.env` → Secret Manager (never committed; no `.env.prod`).
