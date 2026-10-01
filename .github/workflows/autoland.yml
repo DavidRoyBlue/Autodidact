@@ -1,20 +1,26 @@
-# autoland — the standard listener every repo carries, byte-identical
+# autoland — the standard listener every pipeline repo carries, byte-identical
 # (installed by `ci-autoland init`; source: ~/Automation/scripts/ci-autoland).
 #
-# Runs one `ci-autoland land` pass on this machine whenever a PR changes
-# (opened, pushed, marked ready, labelled) and whenever the CI workflow
-# finishes. The pass admits non-draft PRs into the runner's slots, lands the
-# ones whose required checks are green through `finishup`, and marks the ones
-# that failed `ci-failed`. A 30-minute sweep timer covers dropped events.
+# Runs one `ci-autoland land` pass on the control machine when a PR is
+# labelled (the reviewer's `reviewed` is the one that matters) and whenever
+# the CI workflow finishes (green on a head is what a merge waits for, and a
+# CI run follows every push, so a push needs no event of its own). The pass
+# reads the whole queue: it lands approved green PRs through `finishup`,
+# rebases approved ones that fell behind, hands a PR back to its worker — as
+# a draft — when a rebase conflicts or CI goes red on the rebased head, and
+# never touches a PR labelled `blocked-on-human`.
 #
-# The job runs as the machine user: `gh` and `git` use that user's login, not
-# a workflow token, so the merge is attributed like a hand-run finishup.
-# Never set GH_TOKEN here.
+# `pull_request_target`, not `pull_request`: this file runs from the default
+# branch, never the PR's copy of it, and nothing here checks the PR out. The
+# job runs on the `autoland` control runner (gh-runner control <repo>), whose
+# pre-job guard refuses any job whose workflow file is not on main. It uses no
+# workflow token: `ci-autoland` mints the autoland App's token itself from the
+# key on the control machine. Never set GH_TOKEN here.
 name: autoland
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review, labeled]
+  pull_request_target:
+    types: [labeled]
   workflow_run:
     workflows: [CI]
     types: [completed]
@@ -25,12 +31,11 @@ concurrency:
   group: autoland-${{ github.repository }}
   cancel-in-progress: false
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   land:
-    runs-on: [self-hosted, Linux]
+    runs-on: [self-hosted, control, autoland]
     timeout-minutes: 20
     steps:
       - run: $HOME/Automation/scripts/bin/ci-autoland --repo ${{ github.repository }} land
