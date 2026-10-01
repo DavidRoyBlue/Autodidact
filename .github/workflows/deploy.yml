@@ -1,8 +1,8 @@
 # deploy — the standard deploy stub every repo declaring `release deploy`
 # carries, byte-identical (ci-autoland init stamps it, ci-autoland check keeps
 # it so). `prod` moves only by `app-release promote` — a fast-forward to a
-# tagged commit of the default branch whose release-checks are green — and
-# each move runs the repo's own scripts/ci/deploy through the shared workflow
+# tagged commit of the default branch, past the release gate (docs/RELEASES.md)
+# — and each move runs the repo's own scripts/ci/deploy through the shared workflow
 # in ~/Automation (docs/RELEASES.md). `id-token: write` is for cloud
 # federation (Workload Identity, OIDC); a deploy that needs none ignores it.
 name: Deploy
