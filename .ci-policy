@@ -26,3 +26,9 @@ standard-check Lint & typecheck
 standard-check Unit & integration (Vitest + jest-expo)
 standard-check Cross-service e2e
 standard-check Agent config drift
+
+# The release flow (~/Automation docs/RELEASES.md): `app-release promote` tags
+# master at this version and fast-forwards `prod`, which deploys through
+# scripts/ci/deploy.
+version        package.json
+release        deploy

@@ -1,135 +1,20 @@
+# deploy — the standard deploy stub every repo declaring `release deploy`
+# carries, byte-identical (ci-autoland init stamps it, ci-autoland check keeps
+# it so). `prod` moves only by `app-release promote` — a fast-forward to a
+# tagged commit of the default branch whose release-checks are green — and
+# each move runs the repo's own scripts/ci/deploy through the shared workflow
+# in ~/Automation (docs/RELEASES.md). `id-token: write` is for cloud
+# federation (Workload Identity, OIDC); a deploy that needs none ignores it.
 name: Deploy
-
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - production
+    branches: [prod]
 
 permissions:
   contents: read
   id-token: write
 
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
-
-env:
-  GAR_LOCATION: ${{ vars.GCP_REGION || 'northamerica-northeast1' }}
-  GAR_REPOSITORY: autodidact
-  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-
 jobs:
-  # Validate the commit and publish the images. Branch promotion to `production`
-  # is the human gate; this job proves the build is deployable before the deploy
-  # job touches the prod DB or Cloud Run. A failure here is unambiguously a
-  # code/build problem.
-  ci:
-    name: Lint, typecheck, test, build & push
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup workspace
-        uses: ./.github/actions/setup
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Test
-        run: pnpm test
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
-
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker auth
-        run: gcloud auth configure-docker "${GAR_LOCATION}-docker.pkg.dev" --quiet
-
-      - name: Build and push images
-        run: |
-          set -euo pipefail
-
-          REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPOSITORY}"
-          SHA_TAG="${GITHUB_SHA}"
-
-          docker build -f services/api/Dockerfile -t "${REGISTRY}/api:${SHA_TAG}" -t "${REGISTRY}/api:latest" .
-          docker build -f services/agent/Dockerfile -t "${REGISTRY}/agent:${SHA_TAG}" -t "${REGISTRY}/agent:latest" .
-          docker build -f services/worker/Dockerfile -t "${REGISTRY}/worker:${SHA_TAG}" -t "${REGISTRY}/worker:latest" .
-
-          docker push "${REGISTRY}/api:${SHA_TAG}"
-          docker push "${REGISTRY}/api:latest"
-          docker push "${REGISTRY}/agent:${SHA_TAG}"
-          docker push "${REGISTRY}/agent:latest"
-          docker push "${REGISTRY}/worker:${SHA_TAG}"
-          docker push "${REGISTRY}/worker:latest"
-
-  # Migrate the prod DB and roll out the images published by `ci`. Runs only
-  # after ci succeeds, so a failure here is unambiguously a migration/deploy
-  # problem, not a build problem. Images are referenced by ${GITHUB_SHA}, which
-  # is identical across both jobs in the same run.
   deploy:
-    name: Migrate & deploy to Cloud Run
-    needs: ci
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    environment: production
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup workspace
-        uses: ./.github/actions/setup
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
-
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Run database migrations
-        env:
-          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-        run: pnpm --filter @autodidact/db db:migrate
-
-      - name: Seed onboarding course
-        env:
-          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
-        run: pnpm --filter @autodidact/db db:seed:onboarding
-
-      - name: Deploy Cloud Run services
-        run: |
-          set -euo pipefail
-
-          REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${GAR_REPOSITORY}"
-          SHA_TAG="${GITHUB_SHA}"
-
-          gcloud run deploy autodidact-api \
-            --image "${REGISTRY}/api:${SHA_TAG}" \
-            --region "${GAR_LOCATION}" \
-            --project "${PROJECT_ID}"
-
-          gcloud run deploy autodidact-agent \
-            --image "${REGISTRY}/agent:${SHA_TAG}" \
-            --region "${GAR_LOCATION}" \
-            --project "${PROJECT_ID}"
-
-          gcloud run deploy autodidact-worker \
-            --image "${REGISTRY}/worker:${SHA_TAG}" \
-            --region "${GAR_LOCATION}" \
-            --project "${PROJECT_ID}"
+    uses: DavidRoyBlue/Automation/.github/workflows/release-deploy.yml@main
+    secrets: inherit
