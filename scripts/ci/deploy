@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# What a promotion to `prod` deploys (~/Automation docs/RELEASES.md): the three
+# service images built and pushed to Artifact Registry at this commit, the prod
+# database migrated and the onboarding course seeded, then each Cloud Run
+# service rolled to the new image. gcloud is already authenticated through
+# workload identity from the repo's vars; the shared workflow hands the vars
+# and secrets in as JSON.
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+
+PROJECT_ID="$(jq -er .GCP_PROJECT_ID <<<"$VARS")"
+REGION="$(jq -r '.GCP_REGION // "northamerica-northeast1"' <<<"$VARS")"
+REGISTRY="$REGION-docker.pkg.dev/$PROJECT_ID/autodidact"
+
+gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+for svc in api agent worker; do
+	docker build -f "services/$svc/Dockerfile" -t "$REGISTRY/$svc:$GITHUB_SHA" -t "$REGISTRY/$svc:latest" .
+	docker push "$REGISTRY/$svc:$GITHUB_SHA"
+	docker push "$REGISTRY/$svc:latest"
+done
+
+pnpm install --frozen-lockfile
+export DATABASE_URL="$(jq -er .PROD_DATABASE_URL <<<"$SECRETS")"
+pnpm --filter @autodidact/db db:migrate
+pnpm --filter @autodidact/db db:seed:onboarding
+
+for svc in api agent worker; do
+	gcloud run deploy "autodidact-$svc" --image "$REGISTRY/$svc:$GITHUB_SHA" --region "$REGION" --project "$PROJECT_ID"
+done

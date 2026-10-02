@@ -65,7 +65,7 @@ NestJS public HTTP service (port 3000, prefix `/v1`) — auth boundary, course l
 - prod: GCP Secret Manager (seeded from `infra/secrets.env`); platform key `autodidact-api-agent-platform-key`
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — Stale on Cloud Run (public, 0–10 instances, scale-to-zero): last deploy 2026-06-26; redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). The module teacher cannot run in prod until it can reach AgentPlatform (#321). Deploys on `master` → `production` promotion.
+**State** — Stale on Cloud Run (public, 0–10 instances, scale-to-zero): last deploy 2026-06-26; redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). The module teacher cannot run in prod until it can reach AgentPlatform (#321). Deploys on `app-release promote` (`master` → `prod`).
 - deploy: [deploy.yml](.github/workflows/deploy.yml)
 
 **Useful Files**
@@ -94,7 +94,7 @@ Fastify internal embeddings runtime (port 3001, never public). Course generation
 - prod: GCP Secret Manager (seeded from `infra/secrets.env`)
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — Stale on Cloud Run (ingress `all`, invoker IAM = runtime SA only; 0–5 instances, scale-to-zero): last deploy 2026-06-26; redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). Deploys on `master` → `production` promotion.
+**State** — Stale on Cloud Run (ingress `all`, invoker IAM = runtime SA only; 0–5 instances, scale-to-zero): last deploy 2026-06-26; redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). Deploys on `app-release promote` (`master` → `prod`).
 - deploy: [deploy.yml](.github/workflows/deploy.yml)
 
 **Useful Files**
@@ -124,7 +124,7 @@ Fastify background task handler invoked per-task by Cloud Tasks (prod) / loopbac
 - prod: GCP Secret Manager (seeded from `infra/secrets.env`); platform key `autodidact-worker-agent-platform-key`
 - dev: [.env.example](.env.example) → `.env.dev`
 
-**State** — Stale on Cloud Run (ingress `all`, invoker IAM = runtime SA only; 0–3 instances): last deploy 2026-06-26; redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). generate-course cannot run in prod until it can reach AgentPlatform (#321). Deploys on `master` → `production` promotion.
+**State** — Stale on Cloud Run (ingress `all`, invoker IAM = runtime SA only; 0–3 instances): last deploy 2026-06-26; redeploy per [§9](docs/gcp_infra_setup.md#9-redeploy-after-a-pause--the-2026-10-catch-up-deploy-320). generate-course cannot run in prod until it can reach AgentPlatform (#321). Deploys on `app-release promote` (`master` → `prod`).
 - deploy: [deploy.yml](.github/workflows/deploy.yml)
 
 **Useful Files**
@@ -149,7 +149,7 @@ Terraform IaC for the GCP production environment (project `autodidact-494819`, r
 - Compute: Cloud Run ×3 (api public 0–10, agent 0–5 and worker 0–3 IAM-invoker-only; all scale-to-zero)
 - Queues: Cloud Tasks (course-generation, embedding)
 - Images: Artifact Registry
-- CI/CD: GitHub Actions — PRs validated by ci.yml; deploy on `master` → `production` promotion (WIF, no key files)
+- CI/CD: GitHub Actions — PRs validated by ci.yml; deploy on `app-release promote` (`master` → `prod`; WIF, no key files)
 - AgentPlatform: hosted on GCP by `~/AgentPlatform`, not by this Terraform (ADR-032); not deployed yet — `autodidact-agent-platform-url` holds a placeholder
 
 **Secrets**

@@ -106,12 +106,15 @@ table of options and defaults).
 ## Deploying
 
 **Backend.** Production runs on GCP Cloud Run and deploys when `master` is promoted to
-the `production` branch (`git push origin master:production`), which triggers
-`.github/workflows/deploy.yml`: the `ci` job gates on lint/typecheck/test and builds &
-pushes the three service images, then the `deploy` job runs DB migrations, seeds the
-onboarding course, and `gcloud run deploy`s each service. Pushing to `master` does not
-deploy — PRs are validated by `.github/workflows/ci.yml`, and promotion to `production`
-is the human release gate. For first-time infra setup, Terraform, secrets, and running
+`prod` by `app-release promote` (Automation's release flow, `~/Automation/docs/RELEASES.md`):
+it tags `master` at the version `package.json` declares once CI is green on that commit
+and fast-forwards `prod` to it — `prod` is never committed on or forced. That push runs
+`.github/workflows/deploy.yml`, the standard stub calling Automation's shared
+`release-deploy`, which authenticates to GCP (workload identity, from the repo's vars) and
+runs `scripts/ci/deploy`: builds & pushes the three service images, runs DB migrations,
+seeds the onboarding course, and `gcloud run deploy`s each service. Pushing to `master`
+does not deploy — PRs are validated by `.github/workflows/ci.yml`; the promotion is the
+human release gate. For first-time infra setup, Terraform, secrets, and running
 prod DB migrations, see the [GCP setup runbook](docs/gcp_infra_setup.md).
 
 **Mobile.** The Expo app is built and released with EAS (`apps/mobile/eas.json`),

@@ -117,27 +117,24 @@ terraform apply -var="project_id=YOUR_PROJECT"
 
 ## CI/CD Pipeline
 
-GitHub Actions validates every pull request (`ci.yml`) and deploys when `master` is
-promoted to the `production` branch (`deploy.yml`). Pushing to `master` does not deploy;
-promotion to `production` is the human release gate.
+GitHub Actions validates every pull request (`ci.yml`); PRs land on `master`
+through Automation's PR pipeline. A release is `app-release promote`
+(Automation's release flow, `~/Automation/docs/RELEASES.md`): it tags
+`master` at the version `package.json` declares and fast-forwards `prod`,
+whose push runs `deploy.yml` — the standard stub calling Automation's shared
+`release-deploy` — in the GitHub environment `prod`. Nothing is ever committed
+on `prod`.
 
 ```
 pull request (ci.yml)
   ├── lint + typecheck (all packages)
   └── test (all packages)
 
-push to production / manual deploy dispatch (deploy.yml)
-  ci job:
-  ├── lint + typecheck (all packages)
-  ├── test (all packages)
-  └── Docker build + push → Artifact Registry
-        (api, agent, worker)
-  deploy job (needs: ci, environment: production):
-  ├── pnpm --filter @autodidact/db db:migrate
-  │     (runs against production DATABASE_URL)
+app-release promote → prod moves → deploy.yml → release-deploy → scripts/ci/deploy
+  ├── Docker build + push → Artifact Registry (api, agent, worker)
+  ├── pnpm --filter @autodidact/db db:migrate   (PROD_DATABASE_URL)
   ├── pnpm --filter @autodidact/db db:seed:onboarding
-  └── Cloud Run deploy
-        (api, agent, worker)
+  └── Cloud Run deploy (api, agent, worker)
 ```
 
 **Authentication**: Workload Identity Federation — GitHub Actions authenticates to GCP without service account key files. The federation is configured in Terraform and bound to the `autodidact-run` service account.
@@ -151,7 +148,7 @@ Required GitHub repository variables:
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | Full Workload Identity Provider resource name |
 | `GCP_SERVICE_ACCOUNT` | Deploy service account email |
 
-Required GitHub environment secret for the `production` environment:
+Required GitHub repository secret:
 
 | Name | Purpose |
 |------|---------|

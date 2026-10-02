@@ -65,7 +65,7 @@ The development workspace is owned by `workspace.yml`, `scripts/dev-workspace.sh
 Prod shape (GCP project, Cloud Run services, queues, mobile build profiles) is described in `PRODUCTION.md`. Binding rules:
 
 - **Read [`docs/gcp_infra_setup.md`](docs/gcp_infra_setup.md) before touching prod infra.**
-- **Deploy gate:** only promoting `master` → the `production` branch (`git push origin master:production`) deploys, via `.github/workflows/deploy.yml`. Pushing to `master` does **not** deploy; PRs are validated by `.github/workflows/ci.yml`. Promotion to `production` is the human release gate — never do it unprompted.
+- **Deploy gate:** only `app-release promote` (Automation's release flow) deploys: it tags `master` at the declared version once CI is green there and fast-forwards `prod`, whose push runs `.github/workflows/deploy.yml` → `scripts/ci/deploy`. Nothing is ever committed on `prod`. Pushing to `master` does **not** deploy; PRs are validated by `.github/workflows/ci.yml`. The promotion is the human release gate — never do it unprompted (it refuses a worker session anyway).
 - **Prod secrets:** `infra/secrets.env` is the single source (seeds Secret Manager via `scripts/gcp-bootstrap.sh`); never committed. There is **no `.env.prod`** — never create one.
 - **Prod DB tools** (run locally, sparingly — CI already migrates on deploy): `pnpm migrate:prod`, `pnpm db:studio:prod` (both load `infra/secrets.env`).
 

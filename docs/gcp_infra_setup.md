@@ -71,7 +71,7 @@ pipeline are ready to run.
 | `infra/environments/prod/variables.tf` | Where `project_id`, `region`, `service_account_name` are declared |
 | `infra/backend.tf` | The GCS state bucket name (`autodidact-terraform-state`) |
 | `infra/modules/` | Reusable building blocks — read-only, you normally don't edit these |
-| `.github/workflows/deploy.yml` | The CI/CD pipeline that builds images + deploys on push to `production` (see §5) |
+| `.github/workflows/deploy.yml` | The CI/CD pipeline that builds images + deploys on push to `prod` (see §5) |
 | `packages/env/src/schema.ts` | Canonical list of env vars each service expects (cross-check) |
 
 ---
@@ -304,9 +304,9 @@ What this creates:
 
 ## 5. CI/CD — let GitHub Actions build and deploy (`.github/workflows/deploy.yml`)
 
-The Deploy workflow triggers on **every push to `production`** (and manual
-dispatch). It: lint → typecheck → test → build 3 Docker images → push to
-Artifact Registry → run DB migrations → `gcloud run deploy` each service.
+The Deploy workflow triggers on **every push to `prod`**, which only
+`app-release promote` makes. It runs `scripts/ci/deploy`: build 3 Docker images →
+push to Artifact Registry → run DB migrations → `gcloud run deploy` each service.
 
 It authenticates to GCP via **Workload Identity Federation** (no JSON key file
 to download or leak).
@@ -316,25 +316,17 @@ to download or leak).
 | Branch | Role | Auto-deploys to GCP? |
 |---|---|---|
 | `master` | Active development. The default branch you push day-to-day. | **No.** Never triggers a Cloud Run deploy. |
-| `production` | Release branch. The only branch the Deploy workflow watches. | **Yes** — every push redeploys all three Cloud Run services. |
+| `prod` | Release pointer, moved only by `app-release promote` (a fast-forward to a tagged `master`). The only branch the Deploy workflow watches. | **Yes** — every move redeploys all three Cloud Run services. |
 
 GitHub Actions is the **only** deploy path — there is no Cloud Run source-connect
 or Cloud Build trigger.
 
-**Promote a release** (development → production):
+**Promote a release** (`master` → `prod`):
 
 ```bash
-git merge master production   # bring master's commits onto production
-git push origin production    # → triggers the full build + deploy
+app-release promote -C ~/Projects/Autodidact   # Automation: tags master at the declared version, fast-forwards prod
 ```
 
-(Or open a GitHub PR `master → production` and merge it.) Manual deploys are still
-available any time via **Actions → Deploy → Run workflow** (`workflow_dispatch`).
-
-> **First promotion warning:** the first push to `production` that carries this
-> updated workflow will trigger a full deploy of all three services (build → push →
-> migrate → deploy). Merely *creating* the `production` branch does not deploy — only
-> a push to `production` does.
 
 ### 5.1 Set up Workload Identity Federation (one time)
 
@@ -397,14 +389,15 @@ In **GitHub → repo → Settings → Secrets and variables → Actions**:
 |---|---|
 | `PROD_DATABASE_URL` | same Supabase pooler URL as `autodidact-database-url` (used by the migration step) |
 
-Also confirm a GitHub **Environment** named `production` exists (the workflow
-pins `environment: production`) — add required reviewers there if you want a
-manual gate before prod deploys.
+The deploy runs in the GitHub **Environment** `prod` (Automation's
+`release-deploy` pins it; GitHub creates it on first use) — add required
+reviewers there if you want a manual gate before prod deploys.
 
 ### 5.3 Deploy
 
-Push to `production` (e.g. `git merge master production && git push origin
-production`), or use **Actions → Deploy → Run workflow**. Watch it build, push
+`app-release promote -C ~/Projects/Autodidact` (Automation's release flow): it tags
+`master` at the version `package.json` declares once CI is green there and
+fast-forwards `prod`, whose push runs the Deploy workflow. Watch it build, push
 images, migrate, and deploy.
 
 ---
@@ -470,7 +463,7 @@ api/worker Cloud Run logs for that error first.
 | Create the project, SA, state bucket, enable APIs | **gcloud CLI** (Step 2) |
 | Create / update keys & config | **Secret Manager** via gcloud (Step 3) |
 | Provision queues, registry, Cloud Run | **Terraform** in `infra/environments/prod/` (Step 4) |
-| Build images & deploy | **GitHub Actions** `deploy.yml`, push to `production` (Step 5) |
+| Build images & deploy | **GitHub Actions** `deploy.yml`, push to `prod` (Step 5) |
 | Get the DB URL, secret key, Supabase URL | **Supabase dashboard** → Project Settings |
 | Get the LLM key | **OpenAI dashboard** → API keys |
 | See queue retry/backoff config | `infra/modules/cloud-tasks/main.tf` |
@@ -486,7 +479,7 @@ Prod was last deployed on 2026-06-26 (`autodidact-api-00025-g25`). Since then
 `master` gained ~65 commits, the prod DB sits at migration `0010` with
 `0011`–`0015` pending, and the Supabase project went `INACTIVE`. This section is
 the exact sequence for the next deploy. Every step is the owner's (David's); the
-release gate — `git push origin master:production` — is never an agent's.
+release gate — `app-release promote` — is never an agent's.
 
 The reasons behind this sequence are in [`docs/decisions.md`](decisions.md) (2026-09-29).
 
@@ -523,8 +516,9 @@ but a paused DB blocks both the backup and the health check.
 
 - [ ] #321 (production route to AgentPlatform) is **merged to `master`** and
       `master`'s CI is green: `gh run list --branch master --limit 3`.
-- [ ] `git fetch origin && git log --oneline origin/production..origin/master`
-      shows exactly the commits you intend to ship, nothing you do not recognise.
+- [ ] `app-release status -C ~/Projects/Autodidact` shows the version you mean to ship
+      and `git log --oneline origin/prod..origin/master` exactly the commits you intend,
+      nothing you do not recognise.
 - [ ] Supabase project is `ACTIVE` (9.0) — a paused DB fails 9.4 and 9.5.
 - [ ] You have ~45 uninterrupted minutes for 9.4 → 9.7.
 
@@ -612,14 +606,14 @@ From here the June API revision is broken (dropped columns). Go straight to 9.6.
 
 ```bash
 git fetch origin
-git push origin origin/master:production
+app-release promote -C ~/Projects/Autodidact   # tags master at the declared version, fast-forwards prod
 gh run watch "$(gh run list --workflow Deploy --limit 1 --json databaseId -q '.[0].databaseId')"
 ```
 
-`deploy.yml` then runs lint → typecheck → test → build + push 3 images →
+`deploy.yml` then runs `scripts/ci/deploy`: build + push 3 images →
 migrate (**no-op**, 9.5 did it) → seed onboarding course → `gcloud run deploy`
-×3. If the `ci` job fails, nothing touched prod: fix on `master` and repeat
-9.6. If the `deploy` job fails, rerun it from the Actions UI — migrate and seed
+×3. If the build or push fails, nothing touched prod: fix on `master` and repeat
+9.6. If a later step fails, rerun it from the Actions UI — migrate and seed
 are both idempotent.
 
 ### 9.7 Verify — health + migrations (the agreed smoke scope)
