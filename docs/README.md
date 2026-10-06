@@ -16,6 +16,7 @@ Code-level documentation (README files in service directories) lives alongside t
 |---|---|
 | [product.md](product.md) | Product vision, teaching model, core user flows |
 | [roadmap.md](roadmap.md) | Phase-by-phase feature roadmap |
+| [implementations.md](implementations.md) | GENERATED: the last 20 merged PRs, rewritten by the `implementations` workflow after every merge; never edited |
 | [stack.md](stack.md) | Technology choices and rationale |
 | [deployment.md](deployment.md) | Operator runbook: how to run/ship dev and prod, what's wired and what isn't |
 | [decisions.md](decisions.md) | Dated operational/sequencing decisions with reasons (ADRs stay in `architecture/ADRs/`) |

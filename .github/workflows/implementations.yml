@@ -1,0 +1,58 @@
+# implementations — the standard workflow of every repo whose .ci-policy says
+# `generated docs/implementations.md`, byte-identical (installed by
+# `ci-autoland init`; source: ~/Automation/scripts/ci-autoland).
+#
+# After every PR merged into the default branch it rewrites
+# docs/implementations.md there: the last 20 merged PRs, newest first — the
+# project's record of what was done. This job is the file's only writer, one
+# merge at a time, so it cannot conflict and no PR carries it. The commit is
+# made with the workflow token through the contents API (nothing is checked
+# out), which starts no other workflow; the pipeline reads "up to date" and
+# "green" from the commit under it (`generated`, docs/PR_PIPELINE.md).
+# A failed write is said on the merged PR, with the run: the file is stale
+# until a later merge rewrites it, and nothing else would show that.
+#
+# `pull_request_target`, not `pull_request`: this file runs from the default
+# branch, never the PR's copy of it.
+name: implementations
+
+on:
+  pull_request_target:
+    types: [closed]
+
+concurrency:
+  group: implementations-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  write:
+    if: github.event.pull_request.merged && github.event.pull_request.base.ref == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      BASE: ${{ github.event.pull_request.base.ref }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Rewrite docs/implementations.md
+        run: |
+          set -euo pipefail
+          file=docs/implementations.md
+          sha="$(gh api "repos/$REPO/contents/$file?ref=$BASE" -q .sha 2>/dev/null || true)"
+          {
+            printf '# Implementations\n\nThe last 20 merged PRs, newest first. Rewritten by the `implementations` workflow on every merge; never edited by hand or by a PR.\n\n'
+            gh pr list -R "$REPO" --state merged --base "$BASE" --limit 20 --json number,title,mergedAt \
+              -q 'sort_by(.mergedAt) | reverse | .[] | "- \(.mergedAt[:10]) #\(.number) \(.title)"'
+          } >"$RUNNER_TEMP/implementations.md"
+          gh api -X PUT "repos/$REPO/contents/$file" -f branch="$BASE" ${sha:+-f sha="$sha"} \
+            -f message="docs: implementations.md after #$PR [skip ci]" \
+            -f content="$(base64 -w0 "$RUNNER_TEMP/implementations.md")" >/dev/null
+      - name: Say on the PR that the file was not rewritten
+        if: failure()
+        run: |
+          gh pr comment "$PR" -R "$REPO" --body "**implementations failed**: \`docs/implementations.md\` on \`$BASE\` was not rewritten after this merge and is stale until a later merge rewrites it. Run: $GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID"

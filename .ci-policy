@@ -27,3 +27,7 @@ standard-check Agent config drift
 # scripts/ci/deploy.
 version        package.json
 release        deploy
+
+# files only a workflow writes, straight to the default branch after a merge;
+# a commit touching nothing else is not what "behind" or "green" is measured against
+generated      docs/implementations.md
