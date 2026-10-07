@@ -51,7 +51,8 @@ Social sign-in (Google native + Facebook web-PKCE) requires configuration in thr
      ```
      EAS `development`/`preview` builds are signed with the EAS keystore and need their own Android client.
    - Create an Android OAuth client with:
-     - **Package name:** `com.autodidact.app` (must match `android.package` in `app.json`)
+     - **Package name:** `com.autodidact.app.dev` for the dev build (`run-mobile.sh` builds the
+       dev variant, `app.config.ts`); `com.autodidact.app` for EAS builds (`android.package` in `app.json`)
      - **SHA-1 certificate fingerprint:** (paste the dev keystore SHA-1)
      - Click **Create**
    - For the **production key**, repeat with the prod keystore SHA-1. **This second client ID is critical — forgetting it is the usual cause of "Google works in dev, fails in prod."**

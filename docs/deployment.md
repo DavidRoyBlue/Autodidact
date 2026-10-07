@@ -13,7 +13,7 @@ How to run and ship Autodidact — dev and prod, backend and mobile. Reference d
 | What | Command | Status |
 |---|---|---|
 | Backend stack (Supabase + api/agent/worker) | `pnpm dev` | ✅ |
-| Mobile APK on the plugged-in phone or the Windows-host emulator | `pnpm mobile:run -- --release` (`pnpm mobile` = Metro for a debug APK) | ✅ verified 2026-09-29 |
+| Mobile APK on the plugged-in phone or the Windows-host emulator | `pnpm mobile:run -- --release`; dev loop: `pnpm mobile` + `pnpm mobile:run` (debug APK on Metro, `run-mobile` skill) | ✅ verified 2026-09-29 |
 | First-time setup | `pnpm setup` | ✅ |
 
 `pnpm mobile:run -- --release` targets the phone plugged into the PC, or boots the AVD

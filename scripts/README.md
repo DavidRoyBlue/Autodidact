@@ -79,7 +79,7 @@ Press `Ctrl+C` to stop all services. Start mobile separately with `mobile.sh`.
 ### `mobile.sh`
 **Start the Expo mobile dev server.** Run in a separate terminal alongside `pnpm dev`.
 
-Serves JavaScript to the debug APK that `run-mobile.sh` installs — the app cannot run in Expo Go, and a release APK needs no Metro.
+Serves JavaScript to the debug APK that `run-mobile.sh` installs, with Fast Refresh on every save — the app cannot run in Expo Go, and a release APK needs no Metro. Runs in the workspace's `mobile` pane; the dev loop is in the `run-mobile` skill.
 
 Requires the backend to be running (`pnpm dev`) for API calls to work.
 
@@ -96,7 +96,7 @@ with `AVD=…`. See `~/Automation/docs/android-emulator-wsl2.md`.
 ### `run-mobile.sh`  (`pnpm mobile:run`)
 **Run the app on a device.** Targets the phone plugged into the PC (via the
 `adb-up` operation) or boots the emulator (`android-emulator`) when there is
-none, builds the APK in WSL (recipe in the script header), installs and launches it. `--release` bundles the JavaScript; a debug APK needs `mobile.sh`.
+none, builds the APK in WSL (recipe in the script header), installs and launches it — always the dev variant (`com.autodidact.app.dev`), beside the store app. A debug APK opens on Metro (`mobile.sh`); `--release` bundles the JavaScript.
 Does **not** start the backend — `pnpm workspace` owns it.
 
 ---

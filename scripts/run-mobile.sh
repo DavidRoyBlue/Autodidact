@@ -5,16 +5,19 @@
 # one ABI, gradle pinned and daemonless).
 #
 # The app cannot run in Expo Go: native Google sign-in crashes it at import,
-# so it is always a full APK. A release build bundles the JavaScript and is
-# what proves the app runs; a debug build carries no JavaScript and only runs
-# with Metro serving it (`pnpm mobile`), which is for readable stack traces.
+# so it is always a full APK — and always the dev variant ("Autodidact Dev",
+# package com.autodidact.app.dev), which installs beside the store app. A debug
+# build carries no JavaScript: it opens the dev client on Metro (`pnpm mobile`,
+# :8081) and Fast Refresh applies every save — the dev loop. A release build
+# bundles the JavaScript and is what proves the app runs.
 #
 # Devices are reached through `adb-up`, which owns the one adb server this
 # machine has (Windows owns :5037, WSL's adb is its client); the emulator is
 # booted by the registered `android-emulator`. Never start an adb server here
 # and never `adb reverse` (it delivers nothing across that split) — the backend
 # address is baked into the APK below: 10.0.2.2 for the emulator, the PC's LAN
-# address for a phone, which needs the Windows firewall to let those ports in.
+# address for a phone, which needs the Windows firewall to let those ports
+# (and Metro's 8081) in.
 # See ~/Automation/docs/android-{adb,emulator}-wsl2.md.
 #
 # Usage: scripts/run-mobile.sh [--release] [--no-install]
@@ -33,7 +36,8 @@ for arg in "$@"; do
   esac
 done
 
-APP_ID="com.autodidact.app"
+export APP_VARIANT=dev  # app.config.ts: name and package of the dev variant
+APP_ID="com.autodidact.app.dev"
 # How the device reaches WSL: qemu's host loopback → Windows localhost → WSL
 # mirrored networking for the emulator; a phone is overridden below.
 host=10.0.2.2
@@ -109,14 +113,21 @@ echo "APK: $apk"
 
 (( install )) || exit 0
 
-# An EAS build already on the device is signed with another keystore, so a
-# plain reinstall is refused (INSTALL_FAILED_UPDATE_INCOMPATIBLE): replace it.
+# A dev APK signed with another keystore (a build from another machine) is
+# refused as an update (INSTALL_FAILED_UPDATE_INCOMPATIBLE): replace it.
 echo "Installing on $serial…"
 "$adb" -s "$serial" install -r -d "$apk" || {
   "$adb" -s "$serial" uninstall "$APP_ID"
   "$adb" -s "$serial" install "$apk"
 }
-"$adb" -s "$serial" shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null
-echo "Installed and launched. Backend: the dev workspace (pnpm workspace) owns api/agent/worker; Supabase is the local stack."
-[[ $variant == debug ]] && echo "Debug build: it needs Metro serving on :8081 (pnpm mobile) or it shows 'Unable to load script'."
+if [[ $variant == debug ]]; then
+  # Straight into the dev client on Metro, skipping its server picker.
+  "$adb" -s "$serial" shell am start -a android.intent.action.VIEW \
+    -d "exp+autodidact://expo-development-client/?url=http%3A%2F%2F$host%3A8081" "$APP_ID" >/dev/null
+  echo "Launched on Metro at http://$host:8081 — it must be serving this checkout (pnpm mobile); every save then reloads."
+else
+  "$adb" -s "$serial" shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null
+  echo "Installed and launched."
+fi
+echo "Backend: the dev workspace (pnpm workspace) owns api/agent/worker; Supabase is the local stack."
 exit 0

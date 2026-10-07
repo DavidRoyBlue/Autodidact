@@ -201,15 +201,17 @@ pnpm emulator                    # boot the AVD on Windows, make it visible to W
 pnpm mobile:run -- --release     # build the APK here (expo prebuild + gradle), install and launch it on the emulator
 ```
 
-- Run on a device only through `scripts/run-mobile.sh --release` (Expo Go crashes at
-  import; a debug APK needs Metro). The script header explains every flag.
+- Run on a device only through `scripts/run-mobile.sh` (Expo Go crashes at import): the
+  debug build on Metro is the dev loop, `--release` is the check before a change is done.
+  It always builds the dev variant (`APP_VARIANT=dev`, package `com.autodidact.app.dev`);
+  `com.autodidact.app` is the store app's alone.
 - Never edit `apps/mobile/android/` (generated, gitignored); never `adb reverse`.
 - The `android`/`ios` package scripts are `expo prebuild`'s own — it writes `expo run:*` on
   every run, so keep that value; running on a device is still `run-mobile.sh`.
 - Keep `babel-preset-expo`, `@babel/plugin-transform-react-jsx` and
   `react-native-reanimated` declared here: the release bundle resolves them from
   `apps/mobile` under pnpm's isolated layout; only the debug build hides their absence.
-- Workflow, backend prerequisites and the emulator lease: the `run-mobile` skill.
+- Dev loop, backend prerequisites and the emulator lease: the `run-mobile` skill.
 
 ### Build & release (EAS → Google Play)
 

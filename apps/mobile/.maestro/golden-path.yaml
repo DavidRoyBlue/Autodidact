@@ -8,7 +8,7 @@
 # NOTE: the selectors below the sign-in step are a starting scaffold and must be
 # validated against a running build (screen labels/testIDs may differ). Keep
 # this flow in the nightly/manual lane until verified on-device.
-appId: com.autodidact.app
+appId: com.autodidact.app.dev
 ---
 - runFlow: sign-in.yaml
 

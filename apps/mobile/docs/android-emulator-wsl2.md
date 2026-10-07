@@ -31,7 +31,7 @@ backend services keep the `127.0.0.1` values from `.env.dev`.
 
 | Symptom | Fix |
 |---------|-----|
-| red "Unable to load script" | that is a debug APK: run Metro (`pnpm mobile`) or install `--release` |
+| red "Unable to load script" | that is a debug APK not reaching Metro: run `pnpm mobile`, or on a phone open the firewall for 8081 |
 | `INSTALL_FAILED_VERSION_DOWNGRADE` | an EAS build is on the device; `run-mobile.sh` installs with `-d` — re-run it |
 | release bundle fails with `Cannot find module 'babel-preset-expo'` | the devDependency was removed; put it back (`apps/mobile/AGENTS.md`) |
 | sign-in works but courses never load | api not up, or the APK was built with `127.0.0.1` URLs — rebuild through `run-mobile.sh` |

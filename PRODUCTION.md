@@ -6,7 +6,7 @@
 > Imperative rules live in `AGENTS.md` files; architecture and decisions in [docs/](docs/README.md).
 
 ## Mobile 🟢
-_verified: 2026-09-29_
+_verified: 2026-10-07_
 
 Expo React Native app — the only client; talks exclusively to the API service.
 
@@ -30,7 +30,7 @@ Expo React Native app — the only client; talks exclusively to the API service.
 - dev: [.env.example](.env.example) → `.env.dev` (self-loaded by `app.config.ts`)
 
 **State** — Set for prod and dev; runs only as a full APK (not Expo Go).
-- dev run: [scripts/run-mobile.sh](scripts/run-mobile.sh) `--release` (`pnpm mobile:run -- --release`) — builds the APK in WSL, installs it on the plugged-in phone (reaches host via the PC's LAN address) or the `Medium_Phone` AVD (via `10.0.2.2`). Walked through 2026-09-29 ([walkthrough](apps/mobile/docs/walkthrough-2026-09-29.md))
+- dev run: [scripts/run-mobile.sh](scripts/run-mobile.sh) (`pnpm mobile:run`; debug APK on Metro = Fast Refresh, `--release` = bundled) — builds the dev variant `com.autodidact.app.dev` (beside the store app) in WSL, installs it on the plugged-in phone (reaches host via the PC's LAN address) or the `Medium_Phone` AVD (via `10.0.2.2`). Walked through 2026-09-29 ([walkthrough](apps/mobile/docs/walkthrough-2026-09-29.md))
 - EAS: `development`/`preview` builds green 2026-07-19 (cloud dev client no longer the dev path)
 - prod build: `eas build --profile production --platform android` ([eas.json](apps/mobile/eas.json))
 

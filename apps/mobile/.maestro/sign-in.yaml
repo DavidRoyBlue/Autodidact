@@ -1,7 +1,7 @@
 # Sign-in flow: launch the app and authenticate.
 # Requires a seeded test account in the target backend.
 # Override credentials with: maestro test -e EMAIL=... -e PASSWORD=... sign-in.yaml
-appId: com.autodidact.app
+appId: com.autodidact.app.dev
 ---
 - launchApp:
     clearState: true
