@@ -146,7 +146,8 @@ flow as prod. Wiring (all committed 2026-07-19):
   a **dummy** secret (`SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=dev-dummy-not-used` in `.env.dev` —
   the id-token flow validates via Google's JWKS, no real secret; never put the prod secret in dev
   env), and `skip_nonce_check = true` (the Android native sheet sends no nonce).
-- The APK reaches the local stack at `http://10.0.2.2:55321` (baked in by `run-mobile.sh`;
+- The APK reaches the local stack at `http://<PC LAN address>:55321` on a phone, `http://10.0.2.2:55321`
+  on the emulator (baked in by `run-mobile.sh`;
   **not** `adb reverse` — broken across the Windows-adb-server/WSL split).
 - **One-time per AVD:** a Google account must be signed into the emulator (Settings → Accounts,
   or complete the sheet's sign-in form once). The account lives on the AVD's data partition and

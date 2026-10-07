@@ -32,9 +32,9 @@ The APK bakes in `SUPABASE_URL=http://<host>:55321` and
 (qemu's host loopback into WSL) for the emulator and the PC's LAN address for a
 phone — so a phone build is tied to the Wi-Fi it was built on, and the Windows
 firewall must let those two ports in (`~/Automation/docs/android-adb-wsl2.md`,
-"Reaching WSL services from a device"). So the local stack must be up: `pnpm workspace` (idempotent; owns
-api:3000 / agent:3001 / worker:3002 and the Supabase stack — never start a
-second one, root `AGENTS.md` "Development workspace policy"). Course generation
+"Reaching WSL services from a device"). So the local stack must be up:
+`pnpm workspace` (idempotent; owns api:3000 / agent:3001 / worker:3002 and the
+Supabase stack — never start a second one, root `AGENTS.md` "Development workspace policy"). Course generation
 and module chat also need AgentPlatform on :8400.
 
 The onboarding course is seeded by `pnpm setup`, not by migrations: after a
@@ -71,10 +71,12 @@ verified its change and moves on should let go early:
 
 ## Verify and drive it
 
-- `mobile_list_available_devices` → expect `emulator-5554`; `mobile_take_screenshot`
+`<serial>` is the one the script prints as `Target:` (`emulator-5554` for the AVD).
+
+- `mobile_list_available_devices` → expect `<serial>`; `mobile_take_screenshot`
   for what is on screen, `mobile_list_elements_on_screen` to tap by ref.
-- `~/android-platform-tools/adb -s emulator-5554 logcat -s ReactNativeJS` — JS logs.
-- `~/android-platform-tools/adb -s emulator-5554 shell pidof com.autodidact.app` — the process.
+- `~/android-platform-tools/adb -s <serial> logcat -s ReactNativeJS` — JS logs.
+- `~/android-platform-tools/adb -s <serial> shell pidof com.autodidact.app` — the process.
 
 mobile-mcp needs `ANDROID_HOME=~/.android-sdk-wsl` and
 `ADB_SERVER_SOCKET=tcp:localhost:5037` in its server env (one-time; Claude

@@ -63,12 +63,13 @@ abi=x86_64
 if (( install )); then
   adb="$HOME/android-platform-tools/adb"
   export ADB_SERVER_SOCKET="tcp:localhost:5037"
-  # A phone plugged into the PC is the target; without one, the emulator.
-  ~/Automation/scripts/bin/adb-up --quiet
+  # A phone plugged into the PC is the target; without one, the emulator —
+  # so adb-up's "no device" hint is expected here and silenced.
+  ~/Automation/scripts/bin/adb-up --quiet 2>/dev/null
   serial=$("$adb" devices | awk '$2=="device" && $1 !~ /^emulator-/{print $1; exit}')
   if [[ -n $serial ]]; then
     # The phone is on the LAN, so it reaches WSL at the PC's address there.
-    host=$(ip -4 route get 1.1.1.1 | awk '{print $7; exit}')
+    host=$(ip -4 route get 1.1.1.1 | awk '{for (i = 1; i < NF; i++) if ($i == "src") {print $(i+1); exit}}')
   else
     ~/Automation/scripts/bin/android-emulator
     serial=$("$adb" devices | awk '$2=="device" && $1 ~ /^emulator-/{print $1; exit}')
