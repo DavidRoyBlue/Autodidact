@@ -1,17 +1,18 @@
 ---
 name: run-mobile
-description: Build the Autodidact mobile app (apps/mobile, Expo/React Native) in WSL and run it on the Android emulator on the Windows host. Use whenever asked to run, install, launch, screenshot or check a change in the real app, or when a task needs an Android device. Covers where the device comes from, the backend it needs, and who turns the emulator off.
+description: Build the Autodidact mobile app (apps/mobile, Expo/React Native) in WSL and run it on the phone plugged into the PC, or on the Android emulator on the Windows host. Use whenever asked to run, install, launch, screenshot or check a change in the real app, or when a task needs an Android device. Covers where the device comes from, the backend it needs, and who turns the emulator off.
 ---
 
 # Run the mobile app
 
 `apps/mobile` cannot run in Expo Go (native Google sign-in crashes it at import),
-so running it means building an APK here in WSL and installing it on the
-emulator. The repo script does the whole thing — the same recipe as
-Accountability's `scripts/run-mobile.sh`:
+so running it means building an APK here in WSL and installing it on a
+device: the phone plugged into the PC when there is one, else the emulator.
+The repo script does the whole thing — the same recipe as Accountability's
+`scripts/run-mobile.sh`:
 
 ```bash
-scripts/run-mobile.sh --release       # build the APK, install and launch on the emulator
+scripts/run-mobile.sh --release       # build the APK, install and launch on the phone or the emulator
 scripts/run-mobile.sh                 # debug APK: needs Metro (`pnpm mobile`) or it shows "Unable to load script"
 scripts/run-mobile.sh --no-install    # build only, print the APK path
 ```
@@ -26,9 +27,12 @@ release bundle is Hermes bytecode).
 
 ## The backend it talks to
 
-The APK bakes in `SUPABASE_URL=http://10.0.2.2:55321` and
-`AUTODIDACT_API_BASE_URL=http://10.0.2.2:3000/v1` — qemu's host loopback into
-WSL. So the local stack must be up: `pnpm workspace` (idempotent; owns
+The APK bakes in `SUPABASE_URL=http://<host>:55321` and
+`AUTODIDACT_API_BASE_URL=http://<host>:3000/v1`, where `<host>` is `10.0.2.2`
+(qemu's host loopback into WSL) for the emulator and the PC's LAN address for a
+phone — so a phone build is tied to the Wi-Fi it was built on, and the Windows
+firewall must let those two ports in (`~/Automation/docs/android-adb-wsl2.md`,
+"Reaching WSL services from a device"). So the local stack must be up: `pnpm workspace` (idempotent; owns
 api:3000 / agent:3001 / worker:3002 and the Supabase stack — never start a
 second one, root `AGENTS.md` "Development workspace policy"). Course generation
 and module chat also need AgentPlatform on :8400.
@@ -39,8 +43,9 @@ The onboarding course is seeded by `pnpm setup`, not by migrations: after a
 
 ## Where the device comes from
 
-The emulator, reached through the registered Automation operations, which own
-the one adb server this machine has:
+A phone plugged into the PC by USB with debugging on is found by `adb-up` and
+wins; without one the script boots the emulator. Both go through the registered
+Automation operations, which own the one adb server this machine has:
 
 ```bash
 ~/Automation/scripts/bin/android-emulator     # boot the AVD and wait until WSL sees it (idempotent)

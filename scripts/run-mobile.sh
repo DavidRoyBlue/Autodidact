@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
-# Run the mobile app on the Android emulator: build the APK here in WSL and
-# install it on the device — the same recipe as Accountability's
-# scripts/run-mobile.sh (Linux SDK + JDK, one ABI, gradle pinned and daemonless).
+# Run the mobile app on a device: build the APK here in WSL and install it on
+# the phone plugged into the PC, or on the emulator when no phone is there —
+# the same recipe as Accountability's scripts/run-mobile.sh (Linux SDK + JDK,
+# one ABI, gradle pinned and daemonless).
 #
 # The app cannot run in Expo Go: native Google sign-in crashes it at import,
 # so it is always a full APK. A release build bundles the JavaScript and is
 # what proves the app runs; a debug build carries no JavaScript and only runs
 # with Metro serving it (`pnpm mobile`), which is for readable stack traces.
 #
-# The emulator is booted by the registered `android-emulator` operation and
-# reached through `adb-up`, which owns the one adb server this machine has
-# (Windows owns :5037, WSL's adb is its client). Never start an adb server here
-# and never `adb reverse` — the device reaches WSL services via 10.0.2.2, and
-# that is baked into the APK below. See ~/Automation/docs/android-{adb,emulator}-wsl2.md.
+# Devices are reached through `adb-up`, which owns the one adb server this
+# machine has (Windows owns :5037, WSL's adb is its client); the emulator is
+# booted by the registered `android-emulator`. Never start an adb server here
+# and never `adb reverse` (it delivers nothing across that split) — the backend
+# address is baked into the APK below: 10.0.2.2 for the emulator, the PC's LAN
+# address for a phone, which needs the Windows firewall to let those ports in.
+# See ~/Automation/docs/android-{adb,emulator}-wsl2.md.
 #
 # Usage: scripts/run-mobile.sh [--release] [--no-install]
 #   --release     bundled JavaScript: install this to check the app end to end
@@ -31,11 +34,9 @@ for arg in "$@"; do
 done
 
 APP_ID="com.autodidact.app"
-# qemu's host loopback → Windows localhost → WSL mirrored networking. Exported
-# for the build: app.config.ts loads .env.dev without override, so these win
-# over its 127.0.0.1 values (which the device would read as itself).
-export SUPABASE_URL="http://10.0.2.2:55321"
-export AUTODIDACT_API_BASE_URL="http://10.0.2.2:3000/v1"
+# How the device reaches WSL: qemu's host loopback → Windows localhost → WSL
+# mirrored networking for the emulator; a phone is overridden below.
+host=10.0.2.2
 
 # A Linux SDK and a JDK for gradle. The shell's ANDROID_HOME is the Windows SDK
 # (emulator.exe, adb.exe) and stays that for the Automation operations, which
@@ -60,14 +61,28 @@ JDK="$HOME/jdk/current"
 # on libreactnative.so because SoLoader wants the primary ABI.
 abi=x86_64
 if (( install )); then
-  ~/Automation/scripts/bin/android-emulator
   adb="$HOME/android-platform-tools/adb"
   export ADB_SERVER_SOCKET="tcp:localhost:5037"
-  serial=$("$adb" devices | awk '$2=="device" && $1 ~ /^emulator-/{print $1; exit}')
-  [[ -n $serial ]] || { echo "No booted emulator visible to adb." >&2; exit 1; }
+  # A phone plugged into the PC is the target; without one, the emulator.
+  ~/Automation/scripts/bin/adb-up --quiet
+  serial=$("$adb" devices | awk '$2=="device" && $1 !~ /^emulator-/{print $1; exit}')
+  if [[ -n $serial ]]; then
+    # The phone is on the LAN, so it reaches WSL at the PC's address there.
+    host=$(ip -4 route get 1.1.1.1 | awk '{print $7; exit}')
+  else
+    ~/Automation/scripts/bin/android-emulator
+    serial=$("$adb" devices | awk '$2=="device" && $1 ~ /^emulator-/{print $1; exit}')
+    [[ -n $serial ]] || { echo "No booted emulator visible to adb." >&2; exit 1; }
+  fi
   abi=$("$adb" -s "$serial" shell getprop ro.product.cpu.abi | tr -d '\r')
   echo "Target: $serial ($abi)"
 fi
+
+# Exported for the build: app.config.ts loads .env.dev without override, so
+# these win over its 127.0.0.1 values (which the device would read as itself).
+export SUPABASE_URL="http://$host:55321"
+export AUTODIDACT_API_BASE_URL="http://$host:3000/v1"
+echo "Backend: $SUPABASE_URL, $AUTODIDACT_API_BASE_URL"
 
 # Continuous Native Generation: android/ is generated and gitignored, never
 # edited, so it is regenerated whenever the config or a native module moved on.

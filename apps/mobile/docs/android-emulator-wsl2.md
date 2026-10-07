@@ -23,8 +23,9 @@ owns no emulator script of its own.
 
 ## Reaching this app's services
 
-`run-mobile.sh` bakes the `10.0.2.2` (qemu host loopback) Supabase/api URLs into
-the APK — see its header; backend services keep the `127.0.0.1` values from `.env.dev`.
+`run-mobile.sh` bakes the Supabase/api URLs into the APK — `10.0.2.2` (qemu host
+loopback) for the emulator, the PC's LAN address for a phone — see its header;
+backend services keep the `127.0.0.1` values from `.env.dev`.
 
 ## Troubleshooting this app
 

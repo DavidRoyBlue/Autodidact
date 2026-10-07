@@ -94,9 +94,9 @@ with `AVD=…`. See `~/Automation/docs/android-emulator-wsl2.md`.
 ---
 
 ### `run-mobile.sh`  (`pnpm mobile:run`)
-**Run the app on the emulator.** Boots the emulator (via the
-`android-emulator` operation), builds the APK in WSL (recipe in the script
-header), installs and launches it. `--release` bundles the JavaScript; a debug APK needs `mobile.sh`.
+**Run the app on a device.** Targets the phone plugged into the PC (via the
+`adb-up` operation) or boots the emulator (`android-emulator`) when there is
+none, builds the APK in WSL (recipe in the script header), installs and launches it. `--release` bundles the JavaScript; a debug APK needs `mobile.sh`.
 Does **not** start the backend — `pnpm workspace` owns it.
 
 ---

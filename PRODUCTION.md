@@ -23,14 +23,14 @@ Expo React Native app — the only client; talks exclusively to the API service.
 - Auth: Supabase (email/password, anonymous guest, Google native id-token, Facebook PKCE)
 - Streaming: SSE body read whole via `apiFetch` after the API closes it (`src/hooks/useSSE.ts`; RN fetch cannot stream)
 - Testing: Jest (jest-expo) unit/component; Maestro e2e (manual/nightly, not PR-gated)
-- Build: local WSL gradle via `scripts/run-mobile.sh` for the emulator; EAS — preview (APK → prod API), production (Play AAB → prod API) for distribution
+- Build: local WSL gradle via `scripts/run-mobile.sh` for the phone or the emulator; EAS — preview (APK → prod API), production (Play AAB → prod API) for distribution
 
 **Secrets**
 - prod: [eas.json](apps/mobile/eas.json) profile env (publishable values only) + `app.config.ts` injection
 - dev: [.env.example](.env.example) → `.env.dev` (self-loaded by `app.config.ts`)
 
 **State** — Set for prod and dev; runs only as a full APK (not Expo Go).
-- dev run: [scripts/run-mobile.sh](scripts/run-mobile.sh) `--release` (`pnpm mobile:run -- --release`) — builds the APK in WSL, installs it on the `Medium_Phone` AVD; device reaches host via `10.0.2.2`. Walked through 2026-09-29 ([walkthrough](apps/mobile/docs/walkthrough-2026-09-29.md))
+- dev run: [scripts/run-mobile.sh](scripts/run-mobile.sh) `--release` (`pnpm mobile:run -- --release`) — builds the APK in WSL, installs it on the plugged-in phone (reaches host via the PC's LAN address) or the `Medium_Phone` AVD (via `10.0.2.2`). Walked through 2026-09-29 ([walkthrough](apps/mobile/docs/walkthrough-2026-09-29.md))
 - EAS: `development`/`preview` builds green 2026-07-19 (cloud dev client no longer the dev path)
 - prod build: `eas build --profile production --platform android` ([eas.json](apps/mobile/eas.json))
 
