@@ -6,43 +6,25 @@ import { makeMockProvisioningService } from '@autodidact/config/test-utils';
 // Mock @autodidact/db before importing CoursesService
 // ────────────────────────────────────────────────────────────────────────────
 
-const {
-  mockExecute,
-  mockReturning,
-  mockValues,
-  mockInsert,
-  mockSelect,
-  mockFrom,
-  mockWhere,
-  mockOrderBy,
-  mockOnConflictDoUpdate,
-  mockOnConflictDoNothing,
-  mockLimit,
-} = vi.hoisted(() => ({
+const { mockExecute, mockReturning, mockValues, mockInsert, mockOnConflictDoUpdate } = vi.hoisted(() => ({
   mockExecute: vi.fn(),
   mockReturning: vi.fn(),
   mockValues: vi.fn(),
   mockInsert: vi.fn(),
-  mockSelect: vi.fn(),
-  mockFrom: vi.fn(),
-  mockWhere: vi.fn(),
-  mockOrderBy: vi.fn(),
   mockOnConflictDoUpdate: vi.fn(),
-  mockOnConflictDoNothing: vi.fn(),
-  mockLimit: vi.fn(),
 }));
 
 vi.mock('@autodidact/db', () => ({
   getDb: vi.fn().mockReturnValue({
     execute: mockExecute,
     insert: mockInsert,
-    select: mockSelect,
   }),
   courses: {},
   modules: { courseId: {}, position: {} },
   enrollments: { userId: {}, courseId: {} },
   moduleProgress: {},
   users: { id: 'id' },
+  openModuleProgress: vi.fn(),
   eq: vi.fn((a, b) => ({ type: 'eq', a, b })),
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
     type: 'sql',
@@ -80,12 +62,6 @@ describe('CoursesService — slug generation', () => {
     mockOnConflictDoUpdate.mockResolvedValue(undefined);
     mockValues.mockReturnValue({ returning: mockReturning, onConflictDoUpdate: mockOnConflictDoUpdate });
     mockInsert.mockReturnValue({ values: mockValues });
-
-    // select chain (for enrollUser)
-    mockOrderBy.mockResolvedValue([]);
-    mockWhere.mockReturnValue({ orderBy: mockOrderBy, limit: mockLimit });
-    mockFrom.mockReturnValue({ where: mockWhere });
-    mockSelect.mockReturnValue({ from: mockFrom });
   });
 
   const cases: [string, string][] = [
@@ -122,21 +98,10 @@ describe('CoursesService — slug generation', () => {
 describe('CoursesService — createOrReuse routing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // select chain for enrollUser
-    mockOrderBy.mockResolvedValue([]);
-    mockLimit.mockResolvedValue([]);
-    mockWhere.mockReturnValue({ orderBy: mockOrderBy, limit: mockLimit });
-    mockFrom.mockReturnValue({ where: mockWhere });
-    mockSelect.mockReturnValue({ from: mockFrom });
-    // insert chain — values() must expose all conflict-resolution methods
+    // insert chain: returning() for the course, onConflictDoUpdate() for the enrollment
     mockOnConflictDoUpdate.mockResolvedValue(undefined);
-    mockOnConflictDoNothing.mockResolvedValue(undefined);
     mockReturning.mockResolvedValue([{ id: 'new-course-id' }]);
-    mockValues.mockReturnValue({
-      returning: mockReturning,
-      onConflictDoUpdate: mockOnConflictDoUpdate,
-      onConflictDoNothing: mockOnConflictDoNothing,
-    });
+    mockValues.mockReturnValue({ returning: mockReturning, onConflictDoUpdate: mockOnConflictDoUpdate });
     mockInsert.mockReturnValue({ values: mockValues });
   });
 

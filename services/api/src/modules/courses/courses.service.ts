@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { getDb, courses, modules, enrollments, moduleProgress, eq, desc, sql } from '@autodidact/db';
+import { getDb, courses, modules, enrollments, eq, desc, sql, openModuleProgress } from '@autodidact/db';
 import type { IQueueProvider } from '@autodidact/providers';
 import type { CreateCourseRequest } from '@autodidact/schemas';
 import { ApiAgentClient } from '../../services/agent.client.js';
@@ -110,24 +110,7 @@ export class CoursesService {
         set: { lastAccessedAt: new Date() },
       });
 
-    // Create module_progress rows for all modules if not present
-    const courseModules = await db
-      .select({ id: modules.id, position: modules.position })
-      .from(modules)
-      .where(eq(modules.courseId, courseId))
-      .orderBy(modules.position);
-
-    for (const mod of courseModules) {
-      await db
-        .insert(moduleProgress)
-        .values({
-          userId,
-          moduleId: mod.id,
-          courseId,
-          status: mod.position === 0 ? 'available' : 'locked',
-        })
-        .onConflictDoNothing();
-    }
+    await openModuleProgress(db, courseId, userId);
   }
 
   async getCourse(courseId: string) {
@@ -158,7 +141,7 @@ export class CoursesService {
     const count = (filter = sql``) => sql<number>`(
       SELECT count(*)::int FROM module_progress mp
       WHERE mp.user_id = ${userId} AND mp.course_id = ${courses.id} ${filter})`;
-    const next = (column: string) => sql<string | number | null>`(
+    const next = (column: 'id' | 'title' | 'position') => sql<string | number | null>`(
       SELECT ${sql.raw(`m.${column}`)} FROM module_progress mp JOIN modules m ON m.id = mp.module_id
       WHERE mp.user_id = ${userId} AND mp.course_id = ${courses.id}
         AND mp.status IN ('available', 'in_progress')

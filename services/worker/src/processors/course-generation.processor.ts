@@ -1,4 +1,4 @@
-import { eq, getDb, sql, courses, modules, moduleProgress } from '@autodidact/db';
+import { eq, getDb, courses, modules, moduleProgress, openModuleProgress } from '@autodidact/db';
 import type { IQueueProvider } from '@autodidact/providers';
 import type { CourseGenerationJobData } from '@autodidact/types';
 import type { Logger } from '@autodidact/observability';
@@ -78,16 +78,8 @@ export async function processCourseGeneration(
         content: modules.content,
       });
 
-    // The API enrolled the creator when the course was requested; give every
-    // enrolled learner their progress rows, the first module open.
-    await tx.execute(sql`
-      INSERT INTO module_progress (user_id, module_id, course_id, status)
-      SELECT e.user_id, m.id, m.course_id,
-             CASE WHEN m.position = 0 THEN 'available'::module_status ELSE 'locked'::module_status END
-      FROM enrollments e JOIN modules m ON m.course_id = e.course_id
-      WHERE e.course_id = ${courseId}
-      ON CONFLICT DO NOTHING
-    `);
+    // The API enrolled the creator when the course was requested.
+    await openModuleProgress(tx, courseId);
 
     return inserted;
   });

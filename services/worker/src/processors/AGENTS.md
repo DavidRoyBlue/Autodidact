@@ -36,9 +36,11 @@ CourseGenerationJobData {
                                                                AgentPlatform's course-creator-lean
                                                                workflow, ADR-030)
 3. DB transaction:
-     a. DELETE modules WHERE course_id = $courseId          (idempotency — see below)
+     a. DELETE module_progress, then modules, WHERE course_id = $courseId   (idempotency — see below)
      b. UPDATE courses SET title, description, difficulty, estimatedHours, status='ready'
      c. INSERT modules (one row per module from course.modules — content, resources)
+     d. openModuleProgress(tx, courseId) from @autodidact/db — progress rows for every
+        enrolled learner (the API enrolls the creator at request time): module 0 open
 4. RAG indexing of module chunks — best-effort, never fails the task (ADR-024)
 5. queueProvider.enqueue(QUEUES.EMBEDDING, JOB_NAMES.GENERATE_EMBEDDING,
                           { courseId, topic })
@@ -66,7 +68,7 @@ generating ──(final attempt fails)──▶ failed
 
 Cloud Tasks redelivers the task on any non-2xx response (queue config: 3 attempts, min backoff 5 s doubling to a 125 s cap). A retry can arrive with modules **already committed**: if the previous attempt failed *after* the ready-transaction (e.g. on the follow-up embedding enqueue — a remote API call), the route returned 500 and the whole task re-runs.
 
-The transaction therefore deletes the course's existing modules before re-inserting (step 3a). Combined with atomicity (`status='ready'` and the module rows commit together), a re-run always replaces the module set rather than appending a duplicate one.
+The transaction therefore deletes the course's existing progress rows and modules before re-inserting (step 3a; progress rows reference modules). Combined with atomicity (`status='ready'`, the module rows and the progress rows commit together), a re-run always replaces the module set rather than appending a duplicate one. A learner who started the course between the failed attempt and the re-run loses that progress — the re-run replaces the modules it pointed at.
 
 ### Error handling
 
