@@ -1,6 +1,7 @@
 import { FlatList, RefreshControl, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUserCourses } from '@/api/courses';
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { Screen, Card, AppText, Badge, EmptyState, SkeletonCard } from '@/components';
 import { PRIMARY } from '@/lib/theme-colors';
 
@@ -15,6 +16,7 @@ type Course = {
 export default function MyCoursesScreen() {
   const router = useRouter();
   const { data: courses, isLoading, isRefetching, refetch } = useUserCourses();
+  useRefreshOnFocus(refetch);
 
   if (isLoading) {
     return (

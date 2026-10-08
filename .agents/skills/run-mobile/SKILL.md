@@ -33,12 +33,14 @@ it loads it from Metro, and Fast Refresh applies each save in about a second.
 
 1. Metro serves the checkout you are editing, from the workspace's one `mobile`
    pane (`autodidact:app`, `@ws_id` mobile) — never a second Metro, never
-   another port. Iterating in a worktree means pointing that pane at it, and
-   back at the main checkout when the worktree lands:
+   another port. Iterating in a worktree means pointing that pane at it — and
+   the `backend` pane too when the change touches `services/` — then back at
+   the main checkout when the worktree lands:
 
    ```bash
+   # from the worktree root; mobile → 'pnpm mobile', backend → 'pnpm dev'
    pane=$(tmux list-panes -t autodidact:app -F '#{pane_id} #{@ws_id}' | awk '$2=="mobile"{print $1}')
-   tmux respawn-pane -k -t "$pane" -c "$PWD" 'pnpm mobile'   # from the worktree root
+   tmux respawn-pane -k -t "$pane" -c "$PWD" 'pnpm mobile'
    ```
 
 2. `scripts/run-mobile.sh` from that same checkout. It installs the debug APK

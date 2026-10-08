@@ -105,6 +105,26 @@ describe('ChatService.createSession() — provisioning gate', () => {
   });
 });
 
+describe('ChatService.createSession() — resume', () => {
+  it("returns the learner's existing session on the module, with its messages", async () => {
+    await harness.truncate();
+    const user = await seedUser(harness.db);
+    const course = await seedCourse(harness.db, user.id);
+    const [mod] = await seedModules(harness.db, course.id, 1);
+    const service = new ChatService(new ProgressService(), makeMockProvisioningService() as never, makeMockAgentClient() as never, new ApiPlatformClient());
+    const message = { id: 'm1', role: 'user' as const, content: 'hi', createdAt: new Date().toISOString() };
+    const [first] = await harness.db
+      .insert(chatSessions)
+      .values({ userId: user.id, moduleId: mod!.id, messages: [message] })
+      .returning();
+
+    const resumed = await service.createSession(user.id, mod!.id, course.id);
+
+    expect(resumed.id).toBe(first!.id);
+    expect(resumed.messages).toEqual([message]);
+  });
+});
+
 describe('ChatService.streamMessage()', () => {
   let userId: string;
   let courseId: string;

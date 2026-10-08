@@ -82,7 +82,7 @@ export function useEnrollCourse() {
       return res.json();
     },
     onSuccess: (_data, courseId) => {
-      void queryClient.invalidateQueries({ queryKey: ['courses', courseId] });
+      void queryClient.invalidateQueries({ queryKey: ['courses'] }); // the list and this course
       void queryClient.invalidateQueries({ queryKey: ['progress', courseId] });
     },
   });

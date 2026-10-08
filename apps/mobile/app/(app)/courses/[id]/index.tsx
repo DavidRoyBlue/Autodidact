@@ -2,6 +2,7 @@ import { FlatList, RefreshControl, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourse } from '@/api/courses';
 import { useProgress } from '@/api/progress';
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { Screen, Heading, AppText, Card, ProgressBar, PositionBadge, SkeletonLine, SkeletonCard } from '@/components';
 import type { CourseModule } from '@autodidact/types';
 import { PRIMARY } from '@/lib/theme-colors';
@@ -34,6 +35,7 @@ export default function CourseDetailScreen() {
     void refetchCourse();
     void refetchProgress();
   };
+  useRefreshOnFocus(handleRefresh);
 
   if (isLoading) {
     return (

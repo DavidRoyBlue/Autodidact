@@ -1,9 +1,9 @@
 import '@/global.css';
 import { useEffect, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { useColorScheme } from 'nativewind';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUserCourses } from '@/api/courses';
@@ -13,6 +13,13 @@ import { ErrorBoundary, ToastProvider } from '@/components';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+});
+
+// React Native has no window focus: tell React Query when the app returns to
+// the foreground, so stale queries refetch instead of showing sign-in-time data.
+focusManager.setEventListener((setFocused) => {
+  const sub = AppState.addEventListener('change', (state) => setFocused(state === 'active'));
+  return () => sub.remove();
 });
 
 export default function RootLayout() {
