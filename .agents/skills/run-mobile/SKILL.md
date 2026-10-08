@@ -43,6 +43,10 @@ it loads it from Metro, and Fast Refresh applies each save in about a second.
    tmux respawn-pane -k -t "$pane" -c "$PWD" 'pnpm mobile'
    ```
 
+   A debug APK reads its config (backend URLs) from Metro's manifest, not
+   from the build: `scripts/mobile.sh` sets the PC's LAN address there, so a
+   Metro started any other way serves `127.0.0.1` and every request on the
+   device fails with "Network request failed".
 2. `scripts/run-mobile.sh` from that same checkout. It installs the debug APK
    and opens it on `http://<host>:8081`. Rebuild only when a native dependency,
    `app.json`/`app.config.ts` or the backend address changes; everything under
