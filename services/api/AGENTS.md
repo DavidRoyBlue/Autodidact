@@ -6,7 +6,7 @@
 
 `services/api` is the only public-facing HTTP service. It owns:
 - JWT verification (via AuthGuard on every controller except /health)
-- Course lifecycle: similarity check, enrollment, job enqueueing, status polling
+- Course lifecycle: similarity check, enrollment, job enqueueing, retry of failed generations
 - Chat session management: runs AgentPlatform's `course-teacher` agent once per learner turn on a thread per session, and streams the reply to the client over SSE (ADR-031)
 - Message persistence (user and assistant messages to `chat_sessions`)
 - Module progress tracking and sequential unlock logic
