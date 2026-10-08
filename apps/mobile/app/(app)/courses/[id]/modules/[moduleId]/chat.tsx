@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourse } from '@/api/courses';
 import { useProgress } from '@/api/progress';
@@ -7,10 +7,12 @@ import { useStartChatSession } from '@/api/chat';
 import { useSSE } from '@/hooks/useSSE';
 import { useChatStore } from '@/stores/chat.store';
 import {
-  AppText, Heading, Input, IconButton, Button, ChatBubble, TypingIndicator, Icon, EmptyState,
+  AppText, Input, IconButton, Button, Chip, ChatBubble, ModuleIntro, TypingIndicator, Icon, EmptyState,
 } from '@/components';
 
 const KICKOFF = "I'm ready. Let's start the lesson.";
+// One tap for what a learner most often wants from a teacher mid-lesson.
+const QUICK_REPLIES = ['Give me an example', 'Explain it another way', 'Quiz me'];
 
 export default function ModuleChatScreen() {
   const { id: courseId, moduleId } = useLocalSearchParams<{ id: string; moduleId: string }>();
@@ -104,25 +106,7 @@ export default function ModuleChatScreen() {
           data={items}
           keyExtractor={(item) => item.id}
           keyboardShouldPersistTaps="handled"
-          ListHeaderComponent={
-            mod ? (
-              <View className="mb-2 gap-2 rounded-lg border border-border bg-card p-4">
-                <Heading size="h3">{mod.title}</Heading>
-                <AppText variant="muted">{mod.description}</AppText>
-                {mod.objectives.length > 0 && (
-                  <View className="mt-1 gap-1.5">
-                    <AppText variant="label">You will learn to</AppText>
-                    {mod.objectives.map((o) => (
-                      <View key={o} className="flex-row gap-2">
-                        <Icon name="checkmark-circle-outline" color="primary" size={18} />
-                        <AppText size="sm" className="flex-1">{o}</AppText>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            ) : null
-          }
+          ListHeaderComponent={mod ? <ModuleIntro module={mod} /> : null}
           renderItem={({ item }) => <ChatBubble message={item} isStreaming={item.id === '__streaming__'} />}
           ListFooterComponent={isStreaming && !streamingContent ? <TypingIndicator /> : null}
           onScrollToIndexFailed={({ index }) =>
@@ -152,6 +136,14 @@ export default function ModuleChatScreen() {
           <View className="px-4 pb-3">
             <Button size="lg" icon="play" onPress={() => submit(KICKOFF)}>Start the lesson</Button>
           </View>
+        )}
+
+        {messages.length > 0 && !isStreaming && !input && (
+          <ScrollView horizontal className="grow-0" showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 12 }}>
+            {QUICK_REPLIES.map((q) => (
+              <Chip key={q} label={q} onPress={() => submit(q)} />
+            ))}
+          </ScrollView>
         )}
 
         <View className="flex-row items-end gap-2 border-t border-border bg-card p-3">

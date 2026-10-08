@@ -3,6 +3,7 @@ import { useEffect, type ReactNode } from 'react';
 import { AppState, View } from 'react-native';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { useColorScheme } from 'nativewind';
 import { useAuthStore } from '@/stores/auth.store';
@@ -59,6 +60,8 @@ export default function RootLayout() {
 
   return (
     <View className={colorScheme === 'dark' ? 'dark flex-1' : 'flex-1'}>
+      {/* Translucent: each screen's safe area paints the bar with its own background. */}
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} translucent />
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
           <AuthGate>

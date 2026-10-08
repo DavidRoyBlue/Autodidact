@@ -97,6 +97,7 @@ components/
 │   ├── CourseCard.tsx      # A course on Home: building, failed, in progress or done
 │   ├── ContinueCard.tsx    # Home hero: one tap into the next module
 │   ├── ModuleRow.tsx       # A module on the course screen, with its state
+│   ├── ModuleIntro.tsx     # Top of a lesson: description, objectives, further reading
 │   ├── ModuleStatusBadge.tsx # Number while open, check when done, lock until unlocked
 │   ├── ChatBubble.tsx      # User / assistant bubble; bold, italic, code, bullets, headings
 │   ├── TypingIndicator.tsx # The teacher's bubble while a reply is on its way

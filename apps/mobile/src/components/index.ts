@@ -21,6 +21,7 @@ export { Badge } from './display/Badge';
 export { ProgressBar } from './display/ProgressBar';
 export { ModuleStatusBadge } from './display/ModuleStatusBadge';
 export { ModuleRow } from './display/ModuleRow';
+export { ModuleIntro } from './display/ModuleIntro';
 export { CourseCard } from './display/CourseCard';
 export { ContinueCard } from './display/ContinueCard';
 export { TypingIndicator } from './display/TypingIndicator';
