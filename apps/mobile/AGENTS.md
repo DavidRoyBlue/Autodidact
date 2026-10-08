@@ -42,7 +42,8 @@ This subtree does NOT own:
 
 ### UI
 - **NativeWind v4 only** for styling (`className`); React Native Reusables (RNR) primitives live in [`@/components/ui/`](./src/components/ui/). Do not mix `StyleSheet.create` or other styling libraries. Inline `style` only for runtime-dynamic values with no class equivalent (e.g. progress width %, safe-area insets, RN navigation `screenOptions`/`tintColor` colors, `ActivityIndicator` color prop).
-- **All design tokens are CSS variables in [`src/global.css`](./src/global.css)** consumed via [`tailwind.config.js`](./tailwind.config.js) — never hardcode hex/spacing values in components; add tokens there only.
+- **All design tokens are CSS variables in [`src/global.css`](./src/global.css)** consumed via [`tailwind.config.js`](./tailwind.config.js) — never hardcode hex/spacing values in components; add tokens there only. Where an API takes a color value instead of a className, use `useThemeColors()` or `Icon`'s token-name `color` ([`src/lib/theme-colors.ts`](./src/lib/theme-colors.ts) is the only file with hex values).
+- A new `fontSize` key goes in `tailwind.config.js` **and** the tailwind-merge config in [`src/lib/utils.ts`](./src/lib/utils.ts), or `cn` drops the text color beside it.
 - Screens import only from `@/components`, `@/stores`, or `@/api` — no raw styled primitives in screen files; screens compose `@/components` + plain RN `View`/`Text` with `className`.
 
 ---
@@ -51,9 +52,9 @@ This subtree does NOT own:
 
 - `useSSE(sessionId, courseId)` ([`src/hooks/useSSE.ts`](./src/hooks/useSSE.ts))
   - Writes to: [`src/stores/chat.store.ts`](./src/stores/chat.store.ts) via `addUserMessage` (on send, optimistic), `appendStreamToken` (per token), `finalizeStreamMessage` (on complete/error)
-  - Reads from: [`src/stores/auth.store.ts`](./src/stores/auth.store.ts) via hook selector (`useAuthStore(s => s.accessToken)`) — not `getState()`
-  - Fires: `useToastStore.getState().addToast(...)` on `complete` event (module-complete notification)
-  - Invalidates: `['progress', courseId]` query on `complete` event
+  - Sends through `apiFetch` (token from `auth.store` via `getState()`)
+  - Fires: `useToastStore.getState().addToast(...)` when a teacher turn fails
+  - Invalidates: `['progress', courseId]` and `['courses']` on `module_complete` (the chat's completion card and every course list follow progress)
   - Used by: `app/(app)/courses/[id]/modules/[moduleId]/chat.tsx`
 
 - `apiFetch` ([`src/api/client.ts`](./src/api/client.ts))
@@ -66,11 +67,10 @@ This subtree does NOT own:
   - Supplies token to: `apiFetch`, `useSSE`
   - Syncs with: `supabase` client (auth state events only)
   - Read outside React via `getState()` in: `app/_layout.tsx`, `src/api/client.ts`
-  - Read inside React hook via selector in: `src/hooks/useSSE.ts`
 
 - `toast.store.ts` ([`src/stores/toast.store.ts`](./src/stores/toast.store.ts))
   - In-memory only — not persisted
-  - Written via `getState().addToast()` in: `src/hooks/useSSE.ts` (module complete)
+  - Written in: `src/hooks/useSSE.ts` (failed teacher turn), `app/(app)/(tabs)/create.tsx` (course building / failed to start)
   - Read via selector in: `src/components/display/ToastProvider.tsx`
 
 - `ToastProvider` ([`src/components/display/ToastProvider.tsx`](./src/components/display/ToastProvider.tsx))
@@ -94,14 +94,15 @@ This subtree does NOT own:
 - Auth flow: [`app/(auth)/sign-in.tsx`](./app/(auth)/sign-in.tsx) — sign-in; links to sign-up; "Continue as guest" (anonymous sign-in)
 - New user registration: [`app/(auth)/sign-up.tsx`](./app/(auth)/sign-up.tsx)
 - Guest→account upgrade: [`src/components/auth/UpgradeAccountCard.tsx`](./src/components/auth/UpgradeAccountCard.tsx) — rendered on the profile screen for anonymous users only
-- Main app shell: [`app/(app)/index.tsx`](./app/(app)/index.tsx)
+- Main app shell: [`app/(app)/_layout.tsx`](./app/(app)/_layout.tsx) — a stack whose first screen is the `(tabs)` group (Home, New course, Profile); course and lesson screens open above the tabs
+- Home: [`app/(app)/(tabs)/index.tsx`](./app/(app)/(tabs)/index.tsx) — continue card + every course with progress
 - Chat feature:
   - Route: `app/(app)/courses/[id]/modules/[moduleId]/chat.tsx`
   - Streaming: [`src/hooks/useSSE.ts`](./src/hooks/useSSE.ts)
   - State: [`src/stores/chat.store.ts`](./src/stores/chat.store.ts)
 - Course generation:
-  - Route: `app/(app)/courses/index.tsx`
-  - Polling: [`src/hooks/useCourseGeneration.ts`](./src/hooks/useCourseGeneration.ts)
+  - Route: `app/(app)/(tabs)/create.tsx`
+  - The API enrolls the creator and the Worker opens the first module; Home shows the course building via `useUserCourses`, which polls while any course builds. The phone never enrolls or polls a single course.
 
 ---
 
@@ -118,7 +119,7 @@ Chat streaming flow:
 2. `useSSE` calls `addUserMessage` on `chat.store.ts` (optimistic — adds user bubble, sets `isStreaming`)
 3. `useSSE` opens SSE connection to `POST /chat/sessions/:id/stream`
 4. Each `token` event calls `appendStreamToken` on `chat.store.ts`
-5. On `complete` event: `finalizeStreamMessage` assembles the response, then `queryClient.invalidateQueries(['progress', courseId])` refreshes progress state for that course
+5. On `module_complete`: progress and the course list are invalidated; `finalizeStreamMessage` always closes the turn
 
 ---
 
@@ -135,7 +136,7 @@ Chat streaming flow:
 - Do not use:
   - Direct `fetch()` calls in components
   - `StyleSheet.create()` for layout or styling (use `className` via NativeWind)
-  - React Navigation for routing — Expo Router handles all routes; React Navigation is only used for tab bar `screenOptions` styling in `app/(app)/_layout.tsx`
+  - React Navigation for routing — Expo Router handles all routes; React Navigation options (colors from `useThemeColors()`) are only set in the `(app)` and `(tabs)` layouts
 
 ---
 

@@ -12,21 +12,21 @@ Persisted to device **SecureStore** via the Zustand `persist` middleware.
 |-------|------|---------|
 | `accessToken` | `string \| null` | Supabase access JWT. Presence determines auth state. |
 | `refreshToken` | `string \| null` | Supabase refresh token. Used by `apiFetch` to silently refresh expired access tokens. |
-| `user` | `UserProfile \| null` | Profile data set after sign-in. |
+| `email` | `string \| null` | The signed-in email, from the Supabase session (`null` for guests). |
 
 Actions:
 
 | Action | Signature | Effect |
 |--------|-----------|--------|
 | `setSession` | `(accessToken, refreshToken)` | Stores both tokens (called on sign-in and on silent token refresh) |
-| `setUser` | `(user)` | Stores profile data |
+| `setEmail` | `(email)` | Set by the root layout's `onAuthStateChange` listener |
 | `clearSession` | `()` | Nulls all three fields |
 
 The store is read in three places outside React components:
 
 - `app/_layout.tsx` — auth guard watches `accessToken` to redirect between route groups; also calls `setSession` / `clearSession` in response to Supabase auth events.
 - `src/api/client.ts` — `apiFetch` calls `getState().accessToken` to attach the auth header; calls `getState().setSession()` after a successful token refresh.
-- `src/hooks/useSSE.ts` — reads `accessToken` via the React selector hook (`useAuthStore(s => s.accessToken)`) to set the SSE request header. Note: useSSE is a React hook so it uses the hook API, not `getState()`.
+- `src/hooks/useSSE.ts` — sends through `apiFetch`, which reads `accessToken` with `getState()`.
 
 ## chat.store
 
@@ -67,7 +67,7 @@ Actions:
 | `addToast(message, variant?)` | Appends a toast with a `uuidv4` id. Variant defaults to `'info'`. |
 | `removeToast(id)` | Removes a toast by id (called automatically after 3 s by `Toast.tsx`). |
 
-`useSSE` calls `useToastStore.getState().addToast(...)` after a module-complete SSE event.
+`useSSE` toasts a failed teacher turn; the New course screen toasts that a course is building or failed to start.
 `ToastProvider` reads `toasts` via selector and renders them as an animated overlay.
 
 ## Patterns

@@ -6,11 +6,11 @@ appId: com.autodidact.app.dev
 - launchApp:
     clearState: true
 - assertVisible: "Autodidact"
-- assertVisible: "Sign In"
+- tapOn: "Use email instead"
 - tapOn: "you@example.com"
 - inputText: ${EMAIL ?: "e2e@test.com"}
 - tapOn: "Password"
 - inputText: ${PASSWORD ?: "password123"}
 - tapOn: "Sign In"
-# After a successful sign-in the auth store has a session and the app shell loads.
-- assertNotVisible: "Sign In"
+# After a successful sign-in the auth store has a session and Home loads.
+- assertVisible: "Your learning"

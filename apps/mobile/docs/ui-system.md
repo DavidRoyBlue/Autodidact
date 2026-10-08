@@ -30,9 +30,13 @@ Tokens are CSS variables defined in `src/global.css` and consumed via `tailwind.
 | `--user-bubble` | `bg-user-bubble` | `239 84% 67%` | `239 84% 67%` |
 | `--assistant-bubble` | `bg-assistant-bubble` | `217 33% 17%` | `210 40% 96%` |
 
-**Subtle variants** (e.g. `$primarySubtle` in the old Tamagui theme): express via Tailwind opacity modifier — `bg-primary/[0.13]`, `bg-success/[0.15]`, `bg-warning/[0.15]`, `bg-destructive/[0.15]`.
+**Tints** (status and brand washes behind an icon, a badge or a card): the `15` opacity step, added in `tailwind.config.js` because tailwind 3.3 has none — `bg-primary/15`, `bg-success/15`, `bg-warning/15`, `bg-destructive/15`. Text on the primary fill steps down with `/80` and `/90`.
 
 Reference tokens as Tailwind classes in `className`, e.g. `bg-primary`, `text-muted-foreground`, `border-border`. Never use raw hex values.
+
+**Where a className can't go** (React Navigation options, `ActivityIndicator`/`RefreshControl` colors, icon colors): `useThemeColors()` in `src/lib/theme-colors.ts` returns the tokens as values for the current scheme, and `Icon` takes a token name (`<Icon name="lock-closed" color="mutedForeground" />`). `theme-colors.ts` is the only file with hex values, kept in step with `global.css`.
+
+**Custom font sizes and `cn`:** `src/lib/utils.ts` tells tailwind-merge that `text-md`/`text-h1`/`text-h2`/`text-h3` are sizes. Without it, `cn` reads them as colors and drops the text color next to them. A new `fontSize` key goes in both places.
 
 ### Typography scale
 
@@ -45,6 +49,7 @@ Configured as named `fontSize` keys in `tailwind.config.js`:
 | `text-md` | 15px / 22px |
 | `text-lg` | 16px / 24px |
 | `text-xl` | 18px / 27px |
+| `text-h3` | 20px / 26px |
 | `text-h2` | 26px / 32px |
 | `text-h1` | 32px / 38px |
 
@@ -53,7 +58,7 @@ Use `AppText` / `Heading` components (which apply these classes) rather than inl
 ### Spacing / border radius
 
 - Spacing: Tailwind's default 4px-per-unit scale (`gap-3` = 12px, `p-4` = 16px, etc.).
-- Border radius: `rounded-sm` (8px), `rounded-md` (12px), `rounded-lg` (16px), `rounded-full` (9999px) — configured in `tailwind.config.js`.
+- Border radius: `rounded-sm` (8px), `rounded-md` (12px), `rounded-lg` (16px: cards, buttons, inputs), `rounded-full` (chips, badges, avatars) — configured in `tailwind.config.js`.
 
 ## React Native Reusables — `src/components/ui/`
 
@@ -74,31 +79,40 @@ Import from `@/components/ui/<name>` directly, or re-export via `@/components/in
 ```
 components/
 ├── ui/                     # React Native Reusables copy-paste primitives (see above)
+├── auth/
+│   └── UpgradeAccountCard.tsx  # Guest → account (Google, Facebook, email); hides for real accounts
 ├── typography/
 │   ├── AppText.tsx         # Variant text: body | muted | caption | label | error
-│   └── Heading.tsx         # Semantic headings: h1 | h2
+│   └── Heading.tsx         # Semantic headings: h1 | h2 | h3
 ├── interactive/
-│   ├── Button.tsx          # Primary/secondary/ghost, size sm|md|lg
+│   ├── Button.tsx          # primary | secondary | ghost | danger | link, size sm|md|lg, optional icon
 │   ├── IconButton.tsx      # Icon-only pressable
-│   ├── Input.tsx           # Compound: label + Input + error/helper text
-│   └── Chip.tsx            # Selectable tag
+│   ├── Input.tsx           # Compound: label + Input + error/helper text; multiline grows
+│   └── Chip.tsx            # Selectable pill, sized to its label
 ├── display/
 │   ├── Card.tsx            # Pressable surface: default | elevated | ghost
 │   ├── Badge.tsx           # Status label: default | success | warning | danger
-│   ├── ProgressBar.tsx     # Animated horizontal fill bar (0–1 value)
-│   ├── ChatBubble.tsx      # User / assistant message bubble; renders inline markdown + timestamp
-│   ├── EmptyState.tsx      # Centred empty-list state; optional icon + CTA action
-│   ├── PositionBadge.tsx   # Numbered module step indicator
+│   ├── Icon.tsx            # Ionicon colored by token name
+│   ├── ProgressBar.tsx     # Horizontal fill bar (0–1 value) with optional caption
+│   ├── CourseCard.tsx      # A course on Home: building, failed, in progress or done
+│   ├── ContinueCard.tsx    # Home hero: one tap into the next module
+│   ├── ModuleRow.tsx       # A module on the course screen, with its state
+│   ├── ModuleStatusBadge.tsx # Number while open, check when done, lock until unlocked
+│   ├── ChatBubble.tsx      # User / assistant bubble; bold, italic, code, bullets, headings
+│   ├── TypingIndicator.tsx # The teacher's bubble while a reply is on its way
+│   ├── EmptyState.tsx      # Icon, title, message, optional action (empty and offline states)
 │   ├── Skeleton.tsx        # SkeletonLine (text row) and SkeletonCard (card placeholder)
 │   ├── Toast.tsx           # Animated success/error/info notification pill
 │   └── ToastProvider.tsx   # Overlay renderer for active toasts (place in root layout)
 ├── layout/
-│   ├── Screen.tsx          # Safe-area scroll container
+│   ├── Screen.tsx          # Safe area (edges per screen kind), optional scroll + pull-to-refresh
 │   └── ErrorBoundary.tsx   # React class error boundary with retry fallback
 └── index.ts                # Barrel: all components re-exported from one path
 ```
 
-Import everything from `@/components`.
+Import everything from `@/components`. Inside `src/components/`, import siblings by relative path: a component that imports the barrel makes a require cycle.
+
+**Screen kinds.** Tab screens (`(tabs)/*`) have no header: they open with a `Heading` and use `Screen`'s default `edges={['top']}`. Stack screens (course, lesson) sit under the native header and pass `edges={['bottom']}`.
 
 ## Adding something new
 

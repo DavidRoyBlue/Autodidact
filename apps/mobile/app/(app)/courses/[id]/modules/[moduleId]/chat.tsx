@@ -27,7 +27,7 @@ export default function ModuleChatScreen() {
 
   const open = () =>
     session.mutate(
-      { courseId, moduleId },
+      moduleId,
       {
         onSuccess: (s) => {
           setSessionId(s.id);
