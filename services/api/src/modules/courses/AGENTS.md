@@ -8,7 +8,7 @@ The courses module owns the course lifecycle from creation to enrollment:
 - Semantic similarity check before creating a new course (deduplication)
 - Course row creation and Cloud Tasks enqueueing for async generation (loopback provider in dev)
 - Enrollment upsert and per-user `module_progress` row initialisation
-- Course and module retrieval, and generation-status polling (DB-backed: reads `courses.status`)
+- Course and module retrieval, and generation retry (status is DB-backed: `courses.status`)
 
 ---
 

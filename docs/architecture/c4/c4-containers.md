@@ -89,7 +89,7 @@ In local development the Cloud Tasks hop is replaced by the loopback queue provi
 
 | From | To | Protocol | Description |
 |------|----|----------|-------------|
-| Mobile | API | HTTPS REST | Course creation, listing, enrollment, progress, generation-status polling |
+| Mobile | API | HTTPS REST | Course creation, listing, enrollment, progress, generation retry |
 | Mobile | API | HTTPS SSE | Chat message streaming |
 | API | Agent | HTTP POST | Embedding generation (similarity check, RAG query) |
 | API | AgentPlatform | HTTPS `/api/v1` | Create a thread, run `course-teacher` per learner turn (ADR-031) |
