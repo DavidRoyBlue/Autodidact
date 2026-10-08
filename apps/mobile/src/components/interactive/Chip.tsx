@@ -11,6 +11,8 @@ type ChipProps = {
 export function Chip({ label, selected = false, onPress }: ChipProps) {
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
       onPress={onPress}
       className={cn(
         'flex-row items-center justify-center rounded-full border px-4 py-2 active:opacity-80',

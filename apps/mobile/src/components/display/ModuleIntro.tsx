@@ -25,7 +25,7 @@ export function ModuleIntro({ module }: { module: CourseModule }) {
         <View className="mt-2 gap-2">
           <AppText variant="label">Further reading</AppText>
           {module.resources.map((r) => (
-            <Pressable key={r.url} onPress={() => void Linking.openURL(r.url)} className="flex-row gap-2 active:opacity-70">
+            <Pressable key={r.url} accessibilityRole="link" onPress={() => void Linking.openURL(r.url)} className="flex-row gap-2 active:opacity-70">
               <Icon name="open-outline" color="primary" size={18} />
               <View className="flex-1">
                 <AppText size="sm" weight="semibold" className="text-primary">{r.title}</AppText>

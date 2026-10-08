@@ -160,6 +160,7 @@ export default function ModuleChatScreen() {
             />
           </View>
           <IconButton
+            label="Send"
             icon={<Icon name="arrow-up" color="primaryForeground" />}
             loading={isStreaming}
             disabled={!input.trim() || !sessionId}

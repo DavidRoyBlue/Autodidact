@@ -9,7 +9,7 @@ export function ContinueCard({ course, onPress }: { course: Course; onPress: () 
   const fresh = course.completedModules === 0;
   const pct = course.totalModules ? Math.round((course.completedModules / course.totalModules) * 100) : 0;
   return (
-    <Pressable onPress={onPress} className="gap-3 rounded-lg bg-primary p-5 active:opacity-90">
+    <Pressable accessibilityRole="button" onPress={onPress} className="gap-3 rounded-lg bg-primary p-5 active:opacity-90">
       <AppText variant="label" className="text-primary-foreground/80">{fresh ? 'Start learning' : 'Continue learning'}</AppText>
       <Heading size="h3" className="text-primary-foreground" numberOfLines={2}>{course.title}</Heading>
       <AppText className="text-primary-foreground/90" numberOfLines={2}>

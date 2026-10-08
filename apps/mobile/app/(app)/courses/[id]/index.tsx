@@ -79,7 +79,7 @@ export default function CourseDetailScreen() {
               </AppText>
             </View>
             {!!description && (
-              <Pressable onPress={() => setExpanded(!expanded)}>
+              <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setExpanded(!expanded)}>
                 <AppText variant="muted" numberOfLines={expanded ? undefined : 4}>{description}</AppText>
                 {description.length > 200 && (
                   <AppText variant="caption" className="mt-1 text-primary">{expanded ? 'Show less' : 'Show more'}</AppText>

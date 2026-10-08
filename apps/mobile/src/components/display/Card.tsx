@@ -20,6 +20,8 @@ export function Card({ variant = 'default', onPress, disabled = false, children 
   if (onPress) {
     return (
       <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
         onPress={disabled ? undefined : onPress}
         disabled={disabled}
         className={cn(className, 'active:opacity-85')}

@@ -5,6 +5,8 @@ import { useThemeColors } from '@/lib/theme-colors';
 
 type IconButtonProps = {
   icon: ReactNode;
+  /** What the button does, for screen readers (the icon says nothing). */
+  label: string;
   variant?: 'primary' | 'ghost';
   loading?: boolean;
   disabled?: boolean;
@@ -13,6 +15,7 @@ type IconButtonProps = {
 
 export function IconButton({
   icon,
+  label,
   variant = 'primary',
   loading = false,
   disabled = false,
@@ -23,6 +26,9 @@ export function IconButton({
   const indicatorColor = variant === 'primary' ? c.primaryForeground : c.foreground;
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       onPress={isDisabled ? undefined : onPress}
       disabled={isDisabled}
       className={cn(

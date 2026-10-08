@@ -47,6 +47,8 @@ const Button = React.forwardRef<React.ElementRef<typeof Pressable>, ButtonProps>
     <TextClassContext.Provider value={buttonTextVariants({ variant, size })}>
       <Pressable
         ref={ref}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !!disabled }}
         className={cn(buttonVariants({ variant, size }), disabled && 'opacity-40', className)}
         disabled={disabled}
         {...props}
