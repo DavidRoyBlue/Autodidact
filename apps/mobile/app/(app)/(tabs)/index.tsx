@@ -20,7 +20,7 @@ export default function HomeScreen() {
         <View className="gap-1">
           <Heading>Your learning</Heading>
           <AppText variant="muted">
-            {current ? 'Pick up where you left off.' : 'Every course is a conversation with your teacher.'}
+            {current?.completedModules ? 'Pick up where you left off.' : 'Every course is a conversation with your teacher.'}
           </AppText>
         </View>
 

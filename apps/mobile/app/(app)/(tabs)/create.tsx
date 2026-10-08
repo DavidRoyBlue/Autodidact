@@ -58,8 +58,8 @@ export default function CreateCourseScreen() {
 
         <Input
           label="Topic"
-          placeholder="e.g. Spanish for travel, Rust ownership, Byzantine history"
-          helper="Specific topics make better courses."
+          placeholder="e.g. Spanish for travel"
+          helper="Specific topics make better courses: 'Rust ownership' beats 'Rust'."
           value={topic}
           onChangeText={setTopic}
           multiline

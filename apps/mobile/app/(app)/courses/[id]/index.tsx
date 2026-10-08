@@ -1,4 +1,5 @@
-import { FlatList, RefreshControl, View } from 'react-native';
+import { useState } from 'react';
+import { FlatList, Pressable, RefreshControl, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCourse } from '@/api/courses';
 import { useProgress } from '@/api/progress';
@@ -14,6 +15,7 @@ export default function CourseDetailScreen() {
   const { primary } = useThemeColors();
   const course = useCourse(id);
   const progress = useProgress(id);
+  const [expanded, setExpanded] = useState(false);
 
   const refresh = () => {
     void course.refetch();
@@ -76,7 +78,14 @@ export default function CourseDetailScreen() {
                 {modules.length} modules{estimatedHours ? ` · about ${estimatedHours} h` : ''}
               </AppText>
             </View>
-            {!!description && <AppText variant="muted">{description}</AppText>}
+            {!!description && (
+              <Pressable onPress={() => setExpanded(!expanded)}>
+                <AppText variant="muted" numberOfLines={expanded ? undefined : 4}>{description}</AppText>
+                {description.length > 200 && (
+                  <AppText variant="caption" className="mt-1 text-primary">{expanded ? 'Show less' : 'Show more'}</AppText>
+                )}
+              </Pressable>
+            )}
             <ProgressBar
               value={modules.length ? completed / modules.length : 0}
               label={`${completed} of ${modules.length} modules complete`}

@@ -3,7 +3,10 @@ import { Alert, View } from 'react-native';
 import { useAuthStore } from '@/stores/auth.store';
 import { supabase } from '@/lib/supabase';
 import { linkWithGoogle, linkWithFacebook } from '@/lib/social-auth';
-import { Card, AppText, Input, Button } from '@/components';
+import { Card } from '../display/Card';
+import { AppText } from '../typography/AppText';
+import { Input } from '../interactive/Input';
+import { Button } from '../interactive/Button';
 
 export function UpgradeAccountCard() {
   const isAnonymous = useAuthStore((s) => s.isAnonymous);
@@ -12,6 +15,7 @@ export function UpgradeAccountCard() {
   const setSession = useAuthStore((s) => s.setSession);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showEmail, setShowEmail] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
@@ -63,36 +67,46 @@ export function UpgradeAccountCard() {
   };
 
   return (
-    <Card variant="elevated">
-      <AppText variant="label">Save your progress</AppText>
-      <AppText variant="muted">You're browsing as a guest. Add an email to keep your progress.</AppText>
-      <View className="mt-3 gap-3">
-        <Button variant="primary" size="lg" loading={googleLoading}
+    <Card>
+      <AppText weight="semibold" size="lg">Save your progress</AppText>
+      <AppText variant="muted" className="mt-1">
+        You're learning as a guest. Link an account so your courses are never lost.
+      </AppText>
+      <View className="mt-4 gap-3">
+        <Button icon="logo-google" loading={googleLoading}
           onPress={() => runLink(linkWithGoogle, setGoogleLoading, 'Google link failed')}>
           Continue with Google
         </Button>
-        <Button variant="primary" size="lg" loading={facebookLoading}
+        <Button variant="secondary" icon="logo-facebook" loading={facebookLoading}
           onPress={() => runLink(linkWithFacebook, setFacebookLoading, 'Facebook link failed')}>
           Continue with Facebook
         </Button>
-        <Input
-          label="Email"
-          placeholder="you@example.com"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-        <Input
-          label="Password"
-          placeholder="Choose a password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <Button variant="primary" size="lg" loading={loading} onPress={handleUpgrade}>
-          Save your account
-        </Button>
+        {showEmail ? (
+          <>
+            <Input
+              label="Email"
+              placeholder="you@example.com"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <Input
+              label="Password"
+              placeholder="Choose a password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+            <Button loading={loading} disabled={!email.trim() || !password} onPress={handleUpgrade}>
+              Save your account
+            </Button>
+          </>
+        ) : (
+          <Button variant="ghost" icon="mail-outline" onPress={() => setShowEmail(true)}>
+            Use email instead
+          </Button>
+        )}
       </View>
     </Card>
   );

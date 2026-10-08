@@ -6,7 +6,7 @@ import { Icon } from './Icon';
 import { ModuleStatusBadge } from './ModuleStatusBadge';
 
 const statusLabel: Record<ModuleStatus, string> = {
-  locked: 'Locked: finish the module before it',
+  locked: 'Locked',
   available: 'Ready to start',
   in_progress: 'In progress',
   completed: 'Completed',

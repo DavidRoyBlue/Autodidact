@@ -5,13 +5,14 @@ import { AppText } from '../typography/AppText';
 import { Icon, type IconName } from '../display/Icon';
 import { useThemeColors, type ThemeColor } from '@/lib/theme-colors';
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'link';
 
 const content: Record<Variant, { text: string; color: ThemeColor }> = {
   primary: { text: 'text-primary-foreground', color: 'primaryForeground' },
   danger: { text: 'text-primary-foreground', color: 'primaryForeground' },
   secondary: { text: 'text-foreground', color: 'foreground' },
   ghost: { text: 'text-foreground', color: 'foreground' },
+  link: { text: 'text-primary', color: 'primary' },
 };
 
 type ButtonProps = {

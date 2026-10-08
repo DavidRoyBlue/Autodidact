@@ -58,8 +58,8 @@ export default function ProfileScreen() {
 
         <View className="flex-row gap-3">
           <Stat value={count(courses?.length)} label="Courses" />
-          <Stat value={count(modulesDone)} label="Modules done" />
-          <Stat value={count(coursesDone)} label="Completed" />
+          <Stat value={count(modulesDone)} label="Modules" />
+          <Stat value={count(coursesDone)} label="Finished" />
         </View>
 
         <UpgradeAccountCard />
