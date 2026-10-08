@@ -10,7 +10,7 @@ default).
 | Flow | Covers |
 |------|--------|
 | `sign-in.yaml` | Launch + authenticate (verified selectors). |
-| `golden-path.yaml` | Sign in → create course → generation → open module → chat a turn. Mirrors the cross-service `@autodidact/e2e` journey through the UI. **Selectors past sign-in are a scaffold — validate on-device before trusting.** |
+| `golden-path.yaml` | Sign in → create course → it builds and shows on Home → start the lesson → the teacher's first reply. Mirrors the cross-service `@autodidact/e2e` journey through the UI; labels match the 2026-10 redesign. |
 
 ## Prerequisites
 

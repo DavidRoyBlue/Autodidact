@@ -1,30 +1,27 @@
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from 'nativewind';
 import { AppText } from '../typography/AppText';
+import { Heading } from '../typography/Heading';
 import { Button } from '../interactive/Button';
-import { getThemeColors } from '@/lib/theme-colors';
+import { IconTile } from './IconTile';
+import type { IconName } from './Icon';
 
 type EmptyStateProps = {
+  title: string;
   message: string;
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon: IconName;
   action?: { label: string; onPress: () => void };
 };
 
-export function EmptyState({ message, icon, action }: EmptyStateProps) {
-  const { colorScheme } = useColorScheme();
-  const mutedColor = getThemeColors(colorScheme).mutedForeground;
-
+export function EmptyState({ title, message, icon, action }: EmptyStateProps) {
   return (
-    <View className="flex-1 items-center justify-center gap-4 pt-10">
-      {icon && <Ionicons name={icon} size={48} color={mutedColor} />}
-      <AppText variant="muted" className="text-center">
-        {message}
-      </AppText>
+    <View className="items-center gap-3 px-6 py-10">
+      <IconTile icon={icon} />
+      <Heading size="h3" className="text-center">{title}</Heading>
+      <AppText variant="muted" className="text-center">{message}</AppText>
       {action && (
-        <Button variant="ghost" size="sm" onPress={action.onPress}>
-          {action.label}
-        </Button>
+        <View className="mt-2 self-stretch">
+          <Button size="lg" onPress={action.onPress}>{action.label}</Button>
+        </View>
       )}
     </View>
   );

@@ -1,9 +1,10 @@
 import '@/global.css';
 import { useEffect, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { StatusBar } from 'expo-status-bar';
+import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { useColorScheme } from 'nativewind';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUserCourses } from '@/api/courses';
@@ -15,8 +16,15 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
 });
 
+// React Native has no window focus: tell React Query when the app returns to
+// the foreground, so stale queries refetch instead of showing sign-in-time data.
+focusManager.setEventListener((setFocused) => {
+  const sub = AppState.addEventListener('change', (state) => setFocused(state === 'active'));
+  return () => sub.remove();
+});
+
 export default function RootLayout() {
-  const { accessToken, refreshToken, setSession, clearSession } = useAuthStore();
+  const { accessToken, refreshToken, setSession, setEmail, clearSession } = useAuthStore();
   const { colorScheme, setColorScheme } = useColorScheme();
   const rnScheme = useRNColorScheme();
 
@@ -42,15 +50,18 @@ export default function RootLayout() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.access_token && session?.refresh_token) {
         setSession(session.access_token, session.refresh_token, session.user?.is_anonymous ?? false);
+        setEmail(session.user?.email || null);
       } else {
         clearSession();
       }
     });
     return () => subscription.unsubscribe();
-  }, [setSession, clearSession]);
+  }, [setSession, setEmail, clearSession]);
 
   return (
     <View className={colorScheme === 'dark' ? 'dark flex-1' : 'flex-1'}>
+      {/* Translucent: each screen's safe area paints the bar with its own background. */}
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} translucent />
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
           <AuthGate>
@@ -89,7 +100,7 @@ function AuthGate({ children }: { children: ReactNode }) {
       // Spec 4 DEV_AUTO_LOGIN slot goes here (before the redirect to auth UI).
       router.replace('/(auth)/sign-in');
     } else if (accessToken && inAuthGroup) {
-      router.replace('/(app)');
+      router.replace('/(app)/(tabs)');
     }
   }, [accessToken, segments, router]);
 
@@ -102,7 +113,7 @@ function AuthGate({ children }: { children: ReactNode }) {
     const onboarding = courses.find((c) => c.isOnboarding);
     if (!onboarding) return; // no onboarding course found (e.g. seed missing) — retry next launch
     setHasSeenOnboarding(true);
-    router.replace(`/(app)/courses/${onboarding.id}`);
+    router.push(`/(app)/courses/${onboarding.id}`);
   }, [accessToken, hasSeenOnboarding, courses, segments, router, setHasSeenOnboarding]);
 
   return <>{children}</>;

@@ -38,6 +38,8 @@ vi.mock('@autodidact/db', () => ({
   })),
   courses: {},
   modules: {},
+  moduleProgress: {},
+  openModuleProgress: vi.fn(),
   eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
   sql: vi.fn((s: TemplateStringsArray, ...v: unknown[]) => ({ sql: s, v })),
 }));

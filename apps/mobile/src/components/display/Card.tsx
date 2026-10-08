@@ -4,22 +4,23 @@ import { cn } from '@/lib/utils';
 
 const variantClass = {
   default: 'bg-card border border-border',
-  elevated: 'bg-muted',
   ghost: 'bg-transparent border border-border',
 } as const;
 
 type CardProps = {
-  variant?: 'default' | 'elevated' | 'ghost';
+  variant?: 'default' | 'ghost';
   onPress?: () => void;
   disabled?: boolean;
   children: ReactNode;
 };
 
 export function Card({ variant = 'default', onPress, disabled = false, children }: CardProps) {
-  const className = cn('rounded-md p-4', variantClass[variant], disabled && 'opacity-45');
+  const className = cn('rounded-lg p-4', variantClass[variant], disabled && 'opacity-45');
   if (onPress) {
     return (
       <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
         onPress={disabled ? undefined : onPress}
         disabled={disabled}
         className={cn(className, 'active:opacity-85')}

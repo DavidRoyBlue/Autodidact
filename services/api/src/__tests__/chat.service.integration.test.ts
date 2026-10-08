@@ -34,6 +34,7 @@ vi.mock('@autodidact/db', async () => {
 import {
   chatSessions,
   moduleProgress,
+  enrollments,
   eq,
   and,
 } from '@autodidact/db';
@@ -99,9 +100,47 @@ describe('ChatService.createSession() — provisioning gate', () => {
   it('throws InternalServerErrorException for an unprovisioned userId', async () => {
     await harness.truncate();
     const service = new ChatService(new ProgressService(), new ProvisioningService(), makeMockAgentClient() as never, new ApiPlatformClient());
-    await expect(service.createSession('00000000-0000-0000-0000-000000000000', 'mod', 'course')).rejects.toBeInstanceOf(
+    await expect(service.createSession('00000000-0000-0000-0000-000000000000', 'mod')).rejects.toBeInstanceOf(
       InternalServerErrorException,
     );
+  });
+});
+
+describe('ChatService.createSession() — resume', () => {
+  it("returns the learner's existing session on the module, with its messages", async () => {
+    await harness.truncate();
+    const user = await seedUser(harness.db);
+    const course = await seedCourse(harness.db, user.id);
+    const [mod] = await seedModules(harness.db, course.id, 1);
+    const service = new ChatService(new ProgressService(), makeMockProvisioningService() as never, makeMockAgentClient() as never, new ApiPlatformClient());
+    const message = { id: 'm1', role: 'user' as const, content: 'hi', createdAt: new Date().toISOString() };
+    const [first] = await harness.db
+      .insert(chatSessions)
+      .values({ userId: user.id, moduleId: mod!.id, messages: [message] })
+      .returning();
+
+    const resumed = await service.createSession(user.id, mod!.id);
+
+    expect(resumed.id).toBe(first!.id);
+    expect(resumed.messages).toEqual([message]);
+  });
+
+  it("marks the module started and makes its course the learner's most recent", async () => {
+    await harness.truncate();
+    const user = await seedUser(harness.db);
+    const course = await seedCourse(harness.db, user.id);
+    const mods = await seedModules(harness.db, course.id, 1);
+    await seedEnrollment(harness.db, user.id, course.id);
+    await seedModuleProgress(harness.db, user.id, course.id, mods);
+    const service = new ChatService(new ProgressService(), makeMockProvisioningService() as never, makeMockAgentClient() as never, new ApiPlatformClient());
+    const before = new Date();
+
+    await service.createSession(user.id, mods[0]!.id);
+
+    const [progress] = await harness.db.select({ status: moduleProgress.status }).from(moduleProgress).where(eq(moduleProgress.moduleId, mods[0]!.id));
+    const [enrollment] = await harness.db.select({ at: enrollments.lastAccessedAt }).from(enrollments).where(eq(enrollments.courseId, course.id));
+    expect(progress?.status).toBe('in_progress');
+    expect(enrollment!.at!.getTime()).toBeGreaterThanOrEqual(before.getTime());
   });
 });
 

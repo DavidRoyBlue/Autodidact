@@ -8,6 +8,7 @@ const headingVariants = cva('font-bold text-foreground', {
     size: {
       h1: 'text-h1',
       h2: 'text-h2',
+      h3: 'text-h3',
     },
   },
   defaultVariants: { size: 'h1' },

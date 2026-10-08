@@ -13,12 +13,13 @@ How to run and ship Autodidact — dev and prod, backend and mobile. Reference d
 | What | Command | Status |
 |---|---|---|
 | Backend stack (Supabase + api/agent/worker) | `pnpm dev` | ✅ |
-| Mobile APK on the Windows-host emulator | `pnpm mobile:run -- --release` (`pnpm mobile` = Metro for a debug APK) | ✅ verified 2026-09-29 |
+| Mobile APK on the plugged-in phone or the Windows-host emulator | `pnpm mobile:run -- --release`; dev loop: `pnpm mobile` + `pnpm mobile:run` (debug APK on Metro, `run-mobile` skill) | ✅ verified 2026-09-29 |
 | First-time setup | `pnpm setup` | ✅ |
 
-`pnpm mobile:run -- --release` boots the AVD (`Medium_Phone`), builds the APK in WSL
-(`expo prebuild` + gradle) and installs it. The device reaches the api (3000) and local Supabase
-(55321) via the **`10.0.2.2` host loopback**, baked into the APK — NOT `adb reverse`. **Expo Go
+`pnpm mobile:run -- --release` targets the phone plugged into the PC, or boots the AVD
+(`Medium_Phone`) when there is none, builds the APK in WSL (`expo prebuild` + gradle) and installs
+it. The device reaches the api (3000) and local Supabase (55321) at an address baked into the APK —
+the PC's LAN address for a phone, the **`10.0.2.2` host loopback** for the emulator — NOT `adb reverse`. **Expo Go
 cannot run this app** (native Google sign-in crashes it at import); the EAS `development` profile
 is a cloud dev client, not the dev path. Details: `scripts/run-mobile.sh` header and the
 `run-mobile` skill; auth setup: [`apps/mobile/docs/social-sign-in.md`](../apps/mobile/docs/social-sign-in.md).
@@ -69,7 +70,7 @@ Play Console listing + service-account key for `eas submit` are not set up yet.
 `.env.dev` (local Metro) → `app.json` fallbacks. Consequences:
 
 - Local APK (`pnpm mobile:run`): local Supabase stack + local API, exposed to the device as
-  `10.0.2.2` (the script exports `SUPABASE_URL`/`AUTODIDACT_API_BASE_URL` for the build only —
+  the PC's LAN address (phone) or `10.0.2.2` (emulator) (the script exports `SUPABASE_URL`/`AUTODIDACT_API_BASE_URL` for the build only —
   `.env.dev` keeps `127.0.0.1` for the backend). ✅
 - EAS `preview`/`production`: Cloud Run API via profile env; Supabase falls back to the **hosted**
   project baked in `app.json`. ✅ (intended)

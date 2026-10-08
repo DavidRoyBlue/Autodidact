@@ -1,34 +1,40 @@
 // Literal hex values for the design tokens defined in `src/global.css`, for the
 // few React Native APIs that take a color value rather than a className
-// (ActivityIndicator `color`, RefreshControl `tintColor`, Ionicons `color`,
-// Tabs `screenOptions`). className-based styling stays the source of truth in
+// (ActivityIndicator `color`, RefreshControl `tintColor`, icon colors, React
+// Navigation options). className-based styling stays the source of truth in
 // global.css + tailwind.config.js — these MUST be kept in sync with it.
-export type ColorScheme = 'light' | 'dark';
+import { useColorScheme } from 'nativewind';
 
-// Brand primary is identical in both themes (indigo500), so it's scheme-independent.
-export const PRIMARY = '#6366f1';
+// Brand primary is identical in both themes (indigo500).
+const primary = '#6366f1';
 
-export const themeColors = {
+const themeColors = {
   dark: {
     background: '#0f172a', // slate900
     foreground: '#f1f5f9', // slate100
     card: '#1e293b', // slate800
     border: '#334155', // slate700
-    primary: PRIMARY,
-    primaryForeground: '#f1f5f9', // slate100 — text/spinner on a primary/danger fill
+    primary,
+    primaryForeground: '#f1f5f9', // slate100 — text/spinner on a primary fill
     mutedForeground: '#94a3b8', // slate400
+    success: '#22c55e',
+    destructive: '#ef4444',
   },
   light: {
     background: '#ffffff',
     foreground: '#0f172a', // slate900
     card: '#ffffff',
     border: '#e2e8f0', // slate200
-    primary: PRIMARY,
+    primary,
     primaryForeground: '#ffffff',
     mutedForeground: '#64748b', // slate500
+    success: '#22c55e',
+    destructive: '#ef4444',
   },
 } as const;
 
-export function getThemeColors(scheme: ColorScheme | null | undefined) {
-  return themeColors[scheme === 'dark' ? 'dark' : 'light'];
+export type ThemeColor = keyof (typeof themeColors)['dark'];
+
+export function useThemeColors() {
+  return themeColors[useColorScheme().colorScheme === 'dark' ? 'dark' : 'light'];
 }
