@@ -13,7 +13,7 @@ React Query hooks live in `src/api/`:
 
 | File | Hooks |
 |------|-------|
-| `courses.ts` | `useUserCourses` (list with progress and next module; polls while a course builds), `useCourse`, `useCreateCourse` |
+| `courses.ts` | `useUserCourses` (list with progress and next module; polls while a course builds), `useCourse`, `useCreateCourse`, `useRetryCourse` |
 | `progress.ts` | `useProgress` |
 | `chat.ts` | `useStartChatSession` (opens or resumes the learner's session on a module) |
 

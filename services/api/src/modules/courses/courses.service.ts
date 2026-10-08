@@ -1,9 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { getDb, courses, modules, enrollments, moduleProgress, eq, desc, sql } from '@autodidact/db';
 import type { IQueueProvider } from '@autodidact/providers';
 import type { CreateCourseRequest } from '@autodidact/schemas';
-import type { JobStatus } from '@autodidact/types';
 import { ApiAgentClient } from '../../services/agent.client.js';
 import { QUEUES, JOB_NAMES } from '../../queues/definitions.js';
 import { ProvisioningService } from '../provisioning/provisioning.service.js';
@@ -80,6 +79,22 @@ export class CoursesService {
     });
 
     return { courseId: course.id, status: 'pending', reused: false };
+  }
+
+  /** Re-queues a failed course's generation; only its creator may. */
+  async retryGeneration(userId: string, courseId: string) {
+    const course = await this.getCourse(courseId);
+    if (course.generatedBy !== userId) throw new ForbiddenException('Only the creator can retry this course');
+    if (course.status !== 'failed') return { courseId, status: course.status };
+    await getDb().update(courses).set({ status: 'pending', updatedAt: new Date() }).where(eq(courses.id, courseId));
+    await this.queueProvider.enqueue(QUEUES.COURSE_GENERATION, JOB_NAMES.GENERATE_COURSE, {
+      courseId,
+      userId,
+      topic: course.topic,
+      difficulty: course.difficulty,
+      timeBudget: course.timeBudget,
+    });
+    return { courseId, status: 'pending' };
   }
 
   async enrollUser(userId: string, courseId: string) {
@@ -168,21 +183,5 @@ export class CoursesService {
       .innerJoin(courses, eq(enrollments.courseId, courses.id))
       .where(eq(enrollments.userId, userId))
       .orderBy(desc(enrollments.lastAccessedAt));
-  }
-
-  /**
-   * Generation status, read from the DB — `courses.status` is the source of
-   * truth (the Worker writes 'generating'/'ready'/'failed'). Mapped to the
-   * job-status vocabulary the mobile client polls on.
-   */
-  async getGenerationStatus(courseId: string) {
-    const course = await this.getCourse(courseId);
-    const map: Record<string, JobStatus> = {
-      pending: 'pending',
-      generating: 'active',
-      ready: 'completed',
-      failed: 'failed',
-    };
-    return { courseId, status: map[course.status] ?? 'pending' };
   }
 }

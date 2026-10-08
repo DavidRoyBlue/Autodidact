@@ -36,7 +36,7 @@ import {
   eq,
   and,
 } from '@autodidact/db';
-import { InternalServerErrorException } from '@nestjs/common';
+import { ForbiddenException, InternalServerErrorException } from '@nestjs/common';
 import { CoursesService } from '../modules/courses/courses.service.js';
 import { ProvisioningService } from '../modules/provisioning/provisioning.service.js';
 
@@ -270,6 +270,49 @@ describe('CoursesService.createOrReuse() — similarity routing', () => {
       .from(enrollments)
       .where(and(eq(enrollments.userId, userId), eq(enrollments.courseId, result.courseId)));
     expect(enrollment).toBeDefined();
+  });
+});
+
+describe('CoursesService.retryGeneration()', () => {
+  let userId: string;
+
+  beforeEach(async () => {
+    await harness.truncate();
+    userId = (await seedUser(harness.db)).id;
+  });
+
+  it("re-queues a failed course for its creator with the course's own parameters", async () => {
+    const course = await seedCourseWithEmbedding(userId, FAR_VECTOR, { status: 'failed', topic: 'Rust' });
+    const queue = makeMockQueueProvider();
+    const service = new CoursesService(makeMockAgentClient() as never, queue as never, makeMockProvisioningService() as never);
+
+    const result = await service.retryGeneration(userId, course.id);
+
+    expect(result.status).toBe('pending');
+    expect(queue.enqueue).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({ courseId: course.id, userId, topic: 'Rust', difficulty: 'beginner' }),
+    );
+    const [row] = await harness.db.select({ status: courses.status }).from(courses).where(eq(courses.id, course.id));
+    expect(row?.status).toBe('pending');
+  });
+
+  it('refuses anyone but the creator', async () => {
+    const course = await seedCourseWithEmbedding(userId, FAR_VECTOR, { status: 'failed' });
+    const other = await seedUser(harness.db);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
+
+    await expect(service.retryGeneration(other.id, course.id)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('leaves a course that has not failed alone', async () => {
+    const course = await seedCourseWithEmbedding(userId, FAR_VECTOR, { status: 'ready' });
+    const queue = makeMockQueueProvider();
+    const service = new CoursesService(makeMockAgentClient() as never, queue as never, makeMockProvisioningService() as never);
+
+    expect((await service.retryGeneration(userId, course.id)).status).toBe('ready');
+    expect(queue.enqueue).not.toHaveBeenCalled();
   });
 });
 

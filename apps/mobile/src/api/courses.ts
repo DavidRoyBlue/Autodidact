@@ -73,3 +73,16 @@ export function useCreateCourse() {
     },
   });
 }
+
+export function useRetryCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (courseId: string) => {
+      const res = await apiFetch(`/courses/${courseId}/retry`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to retry the course');
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['courses'] });
+    },
+  });
+}

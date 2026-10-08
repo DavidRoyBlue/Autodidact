@@ -444,9 +444,8 @@ gcloud run services list --region "$REGION" --project "$PROJECT_ID"
 # Queues exist
 gcloud tasks queues list --location "$REGION" --project "$PROJECT_ID"
 
-# End-to-end: create a course via the api, then confirm it moves
-#   pending → generating → ready, and GET /courses/status/:courseId
-#   reports pending → active → completed.
+# End-to-end: create a course via the api, then confirm its status on
+#   GET /courses moves pending → generating → ready.
 ```
 
 If a course never leaves `pending`, the usual cause is the worker URL secret

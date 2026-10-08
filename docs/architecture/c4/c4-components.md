@@ -35,7 +35,7 @@ graph TD
 | Component | Files | Responsibility |
 |-----------|-------|----------------|
 | **AuthModule** | `modules/auth/` | Provides `AuthGuard` (guards all routes). Delegates JWT verification to `IAuthProvider`. Injects `AuthUser` into request via `@CurrentUser()`. |
-| **CoursesModule** | `modules/courses/` | `POST /courses` — semantic similarity check then enroll or enqueue. `GET /courses` — user's enrolled courses. `GET /courses/:id` — course with modules. `POST /courses/:id/enroll`. `GET /courses/status/:jobId` — job polling. |
+| **CoursesModule** | `modules/courses/` | `POST /courses` — semantic similarity check, then enroll, or enroll the creator and enqueue. `GET /courses` — user's courses with status, progress and next module. `GET /courses/:id` — course with modules. `POST /courses/:id/enroll`. `POST /courses/:id/retry` — re-queue a failed generation. |
 | **ChatModule** | `modules/chat/` | `POST /chat/sessions` — creates `chat_session` row. `POST /chat/sessions/:id/stream` — appends user message, runs `course-teacher` on AgentPlatform via `ApiPlatformClient` (one thread per session, ADR-031), embeds RAG grounding via `ApiAgentClient` (`retriever.ts`, ADR-024), persists the assistant message, triggers completion logic. |
 | **ProgressModule** | `modules/progress/` | `GET /progress/:courseId` — module progress list. `POST /progress/:moduleId/start`. Called internally by ChatModule to complete modules and unlock the next. |
 | **ApiAgentClient** | `services/agent.client.ts` | Thin HTTP wrapper for the Agent service. Methods: `generateEmbedding(text)`, `isAgentHealthy()`. Reads `AGENT_SERVICE_URL` env var. |
