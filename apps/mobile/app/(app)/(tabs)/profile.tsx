@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUserCourses } from '@/api/courses';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
-import { Screen, Card, Heading, AppText, Badge, Button, Icon, UpgradeAccountCard } from '@/components';
+import { Screen, Card, Heading, AppText, Badge, Button, IconTile, UpgradeAccountCard } from '@/components';
 
 function Stat({ value, label }: { value: number | string; label: string }) {
   return (
@@ -45,9 +45,7 @@ export default function ProfileScreen() {
         <Heading>Profile</Heading>
 
         <View className="flex-row items-center gap-4">
-          <View className="h-14 w-14 items-center justify-center rounded-full bg-primary/15">
-            <Icon name="person" color="primary" size={26} />
-          </View>
+          <IconTile icon="person" />
           <View className="flex-1 gap-1">
             <AppText weight="semibold" size="lg" numberOfLines={1}>
               {isAnonymous ? 'Guest learner' : email ?? 'Signed in'}

@@ -1,13 +1,18 @@
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useUserCourses, type Course } from '@/api/courses';
+import { useRetryCourse, useUserCourses, type Course } from '@/api/courses';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { useToastStore } from '@/stores/toast.store';
 import { Screen, Heading, AppText, ContinueCard, CourseCard, EmptyState, SkeletonCard } from '@/components';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { data: courses, isLoading, isError, isRefetching, refetch } = useUserCourses();
   useRefreshOnFocus(refetch);
+  const retry = useRetryCourse();
+  const toast = useToastStore((s) => s.addToast);
+  const retryCourse = (id: string) =>
+    retry.mutate(id, { onError: () => toast("Couldn't retry the course. Try again in a moment.", 'error') });
 
   // The list is most-recently-opened first: the first open course is the one to resume.
   const current = courses?.find((c) => c.status === 'ready' && !c.completedAt && c.nextModuleId);
@@ -50,7 +55,13 @@ export default function HomeScreen() {
             <View className="gap-3">
               <AppText variant="label">All courses</AppText>
               {courses.map((c) => (
-                <CourseCard key={c.id} course={c} onPress={() => router.push(`/(app)/courses/${c.id}`)} />
+                <CourseCard
+                  key={c.id}
+                  course={c}
+                  onPress={() => router.push(`/(app)/courses/${c.id}`)}
+                  onRetry={() => retryCourse(c.id)}
+                  retrying={retry.isPending && retry.variables === c.id}
+                />
               ))}
             </View>
           </>

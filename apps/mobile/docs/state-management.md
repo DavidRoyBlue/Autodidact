@@ -67,7 +67,7 @@ Actions:
 | `addToast(message, variant?)` | Appends a toast with a `uuidv4` id. Variant defaults to `'info'`. |
 | `removeToast(id)` | Removes a toast by id (called automatically after 3 s by `Toast.tsx`). |
 
-`useSSE` toasts a failed teacher turn; the New course screen toasts that a course is building or failed to start.
+`useSSE` toasts a failed teacher turn; the New course screen toasts that a course is building or failed to start; Home toasts a failed retry.
 `ToastProvider` reads `toasts` via selector and renders them as an animated overlay.
 
 ## Patterns

@@ -44,7 +44,7 @@ This subtree does NOT own:
 - **NativeWind v4 only** for styling (`className`); React Native Reusables (RNR) primitives live in [`@/components/ui/`](./src/components/ui/). Do not mix `StyleSheet.create` or other styling libraries. Inline `style` only for runtime-dynamic values with no class equivalent (e.g. progress width %, safe-area insets, RN navigation `screenOptions`/`tintColor` colors, `ActivityIndicator` color prop).
 - **All design tokens are CSS variables in [`src/global.css`](./src/global.css)** consumed via [`tailwind.config.js`](./tailwind.config.js) — never hardcode hex/spacing values in components; add tokens there only. Where an API takes a color value instead of a className, use `useThemeColors()` or `Icon`'s token-name `color` ([`src/lib/theme-colors.ts`](./src/lib/theme-colors.ts) is the only file with hex values).
 - A new `fontSize` key goes in `tailwind.config.js` **and** the tailwind-merge config in [`src/lib/utils.ts`](./src/lib/utils.ts), or `cn` drops the text color beside it.
-- Screens import only from `@/components`, `@/stores`, or `@/api` — no raw styled primitives in screen files; screens compose `@/components` + plain RN `View`/`Text` with `className`.
+- Screens import from `@/components`, `@/stores`, `@/api`, `@/hooks`, and `@/lib` (theme colors, auth helpers) — no raw styled primitives in screen files; screens compose `@/components` + plain RN `View`/`Text` with `className`. A shape used by two screens becomes a component.
 
 ---
 
@@ -70,7 +70,7 @@ This subtree does NOT own:
 
 - `toast.store.ts` ([`src/stores/toast.store.ts`](./src/stores/toast.store.ts))
   - In-memory only — not persisted
-  - Written in: `src/hooks/useSSE.ts` (failed teacher turn), `app/(app)/(tabs)/create.tsx` (course building / failed to start)
+  - Written in: `src/hooks/useSSE.ts` (failed teacher turn), `app/(app)/(tabs)/create.tsx` (course building / failed to start), `app/(app)/(tabs)/index.tsx` (failed retry)
   - Read via selector in: `src/components/display/ToastProvider.tsx`
 
 - `ToastProvider` ([`src/components/display/ToastProvider.tsx`](./src/components/display/ToastProvider.tsx))
@@ -197,9 +197,11 @@ pnpm --filter @autodidact/mobile start      # Expo dev server
 pnpm --filter @autodidact/mobile typecheck  # Type-check
 pnpm --filter @autodidact/mobile test       # Jest unit/component tests (jest-expo)
 
-# WSL2 + Windows-host Android emulator
+# A device: the phone plugged into the PC, else the Windows-host emulator
+pnpm mobile                      # Metro in the workspace's mobile pane, serving the PC's LAN backend address
+pnpm mobile:run                  # debug APK (dev variant), opened on Metro: the dev loop
+pnpm mobile:run -- --release     # bundled release APK: the check before a change is done
 pnpm emulator                    # boot the AVD on Windows, make it visible to WSL adb / mobile-mcp
-pnpm mobile:run -- --release     # build the APK here (expo prebuild + gradle), install and launch it on the emulator
 ```
 
 - Run on a device only through `scripts/run-mobile.sh` (Expo Go crashes at import): the

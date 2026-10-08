@@ -1,18 +1,18 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { Button as UIButton } from '@/components/ui/button';
+import { Button as UIButton, buttonTextVariants } from '@/components/ui/button';
 import { AppText } from '../typography/AppText';
 import { Icon, type IconName } from '../display/Icon';
 import { useThemeColors, type ThemeColor } from '@/lib/theme-colors';
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'link';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'link';
 
-const content: Record<Variant, { text: string; color: ThemeColor }> = {
-  primary: { text: 'text-primary-foreground', color: 'primaryForeground' },
-  danger: { text: 'text-primary-foreground', color: 'primaryForeground' },
-  secondary: { text: 'text-foreground', color: 'foreground' },
-  ghost: { text: 'text-foreground', color: 'foreground' },
-  link: { text: 'text-primary', color: 'primary' },
+// The icon and spinner take the label's color as a value.
+const iconColor: Record<Variant, ThemeColor> = {
+  primary: 'primaryForeground',
+  secondary: 'foreground',
+  ghost: 'foreground',
+  link: 'primary',
 };
 
 type ButtonProps = {
@@ -34,8 +34,7 @@ export function Button({
   onPress,
   children,
 }: ButtonProps) {
-  const { text, color } = content[variant];
-  const indicatorColor = useThemeColors()[color];
+  const spinnerColor = useThemeColors()[iconColor[variant]];
   return (
     <UIButton
       variant={variant}
@@ -45,11 +44,11 @@ export function Button({
     >
       <View className="flex-row items-center gap-2">
         {loading ? (
-          <ActivityIndicator size="small" color={indicatorColor} />
+          <ActivityIndicator size="small" color={spinnerColor} />
         ) : (
-          icon && <Icon name={icon} color={color} size={18} />
+          icon && <Icon name={icon} color={iconColor[variant]} size={18} />
         )}
-        <AppText weight="semibold" className={text}>{children}</AppText>
+        <AppText className={buttonTextVariants({ variant, size })}>{children}</AppText>
       </View>
     </UIButton>
   );

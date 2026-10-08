@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/stores/auth.store';
 import { supabase } from '@/lib/supabase';
 import { signInWithGoogle, signInWithFacebook } from '@/lib/social-auth';
-import { Screen, Heading, AppText, Input, Button, Icon } from '@/components';
+import { Screen, Heading, AppText, Input, Button, IconTile } from '@/components';
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -63,9 +63,7 @@ export default function SignInScreen() {
     <Screen scroll>
       <View className="flex-1 justify-center gap-3 py-6">
         <View className="mb-6 items-center gap-3">
-          <View className="h-16 w-16 items-center justify-center rounded-lg bg-primary">
-            <Icon name="school" color="primaryForeground" size={32} />
-          </View>
+          <IconTile icon="school" solid />
           <Heading className="text-center">Autodidact</Heading>
           <AppText variant="muted" size="lg" className="text-center">
             Name any topic. Get a course and a teacher who walks you through it.

@@ -4,12 +4,11 @@ import { cn } from '@/lib/utils';
 
 const variantClass = {
   default: 'bg-card border border-border',
-  elevated: 'bg-muted',
   ghost: 'bg-transparent border border-border',
 } as const;
 
 type CardProps = {
-  variant?: 'default' | 'elevated' | 'ghost';
+  variant?: 'default' | 'ghost';
   onPress?: () => void;
   disabled?: boolean;
   children: ReactNode;

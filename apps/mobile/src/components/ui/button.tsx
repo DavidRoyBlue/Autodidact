@@ -11,7 +11,6 @@ const buttonVariants = cva(
       variant: {
         primary: 'bg-primary',
         secondary: 'bg-muted',
-        danger: 'bg-destructive',
         ghost: 'bg-transparent border border-border',
         link: 'bg-transparent',
       },
@@ -30,7 +29,6 @@ const buttonTextVariants = cva('font-semibold', {
     variant: {
       primary: 'text-primary-foreground',
       secondary: 'text-foreground',
-      danger: 'text-primary-foreground',
       ghost: 'text-foreground',
       link: 'text-primary',
     },

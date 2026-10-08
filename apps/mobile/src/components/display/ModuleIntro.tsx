@@ -2,12 +2,14 @@ import { Linking, Pressable, View } from 'react-native';
 import type { CourseModule } from '@autodidact/types';
 import { AppText } from '../typography/AppText';
 import { Heading } from '../typography/Heading';
+import { Card } from './Card';
 import { Icon } from './Icon';
 
 /** The top of a lesson: what the module covers, what you will learn, where to read further. */
 export function ModuleIntro({ module }: { module: CourseModule }) {
   return (
-    <View className="mb-2 gap-2 rounded-lg border border-border bg-card p-4">
+    <Card>
+      <View className="gap-2">
       <Heading size="h3">{module.title}</Heading>
       <AppText variant="muted">{module.description}</AppText>
       {module.objectives.length > 0 && (
@@ -35,6 +37,7 @@ export function ModuleIntro({ module }: { module: CourseModule }) {
           ))}
         </View>
       )}
-    </View>
+      </View>
+    </Card>
   );
 }

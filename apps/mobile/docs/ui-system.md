@@ -85,20 +85,21 @@ components/
 │   ├── AppText.tsx         # Variant text: body | muted | caption | label | error
 │   └── Heading.tsx         # Semantic headings: h1 | h2 | h3
 ├── interactive/
-│   ├── Button.tsx          # primary | secondary | ghost | danger | link, size sm|md|lg, optional icon
+│   ├── Button.tsx          # primary | secondary | ghost | link, size sm|md|lg, optional icon; label classes from ui/button
 │   ├── IconButton.tsx      # Icon-only pressable
 │   ├── Input.tsx           # Compound: label + Input + error/helper text; multiline grows
 │   └── Chip.tsx            # Selectable pill, sized to its label
 ├── display/
-│   ├── Card.tsx            # Pressable surface: default | elevated | ghost
+│   ├── Card.tsx            # Pressable surface: default | ghost
 │   ├── Badge.tsx           # Status label: default | success | warning | danger
 │   ├── Icon.tsx            # Ionicon colored by token name
-│   ├── ProgressBar.tsx     # Horizontal fill bar (0–1 value) with optional caption
+│   ├── ProgressBar.tsx     # Horizontal fill bar (0–1 value), optional caption, onPrimary for the continue card
+│   ├── IconTile.tsx        # Icon on a tile: tinted (states, avatar) or solid (brand mark)
+│   ├── SuccessBanner.tsx   # Something finished, with an optional next step
 │   ├── CourseCard.tsx      # A course on Home: building, failed, in progress or done
 │   ├── ContinueCard.tsx    # Home hero: one tap into the next module
-│   ├── ModuleRow.tsx       # A module on the course screen, with its state
+│   ├── ModuleRow.tsx       # A module on the course screen: number / check / lock badge and its state
 │   ├── ModuleIntro.tsx     # Top of a lesson: description, objectives, further reading
-│   ├── ModuleStatusBadge.tsx # Number while open, check when done, lock until unlocked
 │   ├── ChatBubble.tsx      # User / assistant bubble; bold, italic, code, bullets, headings
 │   ├── TypingIndicator.tsx # The teacher's bubble while a reply is on its way
 │   ├── EmptyState.tsx      # Icon, title, message, optional action (empty and offline states)

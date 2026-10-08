@@ -69,7 +69,8 @@ if (( install )); then
   export ADB_SERVER_SOCKET="tcp:localhost:5037"
   # A phone plugged into the PC is the target; without one, the emulator —
   # so adb-up's "no device" hint is expected here and silenced.
-  ~/Automation/scripts/bin/adb-up --quiet 2>/dev/null
+  ~/Automation/scripts/bin/adb-up --quiet 2>/dev/null ||
+    { echo "adb-up failed: run ~/Automation/scripts/bin/adb-up by hand for the reason." >&2; exit 1; }
   serial=$("$adb" devices | awk '$2=="device" && $1 !~ /^emulator-/{print $1; exit}')
   if [[ -n $serial ]]; then
     # The phone is on the LAN, so it reaches WSL at the PC's address there.
@@ -83,11 +84,17 @@ if (( install )); then
   echo "Target: $serial ($abi)"
 fi
 
-# Exported for the build: app.config.ts loads .env.dev without override, so
-# these win over its 127.0.0.1 values (which the device would read as itself).
-export SUPABASE_URL="http://$host:55321"
-export AUTODIDACT_API_BASE_URL="http://$host:3000/v1"
-echo "Backend: $SUPABASE_URL, $AUTODIDACT_API_BASE_URL"
+# A release APK carries its backend address; a debug one reads it from Metro's
+# manifest (scripts/mobile.sh), so only a release build bakes one in. Exported
+# for the build: app.config.ts loads .env.dev without override, so these win
+# over its 127.0.0.1 values (which the device would read as itself).
+if [[ $variant == release ]]; then
+  export SUPABASE_URL="http://$host:55321"
+  export AUTODIDACT_API_BASE_URL="http://$host:3000/v1"
+  echo "Backend: $SUPABASE_URL, $AUTODIDACT_API_BASE_URL"
+else
+  echo "Backend: whatever Metro's manifest serves (scripts/mobile.sh), not this build"
+fi
 
 # Continuous Native Generation: android/ is generated and gitignored, never
 # edited, so it is regenerated whenever the config or a native module moved on.

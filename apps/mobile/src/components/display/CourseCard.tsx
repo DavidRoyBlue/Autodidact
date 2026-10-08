@@ -1,17 +1,22 @@
 import { ActivityIndicator, View } from 'react-native';
-import { isBuilding, useRetryCourse, type Course } from '@/api/courses';
+import { isBuilding, type Course } from '@/api/courses';
 import { useThemeColors } from '@/lib/theme-colors';
-import { useToastStore } from '@/stores/toast.store';
 import { AppText } from '../typography/AppText';
 import { Button } from '../interactive/Button';
 import { Badge } from './Badge';
 import { Card } from './Card';
 import { ProgressBar } from './ProgressBar';
 
+type CourseCardProps = {
+  course: Course;
+  onPress: () => void;
+  onRetry: () => void;
+  retrying: boolean;
+};
+
 /** A course on the learner's list: building, failed, in progress or done. */
-export function CourseCard({ course, onPress }: { course: Course; onPress: () => void }) {
+export function CourseCard({ course, onPress, onRetry, retrying }: CourseCardProps) {
   const { primary } = useThemeColors();
-  const retry = useRetryCourse();
   const building = isBuilding(course);
   const ready = course.status === 'ready';
   return (
@@ -32,16 +37,7 @@ export function CourseCard({ course, onPress }: { course: Course; onPress: () =>
       ) : course.status === 'failed' ? (
         <View className="mt-2 gap-3">
           <AppText variant="error">We couldn't build this course.</AppText>
-          <Button
-            variant="secondary"
-            icon="refresh"
-            loading={retry.isPending}
-            onPress={() =>
-              retry.mutate(course.id, {
-                onError: () => useToastStore.getState().addToast("Couldn't retry the course. Try again in a moment.", 'error'),
-              })
-            }
-          >
+          <Button variant="secondary" icon="refresh" loading={retrying} onPress={onRetry}>
             Try again
           </Button>
         </View>

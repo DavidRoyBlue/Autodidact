@@ -6,7 +6,7 @@ import { useProgress } from '@/api/progress';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useThemeColors } from '@/lib/theme-colors';
 import {
-  Screen, Heading, AppText, Badge, Button, Icon, ProgressBar, ModuleRow, EmptyState, SkeletonLine, SkeletonCard,
+  Screen, Heading, AppText, Badge, Button, ProgressBar, ModuleRow, EmptyState, SkeletonLine, SkeletonCard, SuccessBanner,
 } from '@/components';
 
 export default function CourseDetailScreen() {
@@ -99,12 +99,7 @@ export default function CourseDetailScreen() {
             ) : (
               completed === modules.length &&
               modules.length > 0 && (
-                <View className="flex-row items-center gap-3 rounded-lg bg-success/15 p-4">
-                  <Icon name="trophy" color="success" />
-                  <AppText weight="semibold" className="flex-1 text-success">
-                    Course complete. Revisit any module below.
-                  </AppText>
-                </View>
+                <SuccessBanner icon="trophy" title="Course complete. Revisit any module below." />
               )
             )}
             <AppText variant="label" className="mt-2">Modules</AppText>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { Screen, Heading, AppText, Input, Button, Icon } from '@/components';
+import { Screen, Heading, AppText, Input, Button, IconTile } from '@/components';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -30,9 +30,7 @@ export default function SignUpScreen() {
     return (
       <Screen>
         <View className="flex-1 justify-center gap-4">
-          <View className="h-16 w-16 items-center justify-center rounded-lg bg-primary/15">
-            <Icon name="mail-unread-outline" color="primary" size={30} />
-          </View>
+          <IconTile icon="mail-unread-outline" />
           <Heading size="h1">Check your email</Heading>
           <AppText variant="muted" size="lg">
             We sent a confirmation link to {email}. Open it to activate your account.

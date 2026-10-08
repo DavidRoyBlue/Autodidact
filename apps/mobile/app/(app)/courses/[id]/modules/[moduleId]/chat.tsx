@@ -7,7 +7,7 @@ import { useStartChatSession } from '@/api/chat';
 import { useSSE } from '@/hooks/useSSE';
 import { useChatStore } from '@/stores/chat.store';
 import {
-  AppText, Input, IconButton, Button, Chip, ChatBubble, ModuleIntro, TypingIndicator, Icon, EmptyState,
+  Screen, Input, IconButton, Button, Chip, ChatBubble, ModuleIntro, TypingIndicator, Icon, EmptyState, SuccessBanner,
 } from '@/components';
 
 const KICKOFF = "I'm ready. Let's start the lesson.";
@@ -59,7 +59,7 @@ export default function ModuleChatScreen() {
   }, [messages.length]);
 
   const mod = course?.modules.find((m) => m.id === moduleId);
-  const next = course?.modules.find((m) => m.position === (mod?.position ?? -2) + 1);
+  const next = mod && course?.modules.find((m) => m.position === mod.position + 1);
   const mine = progress?.find((p) => p.moduleId === moduleId);
   const done = mine?.status === 'completed';
 
@@ -78,14 +78,14 @@ export default function ModuleChatScreen() {
 
   if (session.isError) {
     return (
-      <View className="flex-1 bg-background p-4">
+      <Screen edges={['bottom']}>
         <EmptyState
           icon="cloud-offline-outline"
           title="Couldn't open this lesson"
           message="Check your connection, then try again."
           action={{ label: 'Try again', onPress: open }}
         />
-      </View>
+      </Screen>
     );
   }
 
@@ -106,7 +106,13 @@ export default function ModuleChatScreen() {
           data={items}
           keyExtractor={(item) => item.id}
           keyboardShouldPersistTaps="handled"
-          ListHeaderComponent={mod ? <ModuleIntro module={mod} /> : null}
+          ListHeaderComponent={
+            mod ? (
+              <View className="mb-2">
+                <ModuleIntro module={mod} />
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => <ChatBubble message={item} isStreaming={item.id === '__streaming__'} />}
           ListFooterComponent={isStreaming && !streamingContent ? <TypingIndicator /> : null}
           onScrollToIndexFailed={({ index }) =>
@@ -115,20 +121,19 @@ export default function ModuleChatScreen() {
         />
 
         {done && !isStreaming && (
-          <View className="mx-4 mb-3 gap-3 rounded-lg border border-success bg-success/15 p-4">
-            <View className="flex-row items-center gap-2">
-              <Icon name="trophy" color="success" />
-              <AppText weight="semibold" className="flex-1 text-success">
-                Module complete{mine?.completionScore != null ? ` · score ${mine.completionScore}` : ''}
-              </AppText>
-            </View>
-            {next ? (
-              <Button icon="arrow-forward" onPress={() => router.replace(`/(app)/courses/${courseId}/modules/${next.id}/chat`)}>
-                Next: {next.title}
-              </Button>
-            ) : (
-              <Button variant="secondary" onPress={() => router.back()}>Back to the course</Button>
-            )}
+          <View className="mx-4 mb-3">
+            <SuccessBanner
+              icon="trophy"
+              title={`Module complete${mine?.completionScore != null ? ` · score ${mine.completionScore}` : ''}`}
+            >
+              {next ? (
+                <Button icon="arrow-forward" onPress={() => router.replace(`/(app)/courses/${courseId}/modules/${next.id}/chat`)}>
+                  Next: {next.title}
+                </Button>
+              ) : (
+                <Button variant="secondary" onPress={() => router.back()}>Back to the course</Button>
+              )}
+            </SuccessBanner>
           </View>
         )}
 
