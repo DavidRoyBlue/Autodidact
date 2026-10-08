@@ -1,13 +1,23 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
 import { Button as UIButton } from '@/components/ui/button';
 import { AppText } from '../typography/AppText';
-import { getThemeColors } from '@/lib/theme-colors';
+import { Icon, type IconName } from '../display/Icon';
+import { useThemeColors, type ThemeColor } from '@/lib/theme-colors';
+
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
+
+const content: Record<Variant, { text: string; color: ThemeColor }> = {
+  primary: { text: 'text-primary-foreground', color: 'primaryForeground' },
+  danger: { text: 'text-primary-foreground', color: 'primaryForeground' },
+  secondary: { text: 'text-foreground', color: 'foreground' },
+  ghost: { text: 'text-foreground', color: 'foreground' },
+};
 
 type ButtonProps = {
-  variant?: 'primary' | 'danger' | 'ghost';
+  variant?: Variant;
   size?: 'sm' | 'md' | 'lg';
+  icon?: IconName;
   loading?: boolean;
   disabled?: boolean;
   onPress?: () => void;
@@ -17,15 +27,14 @@ type ButtonProps = {
 export function Button({
   variant = 'primary',
   size = 'md',
+  icon,
   loading = false,
   disabled = false,
   onPress,
   children,
 }: ButtonProps) {
-  const { colorScheme } = useColorScheme();
-  const textClass = variant === 'ghost' ? 'text-foreground' : 'text-primary-foreground';
-  const c = getThemeColors(colorScheme);
-  const indicatorColor = variant === 'ghost' ? c.foreground : c.primaryForeground;
+  const { text, color } = content[variant];
+  const indicatorColor = useThemeColors()[color];
   return (
     <UIButton
       variant={variant}
@@ -33,14 +42,14 @@ export function Button({
       disabled={disabled || loading}
       onPress={disabled || loading ? undefined : onPress}
     >
-      {loading ? (
-        <View className="flex-row items-center gap-2">
+      <View className="flex-row items-center gap-2">
+        {loading ? (
           <ActivityIndicator size="small" color={indicatorColor} />
-          <AppText weight="semibold" className={textClass}>{children}</AppText>
-        </View>
-      ) : (
-        <AppText weight="semibold" className={textClass}>{children}</AppText>
-      )}
+        ) : (
+          icon && <Icon name={icon} color={color} size={18} />
+        )}
+        <AppText weight="semibold" className={text}>{children}</AppText>
+      </View>
     </UIButton>
   );
 }

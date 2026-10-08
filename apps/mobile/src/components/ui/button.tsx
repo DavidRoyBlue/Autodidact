@@ -5,11 +5,12 @@ import { TextClassContext } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'flex-row items-center justify-center rounded-md active:opacity-75',
+  'flex-row items-center justify-center rounded-lg active:opacity-75',
   {
     variants: {
       variant: {
         primary: 'bg-primary',
+        secondary: 'bg-muted',
         danger: 'bg-destructive',
         ghost: 'bg-transparent border border-border',
       },
@@ -27,6 +28,7 @@ const buttonTextVariants = cva('font-semibold', {
   variants: {
     variant: {
       primary: 'text-primary-foreground',
+      secondary: 'text-foreground',
       danger: 'text-primary-foreground',
       ghost: 'text-foreground',
     },

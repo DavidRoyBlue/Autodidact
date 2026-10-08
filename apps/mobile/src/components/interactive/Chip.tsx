@@ -13,8 +13,8 @@ export function Chip({ label, selected = false, onPress }: ChipProps) {
     <Pressable
       onPress={onPress}
       className={cn(
-        'flex-1 flex-row items-center justify-center rounded-sm border px-3 py-2 active:opacity-80',
-        selected ? 'border-primary bg-primary/[0.13]' : 'border-border bg-card',
+        'flex-row items-center justify-center rounded-full border px-4 py-2 active:opacity-80',
+        selected ? 'border-primary bg-primary/15' : 'border-border bg-card',
       )}
     >
       <AppText

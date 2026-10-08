@@ -52,6 +52,7 @@ module.exports = {
         md: ['15px', '22px'],
         lg: ['16px', '24px'],
         xl: ['18px', '27px'],
+        h3: ['20px', '26px'],
         h2: ['26px', '32px'],
         h1: ['32px', '38px'],
       },

@@ -263,6 +263,13 @@ describe('CoursesService.createOrReuse() — similarity routing', () => {
       .from(courses)
       .where(eq(courses.id, result.courseId));
     expect(newCourse?.status).toBe('pending');
+
+    // The creator is enrolled at once, so the course is on their list while it generates
+    const [enrollment] = await harness.db
+      .select({ id: enrollments.id })
+      .from(enrollments)
+      .where(and(eq(enrollments.userId, userId), eq(enrollments.courseId, result.courseId)));
+    expect(enrollment).toBeDefined();
   });
 });
 
@@ -314,6 +321,44 @@ describe('CoursesService read paths', () => {
     const results = await service.getUserCourses(userId);
     expect(results).toHaveLength(1);
     expect(results[0]!.id).toBe(courseId);
+  });
+
+  it('getUserCourses carries progress and the next module to learn', async () => {
+    const mods = await seedModules(harness.db, courseId, 3);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
+    await service.enrollUser(userId, courseId);
+    await harness.db
+      .update(moduleProgress)
+      .set({ status: 'completed' })
+      .where(eq(moduleProgress.moduleId, mods[0]!.id));
+    await harness.db
+      .update(moduleProgress)
+      .set({ status: 'available' })
+      .where(eq(moduleProgress.moduleId, mods[1]!.id));
+
+    const [course] = await service.getUserCourses(userId);
+
+    expect(course).toMatchObject({
+      totalModules: 3,
+      completedModules: 1,
+      nextModuleId: mods[1]!.id,
+      nextModulePosition: 1,
+    });
+  });
+
+  it('getUserCourses lists the most recently accessed course first', async () => {
+    const other = await seedCourse(harness.db, userId);
+    await seedEnrollment(harness.db, userId, courseId);
+    await seedEnrollment(harness.db, userId, other.id);
+    await harness.db
+      .update(enrollments)
+      .set({ lastAccessedAt: new Date(Date.now() + 60_000) })
+      .where(eq(enrollments.courseId, courseId));
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
+
+    const results = await service.getUserCourses(userId);
+
+    expect(results.map((c) => c.id)).toEqual([courseId, other.id]);
   });
 
   it('getUserCourses returns empty array for a user with no enrollments', async () => {

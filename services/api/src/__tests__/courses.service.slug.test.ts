@@ -75,12 +75,13 @@ describe('CoursesService — slug generation', () => {
     // Default: no similar course found
     mockExecute.mockResolvedValue({ rows: [] });
 
-    // insert().values().returning() chain → returns new course id
+    // insert().values() chain: returning() for the course, onConflict* for the creator's enrollment
     mockReturning.mockResolvedValue([{ id: 'new-course-id' }]);
-    mockValues.mockReturnValue({ returning: mockReturning });
+    mockOnConflictDoUpdate.mockResolvedValue(undefined);
+    mockValues.mockReturnValue({ returning: mockReturning, onConflictDoUpdate: mockOnConflictDoUpdate });
     mockInsert.mockReturnValue({ values: mockValues });
 
-    // select chain (for enrollUser — not triggered in slug tests)
+    // select chain (for enrollUser)
     mockOrderBy.mockResolvedValue([]);
     mockWhere.mockReturnValue({ orderBy: mockOrderBy, limit: mockLimit });
     mockFrom.mockReturnValue({ where: mockWhere });
@@ -151,9 +152,6 @@ describe('CoursesService — createOrReuse routing', () => {
 
   it('returns reused:false and enqueues a job when no similar course exists', async () => {
     mockExecute.mockResolvedValue({ rows: [] });
-    mockReturning.mockResolvedValue([{ id: 'new-course-id' }]);
-    mockValues.mockReturnValue({ returning: mockReturning });
-    mockInsert.mockReturnValue({ values: mockValues });
     const queueProvider = makeMockQueueProvider('task-xyz');
     const service = new CoursesService(makeMockAgentClient() as never, queueProvider as never, makeMockProvisioningService() as never);
     const result = await service.createOrReuse('user-1', { topic: 'Rust', difficulty: 'intermediate', timeBudget: '1h' });

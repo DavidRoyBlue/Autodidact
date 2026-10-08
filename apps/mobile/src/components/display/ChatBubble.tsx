@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 import { AppText } from '../typography/AppText';
 import { parseMarkdown, type Segment } from '../../lib/markdown';
+import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@autodidact/types';
 
 type ChatBubbleProps = {
@@ -19,6 +20,9 @@ function InlineContent({ segments, textClass }: { segments: Segment[]; textClass
       {segments.map((seg, i) => {
         if (seg.type === 'bold') {
           return <AppText key={i} weight="bold" className={textClass}>{seg.content}</AppText>;
+        }
+        if (seg.type === 'italic') {
+          return <AppText key={i} className={cn('italic', textClass)}>{seg.content}</AppText>;
         }
         if (seg.type === 'code') {
           return (

@@ -24,8 +24,9 @@ export class ChatService {
   ) {}
 
   /** Resumes the learner's latest session on the module, so reopening the chat keeps its history. */
-  async createSession(userId: string, moduleId: string, _courseId: string) {
+  async createSession(userId: string, moduleId: string, courseId: string) {
     await this.provisioning.ensureProvisioned(userId);
+    await this.progressService.markModuleStarted(userId, moduleId, courseId);
     const db = getDb();
     const [existing] = await db
       .select()

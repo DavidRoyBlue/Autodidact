@@ -1,4 +1,4 @@
-import { eq, getDb, courses, modules } from '@autodidact/db';
+import { eq, getDb, sql, courses, modules, moduleProgress } from '@autodidact/db';
 import type { IQueueProvider } from '@autodidact/providers';
 import type { CourseGenerationJobData } from '@autodidact/types';
 import type { Logger } from '@autodidact/observability';
@@ -40,6 +40,7 @@ export async function processCourseGeneration(
     // A retry can reach here with modules already committed (e.g. the previous
     // attempt failed on the follow-up enqueue, after this transaction). Delete
     // before insert so a re-run replaces rather than duplicates the module set.
+    await tx.delete(moduleProgress).where(eq(moduleProgress.courseId, courseId));
     await tx.delete(modules).where(eq(modules.courseId, courseId));
 
     await tx
@@ -66,7 +67,7 @@ export async function processCourseGeneration(
       estimatedMinutes: m.estimated_minutes,
     }));
 
-    return tx
+    const inserted = await tx
       .insert(modules)
       .values(moduleRows)
       .returning({
@@ -76,6 +77,19 @@ export async function processCourseGeneration(
         objectives: modules.objectives,
         content: modules.content,
       });
+
+    // The API enrolled the creator when the course was requested; give every
+    // enrolled learner their progress rows, the first module open.
+    await tx.execute(sql`
+      INSERT INTO module_progress (user_id, module_id, course_id, status)
+      SELECT e.user_id, m.id, m.course_id,
+             CASE WHEN m.position = 0 THEN 'available'::module_status ELSE 'locked'::module_status END
+      FROM enrollments e JOIN modules m ON m.course_id = e.course_id
+      WHERE e.course_id = ${courseId}
+      ON CONFLICT DO NOTHING
+    `);
+
+    return inserted;
   });
 
   // RAG indexing (ADR-024): best-effort, AFTER the course-ready commit so a

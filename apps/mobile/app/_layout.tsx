@@ -23,7 +23,7 @@ focusManager.setEventListener((setFocused) => {
 });
 
 export default function RootLayout() {
-  const { accessToken, refreshToken, setSession, clearSession } = useAuthStore();
+  const { accessToken, refreshToken, setSession, setEmail, clearSession } = useAuthStore();
   const { colorScheme, setColorScheme } = useColorScheme();
   const rnScheme = useRNColorScheme();
 
@@ -49,12 +49,13 @@ export default function RootLayout() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.access_token && session?.refresh_token) {
         setSession(session.access_token, session.refresh_token, session.user?.is_anonymous ?? false);
+        setEmail(session.user?.email || null);
       } else {
         clearSession();
       }
     });
     return () => subscription.unsubscribe();
-  }, [setSession, clearSession]);
+  }, [setSession, setEmail, clearSession]);
 
   return (
     <View className={colorScheme === 'dark' ? 'dark flex-1' : 'flex-1'}>
@@ -96,7 +97,7 @@ function AuthGate({ children }: { children: ReactNode }) {
       // Spec 4 DEV_AUTO_LOGIN slot goes here (before the redirect to auth UI).
       router.replace('/(auth)/sign-in');
     } else if (accessToken && inAuthGroup) {
-      router.replace('/(app)');
+      router.replace('/(app)/(tabs)');
     }
   }, [accessToken, segments, router]);
 
@@ -109,7 +110,7 @@ function AuthGate({ children }: { children: ReactNode }) {
     const onboarding = courses.find((c) => c.isOnboarding);
     if (!onboarding) return; // no onboarding course found (e.g. seed missing) — retry next launch
     setHasSeenOnboarding(true);
-    router.replace(`/(app)/courses/${onboarding.id}`);
+    router.push(`/(app)/courses/${onboarding.id}`);
   }, [accessToken, hasSeenOnboarding, courses, segments, router, setHasSeenOnboarding]);
 
   return <>{children}</>;

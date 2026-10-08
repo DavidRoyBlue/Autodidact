@@ -16,7 +16,7 @@ type CardProps = {
 };
 
 export function Card({ variant = 'default', onPress, disabled = false, children }: CardProps) {
-  const className = cn('rounded-md p-4', variantClass[variant], disabled && 'opacity-45');
+  const className = cn('rounded-lg p-4', variantClass[variant], disabled && 'opacity-45');
   if (onPress) {
     return (
       <Pressable

@@ -3,6 +3,8 @@
 // (ActivityIndicator `color`, RefreshControl `tintColor`, Ionicons `color`,
 // Tabs `screenOptions`). className-based styling stays the source of truth in
 // global.css + tailwind.config.js — these MUST be kept in sync with it.
+import { useColorScheme } from 'nativewind';
+
 export type ColorScheme = 'light' | 'dark';
 
 // Brand primary is identical in both themes (indigo500), so it's scheme-independent.
@@ -17,6 +19,8 @@ export const themeColors = {
     primary: PRIMARY,
     primaryForeground: '#f1f5f9', // slate100 — text/spinner on a primary/danger fill
     mutedForeground: '#94a3b8', // slate400
+    success: '#22c55e',
+    destructive: '#ef4444',
   },
   light: {
     background: '#ffffff',
@@ -26,9 +30,17 @@ export const themeColors = {
     primary: PRIMARY,
     primaryForeground: '#ffffff',
     mutedForeground: '#64748b', // slate500
+    success: '#22c55e',
+    destructive: '#ef4444',
   },
 } as const;
 
 export function getThemeColors(scheme: ColorScheme | null | undefined) {
   return themeColors[scheme === 'dark' ? 'dark' : 'light'];
+}
+
+export type ThemeColor = keyof (typeof themeColors)['dark'];
+
+export function useThemeColors() {
+  return getThemeColors(useColorScheme().colorScheme);
 }

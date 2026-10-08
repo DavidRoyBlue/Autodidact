@@ -35,8 +35,9 @@ export function useSSE(sessionId: string, courseId: string) {
           if (event.type === 'token' && event.content) {
             appendStreamToken(event.content);
           } else if (event.type === 'module_complete') {
-            toast('Module complete! Great work.', 'success');
+            // Progress drives the chat's completion card and every course list.
             void queryClient.invalidateQueries({ queryKey: ['progress', courseId] });
+            void queryClient.invalidateQueries({ queryKey: ['courses'] });
           } else if (event.type === 'error') {
             toast(event.error ?? 'The teacher did not answer', 'error');
           }

@@ -23,6 +23,7 @@ const mockTransaction = vi.fn().mockImplementation(async (fn: (tx: unknown) => P
     update: mockTxUpdate,
     insert: mockTxInsert,
     delete: mockTxDelete,
+    execute: vi.fn().mockResolvedValue(undefined),
   };
   mockTxUpdate.mockReturnValue({ set: mockTxUpdateSet });
   mockTxInsert.mockReturnValue({ values: mockTxInsertValues });
@@ -38,6 +39,7 @@ vi.mock('@autodidact/db', () => ({
   })),
   courses: {},
   modules: {},
+  moduleProgress: {},
   eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
   sql: vi.fn((s: TemplateStringsArray, ...v: unknown[]) => ({ sql: s, v })),
 }));
@@ -116,7 +118,7 @@ describe('processCourseGeneration', () => {
       mockTxUpdate.mockReturnValue({ set: mockTxUpdateSet });
       mockTxInsert.mockReturnValue({ values: mockTxInsertValues });
       mockTxDelete.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
-      return fn({ update: mockTxUpdate, insert: mockTxInsert, delete: mockTxDelete });
+      return fn({ update: mockTxUpdate, insert: mockTxInsert, delete: mockTxDelete, execute: vi.fn().mockResolvedValue(undefined) });
     });
   });
 

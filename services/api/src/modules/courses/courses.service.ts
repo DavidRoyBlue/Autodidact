@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { getDb, courses, modules, enrollments, moduleProgress, eq, sql } from '@autodidact/db';
+import { getDb, courses, modules, enrollments, moduleProgress, eq, desc, sql } from '@autodidact/db';
 import type { IQueueProvider } from '@autodidact/providers';
 import type { CreateCourseRequest } from '@autodidact/schemas';
 import type { JobStatus } from '@autodidact/types';
@@ -65,6 +65,10 @@ export class CoursesService {
       .returning({ id: courses.id });
 
     if (!course) throw new Error('Failed to create course');
+
+    // Enroll the creator now, so the course is on their list while it generates;
+    // the Worker adds their module_progress rows when the modules land.
+    await this.enrollUser(userId, course.id);
 
     // Retry/backoff is owned by the Cloud Tasks queue config (infra/modules/cloud-tasks).
     await this.queueProvider.enqueue(QUEUES.COURSE_GENERATION, JOB_NAMES.GENERATE_COURSE, {
@@ -133,8 +137,17 @@ export class CoursesService {
     return { ...course, modules: courseModules };
   }
 
+  /** The learner's courses, most recently opened first, each with its progress and next module. */
   async getUserCourses(userId: string) {
     const db = getDb();
+    const count = (filter = sql``) => sql<number>`(
+      SELECT count(*)::int FROM module_progress mp
+      WHERE mp.user_id = ${userId} AND mp.course_id = ${courses.id} ${filter})`;
+    const next = (column: string) => sql<string | number | null>`(
+      SELECT ${sql.raw(`m.${column}`)} FROM module_progress mp JOIN modules m ON m.id = mp.module_id
+      WHERE mp.user_id = ${userId} AND mp.course_id = ${courses.id}
+        AND mp.status IN ('available', 'in_progress')
+      ORDER BY m.position LIMIT 1)`;
     return db
       .select({
         id: courses.id,
@@ -145,11 +158,16 @@ export class CoursesService {
         isOnboarding: courses.isOnboarding,
         enrolledAt: enrollments.enrolledAt,
         completedAt: enrollments.completedAt,
+        totalModules: count(),
+        completedModules: count(sql`AND mp.status = 'completed'`),
+        nextModuleId: next('id').mapWith(String),
+        nextModuleTitle: next('title').mapWith(String),
+        nextModulePosition: next('position').mapWith(Number),
       })
       .from(enrollments)
       .innerJoin(courses, eq(enrollments.courseId, courses.id))
       .where(eq(enrollments.userId, userId))
-      .orderBy(enrollments.lastAccessedAt);
+      .orderBy(desc(enrollments.lastAccessedAt));
   }
 
   /**
