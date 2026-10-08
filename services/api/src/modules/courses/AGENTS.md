@@ -19,7 +19,7 @@ The courses module owns the course lifecycle from creation to enrollment:
 - **Raw SQL for the similarity query**: the similarity search uses `db.execute(sql\`...\`)` with a raw SQL template rather than Drizzle's query builder. This is intentional — Drizzle's query builder does not handle the `::vector` cast for the pgvector `<=>` operator cleanly. Do not convert this to a Drizzle fluent query.
 - **Course status lifecycle**: `'pending'` (inserted, task enqueued) → `'generating'` → `'ready'` (Worker wrote the course and its modules) or `'failed'` (Worker, on retry exhaustion). The API service only writes `'pending'`; only the Worker writes `'ready'` or `'failed'`.
 - **Status polling is DB-backed**: `getGenerationStatus(courseId)` reads `courses.status` and maps it to the polling vocabulary (`pending→pending`, `generating→active`, `ready→completed`, `failed→failed`). There is no per-task status lookup — the DB is the source of truth.
-- **Enrollment initialisation**: when a user enrolls, `module_progress` rows are created for every module. Position 0 gets `status = 'available'`; all others get `status = 'locked'`. This is the only place these rows are created — do not create them elsewhere.
+- **Enrollment and progress rows**: `createCourse` enrolls the creator immediately (so the course is listed while it generates). `enrollUser` creates `module_progress` rows for every module (position 0 `'available'`, others `'locked'`); for a course still generating, the Worker's course-generation processor creates them for every enrolled learner when the modules land (`ON CONFLICT DO NOTHING`). These are the only two places these rows are created — do not create them elsewhere.
 
 ---
 
