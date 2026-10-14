@@ -1,5 +1,5 @@
 # autoland — the standard listener every pipeline repo carries, byte-identical
-# (installed by `ci-autoland init`; source: ~/Automation/scripts/ci-autoland).
+# (installed by `ci-autoland init`; source: ~/Automation/infra/templates).
 #
 # Runs one `ci-autoland land` pass on the control machine when a PR is
 # labelled (the reviewer's `reviewed` is the one that matters) and whenever

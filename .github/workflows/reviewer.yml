@@ -1,6 +1,6 @@
 # reviewer — the standard listener every pipeline repo carries, byte-identical
 # (installed by `ci-autoland init` on a repo whose .ci-policy says `review`;
-# source: ~/Automation/scripts/ci-autoland).
+# source: ~/Automation/infra/templates).
 #
 # Runs one `pr-review run` pass on the control machine when a PR is marked
 # ready — the one event that hands a PR from its worker to the pipeline:
