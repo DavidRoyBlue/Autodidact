@@ -21,15 +21,17 @@ let dbHarness: TestDatabase;
 vi.mock('@autodidact/db', async () => {
   const { eq, and, sql, or, inArray, desc, asc, gt, lt, gte, lte } = await import('drizzle-orm');
   const schema = await import('../../../../packages/db/src/schema/index.js');
+  const progress = await import('../../../../packages/db/src/progress.js');
   return {
     ...schema,
+    ...progress,
     eq, and, sql, or, inArray, desc, asc, gt, lt, gte, lte,
     getDb: () => dbHarness.db,
     supabaseAdmin: null,
   };
 });
 
-import { courses, modules, eq } from '@autodidact/db';
+import { courses, modules, enrollments, moduleProgress, eq } from '@autodidact/db';
 import { buildApp } from '../app.js';
 import { QUEUES, JOB_NAMES } from '../queues/definitions.js';
 
@@ -119,6 +121,28 @@ describe('generate-course task endpoint — real DB', () => {
 
     expect(insertedModules).toHaveLength(sampleGeneratedCourse.modules.length);
     expect(insertedModules[0]?.title).toBe(sampleGeneratedCourse.modules[0]?.title);
+  });
+
+  it("opens the first module for the course's enrolled learners", async () => {
+    await dbHarness.db.insert(enrollments).values({ userId, courseId });
+    const { app } = makeTaskApp();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/tasks/${JOB_NAMES.GENERATE_COURSE}`,
+      payload: { courseId, userId, topic: 'Python', difficulty: 'beginner', timeBudget: '30min' },
+    });
+
+    expect(res.statusCode).toBe(204);
+    const progress = await dbHarness.db
+      .select({ status: moduleProgress.status, position: modules.position })
+      .from(moduleProgress)
+      .innerJoin(modules, eq(moduleProgress.moduleId, modules.id))
+      .where(eq(moduleProgress.userId, userId))
+      .orderBy(modules.position);
+    expect(progress.map((p) => p.status)).toEqual(
+      sampleGeneratedCourse.modules.map((_, i) => (i === 0 ? 'available' : 'locked')),
+    );
   });
 
   it('enqueues an embedding follow-up task after successful course generation', async () => {

@@ -42,13 +42,13 @@ describe('useSSE event mapping (services/api chat.service contract)', () => {
     expect(mockFetch.mock.calls[0][0]).toMatch(/\/chat\/sessions\/session-1\/stream$/);
   });
 
-  it('module_complete: toasts and refreshes progress', async () => {
+  it('module_complete: refreshes progress and the course list', async () => {
     serverReplies([{ type: 'token', content: 'Done.' }, { type: 'module_complete', score: 0.9 }, { type: 'complete' }]);
     const { result, invalidate } = render();
     await act(() => result.current.send('answer'));
 
-    expect(useToastStore.getState().toasts.map((t) => t.variant)).toEqual(['success']);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['progress', 'course-1'] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['courses'] });
   });
 
   it('server error event: error toast, streaming ends, no assistant message', async () => {

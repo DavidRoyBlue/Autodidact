@@ -20,7 +20,7 @@ Manages the full course lifecycle: discovery via semantic similarity, creation v
 | `GET` | `/courses` | List enrolled courses for authenticated user |
 | `GET` | `/courses/:id` | Course detail with module list |
 | `POST` | `/courses/:id/enroll` | Enroll in an existing course |
-| `GET` | `/courses/status/:courseId` | Poll generation status (DB-backed) |
+| `POST` | `/courses/:id/retry` | Re-queue a failed course's generation (creator only) |
 
 ## createOrReuse Algorithm
 
@@ -78,6 +78,6 @@ slug = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 
 Slugs are not unique-constrained at the database level. If two courses have the same topic (possible if similarity < 0.92), they will have the same slug.
 
-## Generation Status Polling
+## Generation status
 
-`GET /courses/status/:courseId` reads `courses.status` from the database (the Worker owns the `generating`/`ready`/`failed` transitions) and maps it to the polling vocabulary: `pending→pending`, `generating→active`, `ready→completed`, `failed→failed`. The mobile app polls this endpoint every 2 seconds (via TanStack Query `refetchInterval`) until status is `completed` or `failed`, then navigates to the course detail screen.
+A course being generated is on its creator's `GET /courses` list (they are enrolled at creation) with `status` `pending`/`generating`; the Worker owns the `generating`/`ready`/`failed` transitions and opens the first module for every enrolled learner when the modules land. The mobile app polls `GET /courses` while any course is building. A `failed` course can be re-queued by its creator with `POST /courses/:id/retry`, which reuses the stored topic, difficulty and time budget.

@@ -23,7 +23,7 @@ export class ChatController {
 
   @Post('sessions')
   createSession(@Body(new ZodValidationPipe(CreateChatSessionSchema)) dto: CreateChatSession, @CurrentUser() user: AuthUser) {
-    return this.chatService.createSession(user.id, dto.moduleId, dto.moduleId);
+    return this.chatService.createSession(user.id, dto.moduleId);
   }
 
   @Get('sessions/:id')

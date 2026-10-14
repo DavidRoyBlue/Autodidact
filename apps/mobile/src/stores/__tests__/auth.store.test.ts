@@ -7,7 +7,7 @@ jest.mock('expo-secure-store', () => ({
 import { useAuthStore } from '../auth.store';
 
 const reset = () =>
-  useAuthStore.setState({ accessToken: null, refreshToken: null, user: null, isAnonymous: false });
+  useAuthStore.setState({ accessToken: null, refreshToken: null, email: null, isAnonymous: false });
 
 describe('useAuthStore', () => {
   beforeEach(reset);
@@ -16,7 +16,7 @@ describe('useAuthStore', () => {
     const s = useAuthStore.getState();
     expect(s.accessToken).toBeNull();
     expect(s.refreshToken).toBeNull();
-    expect(s.user).toBeNull();
+    expect(s.email).toBeNull();
   });
 
   it('setSession stores both tokens', () => {
@@ -26,23 +26,23 @@ describe('useAuthStore', () => {
     expect(s.refreshToken).toBe('refresh-1');
   });
 
-  it('setUser stores the user profile without touching tokens', () => {
+  it('setEmail stores the email without touching tokens', () => {
     useAuthStore.getState().setSession('a', 'r');
-    useAuthStore.getState().setUser({ id: 'u1', email: 'u@test.com' } as never);
+    useAuthStore.getState().setEmail('u@test.com');
     const s = useAuthStore.getState();
-    expect(s.user).toMatchObject({ id: 'u1' });
+    expect(s.email).toBe('u@test.com');
     expect(s.accessToken).toBe('a');
   });
 
-  it('clearSession wipes tokens and user', () => {
+  it('clearSession wipes tokens and email', () => {
     const store = useAuthStore.getState();
     store.setSession('a', 'r');
-    store.setUser({ id: 'u1', email: 'u@test.com' } as never);
+    store.setEmail('u@test.com');
     store.clearSession();
     const s = useAuthStore.getState();
     expect(s.accessToken).toBeNull();
     expect(s.refreshToken).toBeNull();
-    expect(s.user).toBeNull();
+    expect(s.email).toBeNull();
   });
 
   it('setSession defaults isAnonymous to false', () => {
@@ -67,7 +67,7 @@ describe('useAuthStore', () => {
 describe('auth.store — hasSeenOnboarding', () => {
   beforeEach(() => {
     useAuthStore.setState({
-      accessToken: 'tok', refreshToken: 'ref', user: null, isAnonymous: false, hasSeenOnboarding: false,
+      accessToken: 'tok', refreshToken: 'ref', email: null, isAnonymous: false, hasSeenOnboarding: false,
     });
   });
 

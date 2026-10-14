@@ -25,3 +25,6 @@ jest.mock('nativewind', () => ({
     toggleColorScheme: jest.fn(),
   }),
 }));
+
+// Icons render as a host element in tests; the real set needs expo-font's native loader.
+jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
