@@ -13,7 +13,7 @@ permissions:
 jobs:
   live-smoke:
     name: Live provider smoke (real OpenAI)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ci-slot]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
