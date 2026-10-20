@@ -1,4 +1,4 @@
-import { eq, getDb, courses, modules } from '@autodidact/db';
+import { eq, getDb, courses, modules, moduleProgress, openModuleProgress } from '@autodidact/db';
 import type { IQueueProvider } from '@autodidact/providers';
 import type { CourseGenerationJobData } from '@autodidact/types';
 import type { Logger } from '@autodidact/observability';
@@ -40,6 +40,7 @@ export async function processCourseGeneration(
     // A retry can reach here with modules already committed (e.g. the previous
     // attempt failed on the follow-up enqueue, after this transaction). Delete
     // before insert so a re-run replaces rather than duplicates the module set.
+    await tx.delete(moduleProgress).where(eq(moduleProgress.courseId, courseId));
     await tx.delete(modules).where(eq(modules.courseId, courseId));
 
     await tx
@@ -66,7 +67,7 @@ export async function processCourseGeneration(
       estimatedMinutes: m.estimated_minutes,
     }));
 
-    return tx
+    const inserted = await tx
       .insert(modules)
       .values(moduleRows)
       .returning({
@@ -76,6 +77,11 @@ export async function processCourseGeneration(
         objectives: modules.objectives,
         content: modules.content,
       });
+
+    // The API enrolled the creator when the course was requested.
+    await openModuleProgress(tx, courseId);
+
+    return inserted;
   });
 
   // RAG indexing (ADR-024): best-effort, AFTER the course-ready commit so a

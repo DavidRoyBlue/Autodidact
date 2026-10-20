@@ -1,43 +1,31 @@
-# Golden-path mobile e2e: sign in → create a course → wait for generation →
-# open a module → chat a turn → see the assistant reply.
+# Golden-path mobile e2e: sign in → create a course → wait for it on Home →
+# start the lesson → see the teacher's first reply.
 #
 # Mirrors the cross-service golden path (@autodidact/e2e) but through the real
 # UI. Run against a backend started with EMBEDDING_PROVIDER=mock AUTH_PROVIDER=mock
 # so generation is fast and deterministic.
-#
-# NOTE: the selectors below the sign-in step are a starting scaffold and must be
-# validated against a running build (screen labels/testIDs may differ). Keep
-# this flow in the nightly/manual lane until verified on-device.
-appId: com.autodidact.app
+appId: com.autodidact.app.dev
 ---
 - runFlow: sign-in.yaml
 
-# Create a course
-- tapOn:
-    text: "New Course|Create|Generate"
-    optional: true
-- tapOn:
-    id: "course-topic-input"
-    optional: true
+# Create a course: it builds server-side and shows on Home
+- tapOn: "New course"
+- tapOn: "e.g. Spanish for travel"
 - inputText: "TypeScript basics"
-- tapOn:
-    text: "Generate|Create Course"
-    optional: true
+- tapOn: "Build my course"
+- assertVisible: "Your learning"
 
-# Generation polls until ready, then routes into the course
+# The newest course becomes the continue card once it is ready
 - extendedWaitUntil:
-    visible: "Module 1"
-    timeout: 60000
+    visible: "Start lesson"
+    timeout: 600000
+- tapOn: "Start lesson"
 
-# Open the first module and chat a turn
-- tapOn: "Module 1"
-- tapOn:
-    id: "chat-input"
-    optional: true
+# The lesson: start it and wait for the teacher's first reply
+- tapOn: "Start the lesson"
+- extendedWaitUntil:
+    notVisible: "Your teacher is thinking"
+    timeout: 120000
+- tapOn: "Ask a question or answer your teacher"
 - inputText: "I understand this module now."
-- tapOn:
-    text: "Send"
-    optional: true
-- extendedWaitUntil:
-    visible: ".*"
-    timeout: 30000
+- hideKeyboard

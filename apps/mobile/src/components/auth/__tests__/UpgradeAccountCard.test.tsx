@@ -32,6 +32,7 @@ test('confirmation OFF: server returns non-anonymous → clears guest state', as
   useAuthStore.getState().setSession('at', 'rt', true);
   mockUpdateUser.mockResolvedValue({ data: { user: { id: 'u1', is_anonymous: false } }, error: null });
   const { getByText, getByPlaceholderText } = renderWithProviders(<UpgradeAccountCard />);
+  fireEvent.press(getByText('Use email instead'));
   fireEvent.changeText(getByPlaceholderText('you@example.com'), 'new@user.dev');
   fireEvent.changeText(getByPlaceholderText('Choose a password'), 'Secret123!');
   fireEvent.press(getByText('Save your account'));
@@ -47,6 +48,7 @@ test('confirmation PENDING: server still anonymous w/ new_email → stays a gues
     error: null,
   });
   const { getByText, getByPlaceholderText } = renderWithProviders(<UpgradeAccountCard />);
+  fireEvent.press(getByText('Use email instead'));
   fireEvent.changeText(getByPlaceholderText('you@example.com'), 'new@user.dev');
   fireEvent.changeText(getByPlaceholderText('Choose a password'), 'Secret123!');
   fireEvent.press(getByText('Save your account'));

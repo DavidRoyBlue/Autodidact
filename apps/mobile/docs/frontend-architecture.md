@@ -8,20 +8,22 @@ Expo Router 4 provides file-system routing. Every file under `app/` is a route; 
 app/
 ├── _layout.tsx                          # Root layout (providers + auth guard)
 ├── (auth)/
-│   └── sign-in.tsx                      # /sign-in
+│   ├── sign-in.tsx                      # /sign-in
+│   └── sign-up.tsx                      # /sign-up
 └── (app)/
-    ├── _layout.tsx                      # Tab navigator
-    ├── index.tsx                        # / (Dashboard)
-    ├── profile.tsx                      # /profile
-    ├── courses/
-    │   ├── index.tsx                    # /courses
-    │   └── [id]/
-    │       ├── index.tsx                # /courses/:id
-    │       └── modules/[moduleId]/
-    │           └── chat.tsx             # /courses/:id/modules/:moduleId/chat
+    ├── _layout.tsx                      # Stack: the tabs, then course and lesson screens above them
+    ├── (tabs)/
+    │   ├── _layout.tsx                  # Tab bar: Home, New course, Profile
+    │   ├── index.tsx                    # / (Home)
+    │   ├── create.tsx                   # /create
+    │   └── profile.tsx                  # /profile
+    └── courses/[id]/
+        ├── index.tsx                    # /courses/:id
+        └── modules/[moduleId]/
+            └── chat.tsx                 # /courses/:id/modules/:moduleId/chat
 ```
 
-Parentheses groups `(auth)` and `(app)` are route segments that don't appear in the URL. They exist to scope layouts.
+Parentheses groups `(auth)`, `(app)` and `(tabs)` are route segments that don't appear in the URL. They exist to scope layouts. Course and lesson screens sit in the stack above `(tabs)`, so they open full screen with a back button and no tab bar over the chat composer.
 
 ## Provider stack
 
@@ -39,18 +41,19 @@ The auth guard runs inside `_layout.tsx` via three `useEffect` hooks:
 2. **`onAuthStateChange` listener**: syncs Supabase auth events (token refresh, sign-out) into the store by calling `setSession` or `clearSession`.
 3. **Route guard**: watches `accessToken` + `segments` → redirects between `(auth)` and `(app)` using `router.replace`.
 
-`app/(app)/_layout.tsx` renders the tab bar. It passes hardcoded tintColor hex values to React Navigation's `screenOptions` (inline `style` — no Tailwind equivalent for RN nav props).
+`app/(app)/_layout.tsx` (stack) and `app/(app)/(tabs)/_layout.tsx` (tab bar) read React Navigation's colors from `useThemeColors()` (`src/lib/theme-colors.ts`), the one place the tokens exist as values for APIs that take no className.
 
 ## Screens
 
 | File | Purpose |
 |------|---------|
-| `(auth)/sign-in.tsx` | Email/password sign-in form |
-| `(app)/index.tsx` | Dashboard: welcome, quick-start course generation |
-| `(app)/courses/index.tsx` | Course list with progress indicators |
-| `(app)/courses/[id]/index.tsx` | Course detail: module list, per-module progress |
-| `(app)/courses/[id]/modules/[moduleId]/chat.tsx` | AI tutor chat for a module |
-| `(app)/profile.tsx` | User profile display |
+| `(auth)/sign-in.tsx` | Google, Facebook, email (folded) and guest sign-in |
+| `(auth)/sign-up.tsx` | Email sign-up and the "check your email" step |
+| `(app)/(tabs)/index.tsx` | Home: continue card into the next module, every course with progress, building/failed states |
+| `(app)/(tabs)/create.tsx` | New course: topic, level, time; returns Home while the course builds |
+| `(app)/(tabs)/profile.tsx` | Account, stats, guest upgrade, sign out |
+| `(app)/courses/[id]/index.tsx` | Course: progress, start/continue, module list with states |
+| `(app)/courses/[id]/modules/[moduleId]/chat.tsx` | Lesson: module intro, the chat with the teacher, completion card with the next module |
 
 ## Conventions
 

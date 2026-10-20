@@ -14,7 +14,7 @@ function mockResponse(status: number): Response {
 
 describe('apiFetch', () => {
   beforeEach(() => {
-    useAuthStore.setState({ accessToken: null, refreshToken: null, user: null });
+    useAuthStore.setState({ accessToken: null, refreshToken: null, email: null });
     refreshSession.mockReset();
     global.fetch = jest.fn().mockResolvedValue(mockResponse(200)) as unknown as typeof fetch;
   });

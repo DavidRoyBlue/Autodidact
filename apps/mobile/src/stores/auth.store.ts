@@ -1,16 +1,15 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import * as SecureStore from 'expo-secure-store';
-import type { UserProfile } from '@autodidact/types';
 
 interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
-  user: UserProfile | null;
+  email: string | null;
   isAnonymous: boolean;
   hasSeenOnboarding: boolean;
   setSession: (accessToken: string, refreshToken: string, isAnonymous?: boolean) => void;
-  setUser: (user: UserProfile) => void;
+  setEmail: (email: string | null) => void;
   setHasSeenOnboarding: (seen: boolean) => void;
   clearSession: () => void;
 }
@@ -26,15 +25,15 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       accessToken: null,
       refreshToken: null,
-      user: null,
+      email: null,
       isAnonymous: false,
       hasSeenOnboarding: false,
       setSession: (accessToken, refreshToken, isAnonymous = false) =>
         set({ accessToken, refreshToken, isAnonymous }),
-      setUser: (user) => set({ user }),
+      setEmail: (email) => set({ email }),
       setHasSeenOnboarding: (seen) => set({ hasSeenOnboarding: seen }),
       // hasSeenOnboarding intentionally survives sign-out — it is device-local UX, not session state.
-      clearSession: () => set({ accessToken: null, refreshToken: null, user: null, isAnonymous: false }),
+      clearSession: () => set({ accessToken: null, refreshToken: null, email: null, isAnonymous: false }),
     }),
     {
       name: 'autodidact-auth',

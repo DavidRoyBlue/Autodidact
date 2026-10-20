@@ -11,10 +11,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     process.env.AUTODIDACT_API_BASE_URL ??
     (config.extra?.apiBaseUrl as string | undefined) ??
     'http://localhost:3000/v1';
+  // APP_VARIANT=dev (set by scripts/run-mobile.sh): "Autodidact Dev", its own
+  // package, so it installs beside the store app instead of replacing it.
+  const dev = process.env.APP_VARIANT === 'dev';
   return {
   ...config,
-  name: config.name ?? 'Autodidact',
+  name: dev ? 'Autodidact Dev' : (config.name ?? 'Autodidact'),
   slug: config.slug ?? 'autodidact',
+  android: {
+    ...config.android,
+    package: dev ? `${config.android?.package}.dev` : config.android?.package,
+  },
   plugins: [
     ...(config.plugins ?? []),
     'expo-router',

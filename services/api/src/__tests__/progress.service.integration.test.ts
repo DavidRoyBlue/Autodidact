@@ -150,7 +150,7 @@ describe('ProgressService.markModuleStarted()', () => {
     await seedEnrollment(harness.db, userId, courseId);
     await seedModuleProgress(harness.db, userId, courseId, mods);
 
-    await service.markModuleStarted(userId, mods[0]!.id);
+    await service.markModuleStarted(userId, mods[0]!.id, courseId);
 
     const [progress] = await harness.db
       .select({ status: moduleProgress.status })
@@ -166,7 +166,7 @@ describe('ProgressService.markModuleStarted()', () => {
     await seedModuleProgress(harness.db, userId, courseId, mods);
 
     // mods[1] has position=1, so it starts as 'locked'
-    await service.markModuleStarted(userId, mods[1]!.id);
+    await service.markModuleStarted(userId, mods[1]!.id, courseId);
 
     const [progress] = await harness.db
       .select({ status: moduleProgress.status })
@@ -174,5 +174,20 @@ describe('ProgressService.markModuleStarted()', () => {
       .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.moduleId, mods[1]!.id)));
 
     expect(progress?.status).toBe('locked');
+  });
+
+  it("bumps the course's enrollment to most recently accessed", async () => {
+    const mods = await seedModules(harness.db, courseId, 1);
+    await seedEnrollment(harness.db, userId, courseId);
+    await seedModuleProgress(harness.db, userId, courseId, mods);
+    const before = new Date();
+
+    await service.markModuleStarted(userId, mods[0]!.id, courseId);
+
+    const [enrollment] = await harness.db
+      .select({ lastAccessedAt: enrollments.lastAccessedAt })
+      .from(enrollments)
+      .where(and(eq(enrollments.userId, userId), eq(enrollments.courseId, courseId)));
+    expect(enrollment!.lastAccessedAt!.getTime()).toBeGreaterThanOrEqual(before.getTime());
   });
 });

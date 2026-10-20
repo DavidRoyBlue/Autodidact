@@ -1,13 +1,24 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { Button as UIButton } from '@/components/ui/button';
+import { Button as UIButton, buttonTextVariants } from '@/components/ui/button';
 import { AppText } from '../typography/AppText';
-import { getThemeColors } from '@/lib/theme-colors';
+import { Icon, type IconName } from '../display/Icon';
+import { useThemeColors, type ThemeColor } from '@/lib/theme-colors';
+
+type Variant = 'primary' | 'secondary' | 'ghost' | 'link';
+
+// The icon and spinner take the label's color as a value.
+const iconColor: Record<Variant, ThemeColor> = {
+  primary: 'primaryForeground',
+  secondary: 'foreground',
+  ghost: 'foreground',
+  link: 'primary',
+};
 
 type ButtonProps = {
-  variant?: 'primary' | 'danger' | 'ghost';
+  variant?: Variant;
   size?: 'sm' | 'md' | 'lg';
+  icon?: IconName;
   loading?: boolean;
   disabled?: boolean;
   onPress?: () => void;
@@ -17,15 +28,13 @@ type ButtonProps = {
 export function Button({
   variant = 'primary',
   size = 'md',
+  icon,
   loading = false,
   disabled = false,
   onPress,
   children,
 }: ButtonProps) {
-  const { colorScheme } = useColorScheme();
-  const textClass = variant === 'ghost' ? 'text-foreground' : 'text-primary-foreground';
-  const c = getThemeColors(colorScheme);
-  const indicatorColor = variant === 'ghost' ? c.foreground : c.primaryForeground;
+  const spinnerColor = useThemeColors()[iconColor[variant]];
   return (
     <UIButton
       variant={variant}
@@ -33,14 +42,14 @@ export function Button({
       disabled={disabled || loading}
       onPress={disabled || loading ? undefined : onPress}
     >
-      {loading ? (
-        <View className="flex-row items-center gap-2">
-          <ActivityIndicator size="small" color={indicatorColor} />
-          <AppText weight="semibold" className={textClass}>{children}</AppText>
-        </View>
-      ) : (
-        <AppText weight="semibold" className={textClass}>{children}</AppText>
-      )}
+      <View className="flex-row items-center gap-2">
+        {loading ? (
+          <ActivityIndicator size="small" color={spinnerColor} />
+        ) : (
+          icon && <Icon name={icon} color={iconColor[variant]} size={18} />
+        )}
+        <AppText className={buttonTextVariants({ variant, size })}>{children}</AppText>
+      </View>
     </UIButton>
   );
 }

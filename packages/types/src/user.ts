@@ -1,14 +1,5 @@
 import type { ModuleStatus } from './course.js';
 
-export interface UserProfile {
-  id: string;
-  supabaseId: string;
-  email: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-  createdAt: string;
-}
-
 export interface AuthUser {
   id: string;
   supabaseId: string;

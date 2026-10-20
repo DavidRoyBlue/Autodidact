@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { Observable, Subject } from 'rxjs';
 import type { MessageEvent } from '@nestjs/common';
-import { getDb, chatSessions, courses, modules, moduleProgress, eq, and } from '@autodidact/db';
+import { getDb, chatSessions, courses, modules, moduleProgress, eq, and, desc } from '@autodidact/db';
 import { ProgressService } from '../progress/progress.service.js';
 import { ProvisioningService } from '../provisioning/provisioning.service.js';
 import { ApiAgentClient } from '../../services/agent.client.js';
@@ -23,9 +23,20 @@ export class ChatService {
     private readonly platform: ApiPlatformClient,
   ) {}
 
-  async createSession(userId: string, moduleId: string, _courseId: string) {
+  /** Resumes the learner's latest session on the module, so reopening the chat keeps its history. */
+  async createSession(userId: string, moduleId: string) {
     await this.provisioning.ensureProvisioned(userId);
     const db = getDb();
+    const [mod] = await db.select({ courseId: modules.courseId }).from(modules).where(eq(modules.id, moduleId)).limit(1);
+    if (!mod) throw new NotFoundException('Module not found');
+    await this.progressService.markModuleStarted(userId, moduleId, mod.courseId);
+    const [existing] = await db
+      .select()
+      .from(chatSessions)
+      .where(and(eq(chatSessions.userId, userId), eq(chatSessions.moduleId, moduleId), eq(chatSessions.isActive, true)))
+      .orderBy(desc(chatSessions.updatedAt))
+      .limit(1);
+    if (existing) return existing;
     const [session] = await db
       .insert(chatSessions)
       .values({ userId, moduleId, messages: [] })
