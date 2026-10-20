@@ -28,6 +28,7 @@
 - [x] Mobile runs on the emulator again (#320 follow-up): `scripts/run-mobile.sh --release` builds the APK locally (Accountability's recipe) and installs it — no EAS dev client, no Metro; walkthrough in `apps/mobile/docs/walkthrough-2026-09-29.md` — its "Left open" list (chat session resume, server-side enroll on generation, Google end-to-end, streaming UX, generation failures on long budgets) is what remains
 - [ ] EAS build + store-submission path for Mobile — *build config done (`apps/mobile/eas.json`, preview/production profiles); Play Store submission pending*
 - [ ] Real Mobile test coverage (E2E, not just light unit tests)
+- [ ] Decide whether the hosted Claude workflows (claude.yml, claude-code-review, claude-pr-review, doc-sync-check, claude-api-sync-documentation, claude-weekly-maintenance, adr-review, pr-autolabel; declared `optional-check`, kept on ubuntu-latest because the runner user's `$HOME` is David's) earn their keep beside the pipeline reviewer or are removed; all other workflows already run on this machine's runners (Automation ADR 0009)
 
 ### Auth & mobile styling (since 2026-06)
 
