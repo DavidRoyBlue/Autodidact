@@ -31,3 +31,11 @@ release        deploy
 # files only a workflow writes, straight to the default branch after a merge;
 # a commit touching nothing else is not what "behind" or "green" is measured against
 generated      docs/implementations.md
+
+# Hosted by exception (~/Automation ADR 0009): the claude-code-action workflows and the
+# auto-labeller run Claude Code under the runner's $HOME, which on this machine is David's,
+# so they stay on GitHub's image. Optional: a hosted failure (billing, the action) never holds a PR.
+optional-check claude-review
+optional-check checklist-review
+optional-check doc-sync
+optional-check label

@@ -31,7 +31,7 @@ permissions:
 jobs:
   write:
     if: github.event.pull_request.merged && github.event.pull_request.base.ref == github.event.repository.default_branch
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, control, autoland]
     timeout-minutes: 5
     env:
       GH_TOKEN: ${{ github.token }}
