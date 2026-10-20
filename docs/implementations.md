@@ -2,6 +2,7 @@
 
 The last 20 merged PRs, newest first. Rewritten by the `implementations` workflow on every merge; never edited by hand or by a PR.
 
+- 2026-10-20 #532 ci: CI, nightly and the issue workflows run on this machine's runner; the Claude workflows stay hosted, optional
 - 2026-10-14 #530 ci: re-stamp workflows — source comment names ~/Automation/infra/templates
 - 2026-10-06 #508 implementations workflow: docs/implementations.md is written on every merge
 - 2026-10-02 #500 Deploys through Automation's release flow: prod fast-forwarded by app-release promote, the standard deploy stub
@@ -21,4 +22,3 @@ The last 20 merged PRs, newest first. Rewritten by the `implementations` workflo
 - 2026-09-24 #297 Code graph: follow upstream guidance (skill, session nudge, grep enrichment)
 - 2026-09-22 #296 Adopt ci-autoland: self-hosted runner + auto-merge on green
 - 2026-09-22 #294 Drop the emulator script: the AVD is machine-wide now
-- 2026-09-22 #291 emulator.sh: the adb wiring is adb-up's, the script only boots the AVD
