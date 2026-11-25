@@ -11,7 +11,7 @@ codebase.**
 
 - GitHub-event triggers (issue closed, PR opened, cron) → **repo workflows** (`.github/workflows/`).
 - Human/local triggers (a tool call in a session, a prompt) → **hooks** (`.claude/hooks/`,
-  `.claude/settings.json`) or external tools (CommandCenter, harness).
+  `.claude/settings.json`) or external tools (harness).
 
 An automation is registered here if its trigger fires *in or on this repo*. Callers stay thin
 (a hook line, ~20-line workflow); rules and behavior live in one implementation the caller
@@ -28,7 +28,7 @@ system).
 | Field | Value |
 |---|---|
 | Trigger | <event that fires it, e.g. "GH issue closed" / "CC Write hook on plans/**"> |
-| Trigger owner | <repo workflow / local hook / CommandCenter / harness> |
+| Trigger owner | <repo workflow / local hook / harness> |
 | Implementation | <path, e.g. issuekit/cli.mjs check parent-close> |
 | Invoked by | <workflow file / hook config> |
 | Side effects | <what it creates/modifies> |
