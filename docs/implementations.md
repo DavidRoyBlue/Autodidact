@@ -2,6 +2,7 @@
 
 The last 20 merged PRs, newest first. Rewritten by the `implementations` workflow on every merge; never edited by hand or by a PR.
 
+- 2026-11-25 #545 Drop CommandCenter from automations README; track AgentPlatform retirement
 - 2026-11-24 #542 docs: add docs/tasks.md (what is owed)
 - 2026-10-20 #532 ci: CI, nightly and the issue workflows run on this machine's runner; the Claude workflows stay hosted, optional
 - 2026-10-14 #530 ci: re-stamp workflows — source comment names ~/Automation/infra/templates
@@ -21,4 +22,3 @@ The last 20 merged PRs, newest first. Rewritten by the `implementations` workflo
 - 2026-09-25 #312 The module teacher runs on AgentPlatform's course-teacher agent (ADR-031)
 - 2026-09-25 #309 Course generation runs on AgentPlatform's course-creator workflow (ADR-030)
 - 2026-09-24 #297 Code graph: follow upstream guidance (skill, session nudge, grep enrichment)
-- 2026-09-22 #296 Adopt ci-autoland: self-hosted runner + auto-merge on green
