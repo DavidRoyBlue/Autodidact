@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { Screen, Heading, AppText, Input, Button } from '@/components';
+import { Screen, Heading, AppText, Input, Button, IconTile } from '@/components';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -30,11 +30,12 @@ export default function SignUpScreen() {
     return (
       <Screen>
         <View className="flex-1 justify-center gap-4">
+          <IconTile icon="mail-unread-outline" />
           <Heading size="h1">Check your email</Heading>
           <AppText variant="muted" size="lg">
             We sent a confirmation link to {email}. Open it to activate your account.
           </AppText>
-          <Button variant="ghost" size="lg" onPress={() => router.replace('/(auth)/sign-in')}>
+          <Button variant="secondary" size="lg" onPress={() => router.replace('/(auth)/sign-in')}>
             Back to sign in
           </Button>
         </View>
@@ -43,8 +44,8 @@ export default function SignUpScreen() {
   }
 
   return (
-    <Screen>
-      <View className="flex-1 justify-center gap-4">
+    <Screen scroll>
+      <View className="flex-1 justify-center gap-4 py-6">
         <View className="gap-2 mb-4">
           <Heading size="h1">Create account</Heading>
           <AppText variant="muted" size="lg">Start learning anything, one module at a time.</AppText>
@@ -86,7 +87,7 @@ export default function SignUpScreen() {
           Create account
         </Button>
 
-        <Button variant="ghost" size="sm" onPress={() => router.back()}>
+        <Button variant="link" size="sm" onPress={() => router.back()}>
           Already have an account? Sign in
         </Button>
       </View>

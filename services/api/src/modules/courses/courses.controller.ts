@@ -34,14 +34,14 @@ export class CoursesController {
     return this.coursesService.getUserCourses(user.id);
   }
 
-  @Get('status/:courseId')
-  status(@Param('courseId') courseId: string) {
-    return this.coursesService.getGenerationStatus(courseId);
-  }
-
   @Get(':id')
   get(@Param('id') id: string) {
     return this.coursesService.getCourseWithModules(id);
+  }
+
+  @Post(':id/retry')
+  retry(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.coursesService.retryGeneration(user.id, id);
   }
 
   @Post(':id/enroll')

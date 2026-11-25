@@ -20,8 +20,10 @@ let harness: TestDatabase;
 vi.mock('@autodidact/db', async () => {
   const { eq, and, sql, or, inArray, desc, asc, gt, lt, gte, lte } = await import('drizzle-orm');
   const schema = await import('../../../../packages/db/src/schema/index.js');
+  const progress = await import('../../../../packages/db/src/progress.js');
   return {
     ...schema,
+    ...progress,
     eq, and, sql, or, inArray, desc, asc, gt, lt, gte, lte,
     getDb: () => harness.db,
     supabaseAdmin: null,
@@ -36,7 +38,7 @@ import {
   eq,
   and,
 } from '@autodidact/db';
-import { InternalServerErrorException } from '@nestjs/common';
+import { ForbiddenException, InternalServerErrorException } from '@nestjs/common';
 import { CoursesService } from '../modules/courses/courses.service.js';
 import { ProvisioningService } from '../modules/provisioning/provisioning.service.js';
 
@@ -263,6 +265,56 @@ describe('CoursesService.createOrReuse() — similarity routing', () => {
       .from(courses)
       .where(eq(courses.id, result.courseId));
     expect(newCourse?.status).toBe('pending');
+
+    // The creator is enrolled at once, so the course is on their list while it generates
+    const [enrollment] = await harness.db
+      .select({ id: enrollments.id })
+      .from(enrollments)
+      .where(and(eq(enrollments.userId, userId), eq(enrollments.courseId, result.courseId)));
+    expect(enrollment).toBeDefined();
+  });
+});
+
+describe('CoursesService.retryGeneration()', () => {
+  let userId: string;
+
+  beforeEach(async () => {
+    await harness.truncate();
+    userId = (await seedUser(harness.db)).id;
+  });
+
+  it("re-queues a failed course for its creator with the course's own parameters", async () => {
+    const course = await seedCourseWithEmbedding(userId, FAR_VECTOR, { status: 'failed', topic: 'Rust' });
+    const queue = makeMockQueueProvider();
+    const service = new CoursesService(makeMockAgentClient() as never, queue as never, makeMockProvisioningService() as never);
+
+    const result = await service.retryGeneration(userId, course.id);
+
+    expect(result.status).toBe('pending');
+    expect(queue.enqueue).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({ courseId: course.id, userId, topic: 'Rust', difficulty: 'beginner' }),
+    );
+    const [row] = await harness.db.select({ status: courses.status }).from(courses).where(eq(courses.id, course.id));
+    expect(row?.status).toBe('pending');
+  });
+
+  it('refuses anyone but the creator', async () => {
+    const course = await seedCourseWithEmbedding(userId, FAR_VECTOR, { status: 'failed' });
+    const other = await seedUser(harness.db);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
+
+    await expect(service.retryGeneration(other.id, course.id)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('leaves a course that has not failed alone', async () => {
+    const course = await seedCourseWithEmbedding(userId, FAR_VECTOR, { status: 'ready' });
+    const queue = makeMockQueueProvider();
+    const service = new CoursesService(makeMockAgentClient() as never, queue as never, makeMockProvisioningService() as never);
+
+    expect((await service.retryGeneration(userId, course.id)).status).toBe('ready');
+    expect(queue.enqueue).not.toHaveBeenCalled();
   });
 });
 
@@ -314,6 +366,44 @@ describe('CoursesService read paths', () => {
     const results = await service.getUserCourses(userId);
     expect(results).toHaveLength(1);
     expect(results[0]!.id).toBe(courseId);
+  });
+
+  it('getUserCourses carries progress and the next module to learn', async () => {
+    const mods = await seedModules(harness.db, courseId, 3);
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
+    await service.enrollUser(userId, courseId);
+    await harness.db
+      .update(moduleProgress)
+      .set({ status: 'completed' })
+      .where(eq(moduleProgress.moduleId, mods[0]!.id));
+    await harness.db
+      .update(moduleProgress)
+      .set({ status: 'available' })
+      .where(eq(moduleProgress.moduleId, mods[1]!.id));
+
+    const [course] = await service.getUserCourses(userId);
+
+    expect(course).toMatchObject({
+      totalModules: 3,
+      completedModules: 1,
+      nextModuleId: mods[1]!.id,
+      nextModulePosition: 1,
+    });
+  });
+
+  it('getUserCourses lists the most recently accessed course first', async () => {
+    const other = await seedCourse(harness.db, userId);
+    await seedEnrollment(harness.db, userId, courseId);
+    await seedEnrollment(harness.db, userId, other.id);
+    await harness.db
+      .update(enrollments)
+      .set({ lastAccessedAt: new Date(Date.now() + 60_000) })
+      .where(eq(enrollments.courseId, courseId));
+    const service = new CoursesService(makeMockAgentClient() as never, makeMockQueueProvider() as never, makeMockProvisioningService() as never);
+
+    const results = await service.getUserCourses(userId);
+
+    expect(results.map((c) => c.id)).toEqual([courseId, other.id]);
   });
 
   it('getUserCourses returns empty array for a user with no enrollments', async () => {

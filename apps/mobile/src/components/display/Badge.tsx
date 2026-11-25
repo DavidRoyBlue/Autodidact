@@ -2,10 +2,10 @@ import { View } from 'react-native';
 import { AppText } from '../typography/AppText';
 
 const frameClass = {
-  default: 'bg-primary/[0.13]',
-  success: 'bg-success/[0.15]',
-  warning: 'bg-warning/[0.15]',
-  danger: 'bg-destructive/[0.15]',
+  default: 'bg-primary/15',
+  success: 'bg-success/15',
+  warning: 'bg-warning/15',
+  danger: 'bg-destructive/15',
 } as const;
 
 const textClass = {

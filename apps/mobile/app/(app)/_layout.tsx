@@ -1,50 +1,21 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from 'nativewind';
-import { getThemeColors } from '@/lib/theme-colors';
+import { Stack } from 'expo-router';
+import { useThemeColors } from '@/lib/theme-colors';
 
+// The tabs are one screen of this stack, so a course and its lessons open above
+// them: full screen, with a back button, and no tab bar over the chat composer.
 export default function AppLayout() {
-  const { colorScheme } = useColorScheme();
-  const theme = getThemeColors(colorScheme);
-
+  const theme = useThemeColors();
   return (
-    <Tabs
+    <Stack
       screenOptions={{
         headerStyle: { backgroundColor: theme.background },
         headerTintColor: theme.foreground,
-        tabBarStyle: { backgroundColor: theme.card, borderTopColor: theme.border },
-        tabBarActiveTintColor: theme.primary,
-        tabBarInactiveTintColor: theme.mutedForeground,
+        headerShadowVisible: false,
+        headerTitle: '',
+        contentStyle: { backgroundColor: theme.background },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Learn',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="book-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="courses"
-        options={{
-          title: 'My Courses',
-          headerShown: false, // the courses stack draws its own header (with back)
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="library-outline" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" color={color} size={size} />
-          ),
-        }}
-      />
-    </Tabs>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    </Stack>
   );
 }

@@ -60,7 +60,8 @@ export class ProgressService {
     }
   }
 
-  async markModuleStarted(userId: string, moduleId: string) {
+  /** The learner opened a module: it is in progress, and its course is their most recent. */
+  async markModuleStarted(userId: string, moduleId: string, courseId: string) {
     const db = getDb();
     await db
       .update(moduleProgress)
@@ -72,5 +73,9 @@ export class ProgressService {
           eq(moduleProgress.status, 'available'),
         ),
       );
+    await db
+      .update(enrollments)
+      .set({ lastAccessedAt: new Date() })
+      .where(and(eq(enrollments.userId, userId), eq(enrollments.courseId, courseId)));
   }
 }

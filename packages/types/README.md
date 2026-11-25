@@ -12,8 +12,8 @@ The distinction from `@autodidact/schemas`: types here are for static structural
 |----------|-------|
 | `packages/db` | `ModuleResource` in the `modules` schema column type annotation |
 | `packages/schemas` | `DifficultyLevel`, `TimeBudget` imported for their Zod enums |
-| `packages/providers` | `AuthUser`, `JobStatus` in interface definitions |
-| `services/api` | `UserProfile`, `AuthUser`, `UserProgress`, `ChatSession`, job data types |
+| `packages/providers` | `AuthUser` in interface definitions |
+| `services/api` | `AuthUser`, `UserProgress`, `ChatSession`, job data types |
 | `services/worker` | `CourseGenerationJobData`, `EmbeddingJobData`, `TimeBudget` |
 
 
@@ -25,7 +25,6 @@ import type {
   CourseStatus,             // 'pending' | 'generating' | 'ready' | 'failed'
   ModuleStatus,             // 'locked' | 'available' | 'in_progress' | 'completed'
   DifficultyLevel,          // 'beginner' | 'intermediate' | 'advanced'
-  JobStatus,                // 'pending' | 'active' | 'completed' | 'failed' | 'delayed'
   TimeBudget,               // '30min' | '1h' | '4h' | 'unrestricted'
   ModuleResource,           // { url: string; title: string; why: string }
   CourseModule,             // Persisted module: content (markdown lesson) + resources
@@ -36,7 +35,6 @@ import type {
   ChatSession,              // Full chat session with messages
 
   // User domain
-  UserProfile,              // Public user profile
   AuthUser,                 // Authenticated user identity (id, supabaseId, email)
   ModuleProgressItem,       // Per-module progress for a user
   UserProgress,             // Enrollment + all module progress for a user
@@ -53,7 +51,7 @@ import type {
 packages/types/src/
 ├── course.ts   # Status unions, TimeBudget, ModuleResource, CourseModule
 ├── chat.ts     # ChatRole, ChatMessage, ChatSession
-├── user.ts     # UserProfile, AuthUser, ModuleProgressItem, UserProgress
+├── user.ts     # AuthUser, ModuleProgressItem, UserProgress
 ├── jobs.ts     # CourseGenerationJobData, EmbeddingJobData
 └── index.ts    # Re-exports all of the above
 ```
@@ -72,5 +70,4 @@ function logModules(modules: CourseModule[]): void {
 
 ## Gotchas
 
-- `JobStatus` includes `'delayed'` (a legacy queue state, unused since the Cloud Tasks migration) in addition to the standard `'pending' | 'active' | 'completed' | 'failed'` states. Do not rely on `'delayed'` in business logic.
 - Do not add Zod schemas or `z.infer<>` types to this package. They belong in `@autodidact/schemas`.

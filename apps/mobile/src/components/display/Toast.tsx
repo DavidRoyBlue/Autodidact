@@ -4,8 +4,8 @@ import { AppText } from '../typography/AppText';
 import { useToastStore, type ToastVariant } from '../../stores/toast.store';
 
 const frameClass: Record<ToastVariant, string> = {
-  success: 'bg-success/[0.15] border-success',
-  error: 'bg-destructive/[0.15] border-destructive',
+  success: 'bg-success/15 border-success',
+  error: 'bg-destructive/15 border-destructive',
   info: 'bg-card border-border',
 };
 

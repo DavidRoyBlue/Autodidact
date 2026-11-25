@@ -41,6 +41,8 @@ module.exports = {
         'user-bubble': 'hsl(var(--user-bubble) / <alpha-value>)',
         'assistant-bubble': 'hsl(var(--assistant-bubble) / <alpha-value>)',
       },
+      // Tint strength for status/brand washes (bg-primary/15); tailwind 3.3 has no 15 step.
+      opacity: { 15: '0.15' },
       borderRadius: { sm: '8px', md: '12px', lg: '16px' },
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'sans-serif'],
@@ -52,6 +54,7 @@ module.exports = {
         md: ['15px', '22px'],
         lg: ['16px', '24px'],
         xl: ['18px', '27px'],
+        h3: ['20px', '26px'],
         h2: ['26px', '32px'],
         h1: ['32px', '38px'],
       },

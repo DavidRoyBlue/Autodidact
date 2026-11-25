@@ -5,7 +5,7 @@
 ## Purpose of this subtree
 
 The progress module owns per-user learning state:
-- Reading a user's `module_progress` rows for a course
+- Reading a user's `module_progress` rows for a course (the rows themselves are created only by `openModuleProgress` in `@autodidact/db` — see the courses module)
 - Completing a module (marking it `'completed'`, recording score, unlocking the next module)
 - Marking a module as `'in_progress'` when the user starts it
 - Completing an enrollment when all modules are finished

@@ -1,6 +1,7 @@
 export type Segment =
   | { type: 'text'; content: string }
   | { type: 'bold'; content: string }
+  | { type: 'italic'; content: string }
   | { type: 'code'; content: string }
   | { type: 'codeblock'; lang: string; content: string };
 
@@ -27,9 +28,17 @@ export function parseMarkdown(text: string): Segment[] {
   return segments;
 }
 
-function parseInline(text: string, out: Segment[]): void {
-  // Matches **bold** and `code` tokens.
-  const inlineRe = /\*\*(.+?)\*\*|`([^`]+)`/g;
+// Lines the inline pass can show as text: bullets become "•", headings bold.
+function normalizeLines(text: string): string {
+  return text
+    .replace(/^[ \t]*[-*][ \t]+/gm, '•  ')
+    .replace(/^#{1,6}[ \t]+(.+)$/gm, '**$1**');
+}
+
+function parseInline(raw: string, out: Segment[]): void {
+  const text = normalizeLines(raw);
+  // Matches **bold**, `code` and *italic* tokens.
+  const inlineRe = /\*\*(.+?)\*\*|`([^`]+)`|\*([^*\n]+)\*/g;
   let last = 0;
   let m: RegExpExecArray | null;
 
@@ -41,6 +50,8 @@ function parseInline(text: string, out: Segment[]): void {
       out.push({ type: 'bold', content: m[1] });
     } else if (m[2] !== undefined) {
       out.push({ type: 'code', content: m[2] });
+    } else if (m[3] !== undefined) {
+      out.push({ type: 'italic', content: m[3] });
     }
     last = m.index + m[0].length;
   }

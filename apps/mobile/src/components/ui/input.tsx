@@ -9,7 +9,9 @@ const Input = React.forwardRef<
   <TextInput
     ref={ref}
     className={cn(
-      'h-11 rounded-md border border-input bg-card px-4 text-md text-foreground',
+      'rounded-lg border border-input bg-card px-4 text-md text-foreground',
+      // A multiline input grows with its text; a single line keeps the touch height.
+      props.multiline ? 'min-h-12 py-3' : 'h-12',
       props.editable === false && 'opacity-50',
       className,
     )}

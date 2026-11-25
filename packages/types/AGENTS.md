@@ -26,9 +26,9 @@ Shared TypeScript type definitions used across services and packages. No runtime
 
 ## Source of truth
 
-- `src/course.ts` — domain status unions (`CourseStatus`, `ModuleStatus`, `DifficultyLevel`, `JobStatus`, `TimeBudget`) and course interfaces (`ModuleResource`, `CourseModule`).
+- `src/course.ts` — domain status unions (`CourseStatus`, `ModuleStatus`, `DifficultyLevel`, `TimeBudget`) and course interfaces (`ModuleResource`, `CourseModule`).
 - `src/chat.ts` — chat domain types (`ChatRole`, `ChatMessage`, `StreamChunk`, `ChatSession`).
-- `src/user.ts` — user and auth types (`UserProfile`, `AuthUser`, `ModuleProgressItem`, `UserProgress`).
+- `src/user.ts` — user and auth types (`AuthUser`, `ModuleProgressItem`, `UserProgress`).
 - `src/jobs.ts` — job queue payload types (`CourseGenerationJobData`, `EmbeddingJobData`).
 
 ---

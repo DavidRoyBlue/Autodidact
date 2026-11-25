@@ -55,8 +55,10 @@ let harness: TestDatabase;
 vi.mock('@autodidact/db', async () => {
   const { eq, and, sql, or, inArray, desc, asc, gt, lt, gte, lte } = await import('drizzle-orm');
   const schema = await import('../../../../../packages/db/src/schema/index.js');
+  const progress = await import('../../../../../packages/db/src/progress.js');
   return {
     ...schema,
+    ...progress,
     eq, and, sql, or, inArray, desc, asc, gt, lt, gte, lte,
     getDb: () => harness.db,
     getPool: () => harness.pool,
