@@ -16,3 +16,4 @@
 
 | Task | Owner | Issue | Details |
 |---|---|---|---|
+| Decide what replaces AgentPlatform (retired 2026-11-25) for course generation, module teacher and chat, or remove them | David | DavidRoyBlue/Autodidact#544 | Down since 2026-11-22; client, env vars and ADR-030..032 still reference it |
